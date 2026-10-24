@@ -4,8 +4,6 @@ import { useStore } from './data/store'
 import { cx } from './components/ui'
 import { toISODate, today } from './lib/dates'
 import { hideSplash } from './lib/splash'
-import Logo from './components/Logo'
-import { useSession } from './auth/AuthGate'
 import { SearchContext, SearchOverlay } from './components/Search'
 import HomePage from './pages/Home'
 import GroceriesPage from './pages/Groceries'
@@ -38,7 +36,6 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  const { members } = useSession()
   const [searching, setSearching] = useState(false)
   // Change à chaque résultat ouvert : la page se recharge même si on était déjà sur l'onglet.
   const [visit, setVisit] = useState(0)
@@ -66,15 +63,19 @@ export default function App() {
         {tab === 'afaire' && <TodosPage key={visit} />}
         {tab === 'listes' && <ListsPage key={visit} />}
 
-        {/* Petite signature en bas de chaque page */}
-        <footer className="mt-14 flex flex-col items-center gap-2 pb-2 text-faint">
-          <span className="opacity-70 grayscale-[35%]">
-            <Logo size={26} />
-          </span>
-          <span className="text-[12px] font-medium tracking-wide">
-            Foyer · {members.map((m) => m.display_name).join(' & ')}
-          </span>
-        </footer>
+        {/* Fond d'ambiance : une teinte très douce de la rubrique, en haut et en bas, au lieu d'un noir uni. */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 transition-opacity duration-700"
+          style={{
+            background: [
+              'radial-gradient(120% 55% at 50% 0%, color-mix(in srgb, var(--hero-to) 20%, transparent), transparent 72%)',
+              'radial-gradient(90% 40% at 100% 100%, color-mix(in srgb, var(--hero-from) 13%, transparent), transparent 70%)',
+              'radial-gradient(70% 35% at 0% 60%, color-mix(in srgb, var(--hero-from) 7%, transparent), transparent 70%)',
+              'var(--bg)',
+            ].join(', '),
+          }}
+        />
 
         {/* Fondu sous la barre d'onglets : le contenu s'efface doucement au lieu d'être coupé. */}
         <div
@@ -151,13 +152,13 @@ export default function App() {
         </nav>
 
         <SearchOverlay
-        open={searching}
-        onClose={closeSearch}
-        go={(t) => {
-          setVisit((v) => v + 1)
-          go(t)
-        }}
-      />
+          open={searching}
+          onClose={closeSearch}
+          go={(t) => {
+            setVisit((v) => v + 1)
+            go(t)
+          }}
+        />
       </div>
     </SearchContext.Provider>
   )

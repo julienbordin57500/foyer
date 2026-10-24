@@ -35,7 +35,10 @@ export function dueLabel(iso: string) {
   else if (days === 1) text = 'Demain'
   else if (days === -1) text = 'Hier'
   else if (late) text = `Depuis le ${ddmm(parseISODate(iso))}`
-  else if (days < 7) text = parseISODate(iso).toLocaleDateString('fr-FR', { weekday: 'long' }).replace(/^./, (c) => c.toUpperCase())
+  else if (days < 7)
+    text = parseISODate(iso)
+      .toLocaleDateString('fr-FR', { weekday: 'long' })
+      .replace(/^./, (c) => c.toUpperCase())
   else text = `Le ${ddmm(parseISODate(iso))}`
   return { text, late, days }
 }
@@ -52,9 +55,4 @@ export function splitQuantity(input: string): { name: string; quantity: string |
 
 export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-export const normalizeName = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim()
+export const normalizeName = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()

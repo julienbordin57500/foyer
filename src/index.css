@@ -103,10 +103,30 @@
 }
 
 /* En-têtes : dégradé et couleur propres à chaque rubrique. */
-[data-section='accueil'] { --sec: var(--coral); --hero-from: #ff7a59; --hero-to: #e0457b; --hero-ink: #ffffff; }
-[data-section='courses'] { --sec: var(--mint); --hero-from: #19c08a; --hero-to: #0b8a8f; --hero-ink: #ffffff; }
-[data-section='afaire'] { --sec: var(--amber); --hero-from: #ffc65c; --hero-to: #ff8a2a; --hero-ink: #2b1700; }
-[data-section='listes'] { --sec: var(--violet); --hero-from: #a78bfa; --hero-to: #6d3fe6; --hero-ink: #ffffff; }
+[data-section='accueil'] {
+  --sec: var(--coral);
+  --hero-from: #ff7a59;
+  --hero-to: #e0457b;
+  --hero-ink: #ffffff;
+}
+[data-section='courses'] {
+  --sec: var(--mint);
+  --hero-from: #19c08a;
+  --hero-to: #0b8a8f;
+  --hero-ink: #ffffff;
+}
+[data-section='afaire'] {
+  --sec: var(--amber);
+  --hero-from: #ffc65c;
+  --hero-to: #ff8a2a;
+  --hero-ink: #2b1700;
+}
+[data-section='listes'] {
+  --sec: var(--violet);
+  --hero-from: #a78bfa;
+  --hero-to: #6d3fe6;
+  --hero-ink: #ffffff;
+}
 
 @theme inline {
   --color-bg: var(--bg);
@@ -169,32 +189,70 @@ body {
 /* ─── Mouvements ──────────────────────────────────────────────────────────── */
 
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes pop-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes check-pop {
-  0% { transform: scale(0.6); }
-  60% { transform: scale(1.12); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.animate-page { animation: page-in 0.42s var(--ease-smooth) backwards; }
-.animate-pop { animation: pop-in 0.38s var(--ease-smooth) backwards; }
-.animate-fade { animation: fade-in 0.25s ease-out both; }
-.animate-check { animation: check-pop 0.36s var(--ease-smooth); }
-.animate-slide { animation: slide-in-right 0.4s var(--ease-smooth) backwards; }
+.animate-page {
+  animation: page-in 0.42s var(--ease-smooth) backwards;
+}
+.animate-pop {
+  animation: pop-in 0.38s var(--ease-smooth) backwards;
+}
+.animate-fade {
+  animation: fade-in 0.25s ease-out both;
+}
+.animate-check {
+  animation: check-pop 0.36s var(--ease-smooth);
+}
+.animate-slide {
+  animation: slide-in-right 0.4s var(--ease-smooth) backwards;
+}
 
 /* Ligne qui se replie en douceur (article acheté, tâche faite). */
 .collapsible {
@@ -216,47 +274,110 @@ body {
 }
 
 /* Fiche du bas : entrée et sortie */
-.sheet-backdrop { transition: opacity 0.3s ease; }
-.sheet-panel { transition: transform 0.42s var(--ease-smooth); }
-.sheet-closed .sheet-backdrop { opacity: 0; }
-.sheet-closed .sheet-panel { transform: translateY(100%); }
+.sheet-backdrop {
+  transition: opacity 0.3s ease;
+}
+.sheet-panel {
+  transition: transform 0.42s var(--ease-smooth);
+}
+.sheet-closed .sheet-backdrop {
+  opacity: 0;
+}
+.sheet-closed .sheet-panel {
+  transform: translateY(100%);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-page, .animate-pop, .animate-fade, .animate-check, .animate-slide { animation: none; }
-  .collapsible, .sheet-backdrop, .sheet-panel { transition: none; }
+  .animate-page,
+  .animate-pop,
+  .animate-fade,
+  .animate-check,
+  .animate-slide {
+    animation: none;
+  }
+  .collapsible,
+  .sheet-backdrop,
+  .sheet-panel {
+    transition: none;
+  }
 }
 
 /* Logo animé (démarrage, connexion) : le toit se dessine, puis vous deux arrivez. */
 @keyframes roof-draw {
-  from { stroke-dashoffset: 1; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 @keyframes dot-in {
-  0% { transform: scale(0); }
-  70% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
 }
-.logo-animated .logo-roof { stroke-dasharray: 1; animation: roof-draw 0.7s var(--ease-smooth) 0.1s backwards; }
+.logo-animated .logo-roof {
+  stroke-dasharray: 1;
+  animation: roof-draw 0.7s var(--ease-smooth) 0.1s backwards;
+}
 .logo-animated .logo-dot-a,
-.logo-animated .logo-dot-b { transform-box: fill-box; transform-origin: center; animation: dot-in 0.45s var(--ease-smooth) backwards; }
-.logo-animated .logo-dot-a { animation-delay: 0.55s; }
-.logo-animated .logo-dot-b { animation-delay: 0.68s; }
-.animate-breathe { animation: breathe 2.4s ease-in-out infinite; }
+.logo-animated .logo-dot-b {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dot-in 0.45s var(--ease-smooth) backwards;
+}
+.logo-animated .logo-dot-a {
+  animation-delay: 0.55s;
+}
+.logo-animated .logo-dot-b {
+  animation-delay: 0.68s;
+}
+.animate-breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .logo-animated .logo-roof, .logo-animated .logo-dot-a, .logo-animated .logo-dot-b, .animate-breathe { animation: none; }
+  .logo-animated .logo-roof,
+  .logo-animated .logo-dot-a,
+  .logo-animated .logo-dot-b,
+  .animate-breathe {
+    animation: none;
+  }
 }
 
 /* En-tête : arrive en glissant du haut, avec un léger fondu. */
 @keyframes hero-in {
-  from { opacity: 0.4; transform: translateY(-14px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0.4;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.animate-hero { animation: hero-in 0.55s var(--ease-smooth) backwards; }
-@media (prefers-reduced-motion: reduce) { .animate-hero { animation: none; } }
+.animate-hero {
+  animation: hero-in 0.55s var(--ease-smooth) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero {
+    animation: none;
+  }
+}
 
 /* La barre d'onglets est sombre dans les deux thèmes : couleurs vives partout. */
 nav {
@@ -268,9 +389,76 @@ nav {
 
 /* Petite cloche qui tinte quand un rappel est imminent. */
 @keyframes ring {
-  0%, 60%, 100% { transform: rotate(0); }
-  10%, 30%, 50% { transform: rotate(14deg); }
-  20%, 40% { transform: rotate(-14deg); }
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  10%,
+  30%,
+  50% {
+    transform: rotate(14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(-14deg);
+  }
 }
-.animate-ring { animation: ring 2.4s ease-in-out infinite; transform-origin: 50% 10%; }
-@media (prefers-reduced-motion: reduce) { .animate-ring { animation: none; } }
+.animate-ring {
+  animation: ring 2.4s ease-in-out infinite;
+  transform-origin: 50% 10%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-ring {
+    animation: none;
+  }
+}
+
+/* Validation : disque qui rebondit, coche qui se dessine, halo qui s'étend. */
+@keyframes success-disc {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes success-tick {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes success-halo {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--sec) 50%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 26px transparent;
+  }
+}
+.success-check {
+  border-radius: 9999px;
+  animation: success-halo 0.9s ease-out 0.3s;
+}
+.success-disc {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: success-disc 0.45s var(--ease-smooth) both;
+}
+.success-tick {
+  stroke-dasharray: 1;
+  animation: success-tick 0.4s var(--ease-smooth) 0.3s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .success-check,
+  .success-disc,
+  .success-tick {
+    animation: none;
+  }
+}

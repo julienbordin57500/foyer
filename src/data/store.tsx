@@ -28,7 +28,15 @@ export function DataProvider({ backend, children }: { backend: Backend; children
   const [toast, setToast] = useState<Store['toast']>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Écritures en vol par table : un rechargement temps réel pendant ce temps ferait clignoter l'écran.
-  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0, lists: 0, list_items: 0, note_reactions: 0, pings: 0 })
+  const pending = useRef<Record<TableName, number>>({
+    grocery_items: 0,
+    todos: 0,
+    notes: 0,
+    lists: 0,
+    list_items: 0,
+    note_reactions: 0,
+    pings: 0,
+  })
 
   const refresh = useCallback(
     async (table: TableName) => {
@@ -88,10 +96,18 @@ export function DataProvider({ backend, children }: { backend: Backend; children
         const full = { ...row, id: crypto.randomUUID() }
         const optimistic = { ...rowDefaults(table, backend.me), ...full } as unknown as Tables[TableName]
         // Les éléments de liste s'affichent dans l'ordre d'ajout, le reste du plus récent au plus ancien.
-        run(table, (rows) => (table === 'list_items' ? [...rows, optimistic] : [optimistic, ...rows]), () => backend.insert(table, full))
+        run(
+          table,
+          (rows) => (table === 'list_items' ? [...rows, optimistic] : [optimistic, ...rows]),
+          () => backend.insert(table, full),
+        )
       },
       update: (table, id, patch) =>
-        run(table, (rows) => rows.map((r) => (r.id === id ? ({ ...r, ...patch } as typeof r) : r)), () => backend.update(table, id, patch)),
+        run(
+          table,
+          (rows) => rows.map((r) => (r.id === id ? ({ ...r, ...patch } as typeof r) : r)),
+          () => backend.update(table, id, patch),
+        ),
       createList: (list, items) => {
         const id = crypto.randomUUID()
         const rows = items.map((text) => ({ id: crypto.randomUUID(), list_id: id, text }))
@@ -145,7 +161,12 @@ export function DataProvider({ backend, children }: { backend: Backend; children
           },
         })
       },
-      remove: (table, id) => run(table, (rows) => rows.filter((r) => r.id !== id), () => backend.remove(table, id)),
+      remove: (table, id) =>
+        run(
+          table,
+          (rows) => rows.filter((r) => r.id !== id),
+          () => backend.remove(table, id),
+        ),
     }),
     [data, loading, error, toast, backend, run, refresh],
   )

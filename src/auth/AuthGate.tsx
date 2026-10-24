@@ -107,7 +107,10 @@ function SupabaseGate({ children }: { children: ReactNode }) {
     loadProfile()
   }, [loadProfile])
 
-  const backend = useMemo<Backend | null>(() => (profile ? supabaseBackend(sb, profile.household.id, profile.me.user_id) : null), [sb, profile])
+  const backend = useMemo<Backend | null>(
+    () => (profile ? supabaseBackend(sb, profile.household.id, profile.me.user_id) : null),
+    [sb, profile],
+  )
 
   // Pendant ce temps, l'écran de démarrage (index.html) reste affiché.
   if (session === undefined || (session && profile === undefined)) return null
@@ -171,9 +174,7 @@ function Login() {
     setError(null)
     setInfo(null)
     const res =
-      mode === 'in'
-        ? await supabase!.auth.signInWithPassword({ email, password })
-        : await supabase!.auth.signUp({ email, password })
+      mode === 'in' ? await supabase!.auth.signInWithPassword({ email, password }) : await supabase!.auth.signUp({ email, password })
     setBusy(false)
     if (res.error) return setError(translateAuthError(res.error.message))
     if (mode === 'up' && !res.data.session) setInfo('Compte créé. Ouvrez le lien de confirmation reçu par e-mail, puis connectez-vous.')

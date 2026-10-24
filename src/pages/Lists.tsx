@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Check, ChevronLeft, MoreHorizontal, Plus, RotateCcw, Trash2, Undo2 } from 'lucide-react'
+import { Check, ChevronLeft, MoreHorizontal, Plus, RotateCcw, Trash2, Undo2, X } from 'lucide-react'
 import { useMember } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { capitalize } from '../lib/format'
@@ -14,7 +14,8 @@ import {
   CheckCircle,
   Composer,
   Empty,
-  Field,
+  SheetActions,
+  TitleInput,
   Hero,
   HeroButton,
   SectionTitle,
@@ -91,34 +92,44 @@ export default function ListsPage() {
 }
 
 function ListCard({ list, items, index, onOpen }: { list: List; items: ListItem[]; index: number; onOpen(): void }) {
+  const { removeWithUndo } = useStore()
   const done = items.filter((i) => i.done).length
   const pct = items.length ? (done / items.length) * 100 : 0
   const complete = items.length > 0 && done === items.length
   const by = useMember()(list.added_by)
 
   return (
-    <button
-      onClick={onOpen}
-      className="animate-pop flex min-h-[156px] flex-col rounded-[24px] bg-surface p-4 text-left shadow-soft ring-1 ring-line/80 transition duration-300 ease-smooth active:scale-[0.97]"
-      style={{ animationDelay: `${index * 40}ms` }}
-    >
-      <span className="flex items-start justify-between">
+    <div className="animate-pop relative" style={{ animationDelay: `${index * 40}ms` }}>
+      <button
+        onClick={onOpen}
+        className="flex min-h-[156px] w-full flex-col rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent p-4 text-left shadow-soft ring-1 ring-line/60 transition duration-300 ease-smooth active:scale-[0.97]"
+      >
         <span className="grid size-11 place-items-center rounded-2xl bg-sec/15 text-[22px]">{list.emoji}</span>
+        <span className="mt-auto block pt-4 font-serif text-[20px] font-medium leading-tight">{list.title}</span>
+        <span className="mt-2 flex items-center gap-2">
+          <span className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
+            <span
+              className={cx('block h-full rounded-full transition-[width] duration-700 ease-smooth', complete ? 'bg-done' : 'bg-sec')}
+              style={{ width: `${pct}%` }}
+            />
+          </span>
+          <span className="num text-[12px] font-medium text-muted">
+            {done}/{items.length}
+          </span>
+        </span>
+      </button>
+      {/* En haut à droite : qui l'a créée, et la croix pour la supprimer sans l'ouvrir. */}
+      <div className="absolute right-3 top-3 flex items-center gap-1.5">
         <Avatar initial={by.initial} tone={by.tone} size="xs" />
-      </span>
-      <span className="mt-auto block pt-4 font-serif text-[20px] font-medium leading-tight">{list.title}</span>
-      <span className="mt-2 flex items-center gap-2">
-        <span className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
-          <span
-            className={cx('block h-full rounded-full transition-[width] duration-700 ease-smooth', complete ? 'bg-done' : 'bg-sec')}
-            style={{ width: `${pct}%` }}
-          />
-        </span>
-        <span className="num text-[12px] font-medium text-muted">
-          {done}/{items.length}
-        </span>
-      </span>
-    </button>
+        <button
+          onClick={() => removeWithUndo('lists', list.id, list.title)}
+          aria-label={`Supprimer la liste ${list.title}`}
+          className="grid size-7 place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-line/60 transition active:scale-90 active:bg-late/20 active:text-late"
+        >
+          <X size={14} strokeWidth={2.4} />
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -172,7 +183,13 @@ function CreateForm({ onDone }: { onDone(id: string | null): void }) {
           ))}
         </div>
       </div>
-      <Field label="Nom" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Week-end à la mer" maxLength={60} />
+      <TitleInput
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Nom de la liste"
+        maxLength={60}
+        aria-label="Nom de la liste"
+      />
       <div>
         <span className="mb-2 block px-1 text-[13px] font-medium text-muted">Icône</span>
         <div className="grid grid-cols-9 gap-1.5">
@@ -372,25 +389,17 @@ function ItemForm({ item, onClose }: { item: ListItem; onClose(): void }) {
         })
         onClose()
       }}
-      className="space-y-5"
+      className="flex flex-col gap-2"
     >
-      <Field label="Texte" value={text} onChange={(e) => setText(e.target.value)} />
+      <TitleInput value={text} onChange={(e) => setText(e.target.value)} aria-label="Texte" />
       <ReminderPicker value={reminder} onChange={setReminder} title={text.trim() || item.text} />
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="danger"
-          aria-label="Supprimer"
-          className="px-4"
-          onClick={() => {
-            remove('list_items', item.id)
-            onClose()
-          }}
-        >
-          <Trash2 size={18} />
-        </Button>
-        <Button className="flex-1">Enregistrer</Button>
-      </div>
+      <SheetActions
+        deleteLabel="Retirer de la liste"
+        onDelete={() => {
+          remove('list_items', item.id)
+          onClose()
+        }}
+      />
     </form>
   )
 }
@@ -407,10 +416,10 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
         update('lists', list.id, { title: title.trim() || list.title, emoji })
         onClose()
       }}
-      className="space-y-5"
+      className="flex flex-col gap-2"
     >
-      <Field label="Nom" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} />
-      <div className="grid grid-cols-9 gap-1.5">
+      <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} aria-label="Nom de la liste" />
+      <div className="grid grid-cols-6 gap-2 py-2">
         {EMOJIS.map((em) => (
           <button
             key={em}
@@ -439,10 +448,9 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
           Retirer les éléments cochés
         </Button>
       )}
-      <Button
+      <button
         type="button"
-        variant="danger"
-        className="w-full"
+        className="h-11 text-[14px] font-semibold text-late active:opacity-60"
         onClick={() => {
           if (!confirm(`Supprimer la liste « ${list.title} » ?`)) return
           remove('lists', list.id)
@@ -450,8 +458,8 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
           onDeleted()
         }}
       >
-        <Trash2 size={18} /> Supprimer la liste
-      </Button>
+        Supprimer la liste
+      </button>
     </form>
   )
 }

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
-import { Check, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
+import { Check, Hash, LayoutGrid, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
 import { useStore } from '../data/store'
@@ -11,11 +11,13 @@ import {
   Button,
   Card,
   CheckCircle,
-  Chips,
+  OptionRow,
+  SheetActions,
+  SuccessCheck,
+  TitleInput,
   Collapsible,
   Composer,
   Empty,
-  Field,
   Hero,
   SectionTitle,
   Segmented,
@@ -321,33 +323,36 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
   }
 
   return (
-    <form onSubmit={save} className="space-y-5">
-      <div className="grid grid-cols-[1fr_96px] gap-3">
-        <Field label="Nom" value={name} onChange={(e) => setName(e.target.value)} />
-        <Field label="Quantité" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="—" />
-      </div>
-      <Chips<Category>
+    <form onSubmit={save} className="flex flex-col gap-2">
+      <TitleInput value={name} onChange={(e) => setName(e.target.value)} aria-label="Nom" />
+      <label className="flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 ring-1 ring-line/50 focus-within:ring-2 focus-within:ring-sec/50">
+        <Hash size={18} className="text-sec" />
+        <span className="flex-1 text-[15px] text-muted">Quantité</span>
+        <input
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          placeholder="—"
+          className="w-28 bg-transparent text-right text-[15px] font-semibold outline-none placeholder:text-faint"
+        />
+      </label>
+      <OptionRow<Category>
         label="Rayon"
+        icon={<LayoutGrid size={18} />}
         value={category}
         onChange={setCategory}
-        options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.emoji} ${c.id}` }))}
+        options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.emoji}  ${c.id}` }))}
       />
-      <Chips<Place>
+      <OptionRow<Place>
         label="Où ?"
+        icon={<PlaceIcon place={place} size={18} />}
         value={place}
         onChange={setPlace}
-        options={PLACES.map((p) => ({
-          value: p.value,
-          label: (
-            <>
-              <PlaceIcon place={p.value} /> {p.label}
-            </>
-          ),
-        }))}
+        options={PLACES.map((p) => ({ value: p.value, label: p.label }))}
       />
       {place === 'drive' && (
-        <Chips
+        <OptionRow
           label="Commande"
+          icon={<Truck size={18} />}
           value={ordered ? 'yes' : 'no'}
           onChange={(v) => setOrdered(v === 'yes')}
           options={[
@@ -356,25 +361,17 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
           ]}
         />
       )}
-      <p className="flex items-center gap-2 px-1 text-[13px] text-muted">
+      <p className="mt-2 flex items-center justify-center gap-2 text-[13px] text-muted">
         <Avatar initial={member.initial} tone={member.tone} size="xs" />
         Ajouté par {member.isMe ? 'vous' : member.name} · {ago(item.created_at)}
       </p>
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="danger"
-          aria-label="Supprimer"
-          className="px-4"
-          onClick={() => {
-            remove('grocery_items', item.id)
-            onClose()
-          }}
-        >
-          <Trash2 size={18} />
-        </Button>
-        <Button className="flex-1">Enregistrer</Button>
-      </div>
+      <SheetActions
+        deleteLabel="Retirer de la liste"
+        onDelete={() => {
+          remove('grocery_items', item.id)
+          onClose()
+        }}
+      />
     </form>
   )
 }
@@ -391,7 +388,7 @@ function PartnerShopping() {
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sec/20 text-[20px]">🛒</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-semibold">
-          {who.name} est parti{who.pronoun === 'elle' ? 'e' : ''} {ping.place === 'drive' ? 'au drive' : 'faire les courses'}
+          {who.name} est parti{who.pronoun === 'elle' ? 'e' : ''} faire les courses
         </span>
         <span className="block text-[13px] text-muted">{ago(ping.created_at)} · ajoutez vite ce qui manque</span>
       </span>
@@ -403,39 +400,44 @@ function LeavingForm({ onDone }: { onDone(): void }) {
   const { data, insert, me } = useStore()
   const partner = usePartner()
   const member = useMember()
-  const [place, setPlace] = useState<'store' | 'drive'>('store')
+  const [sent, setSent] = useState(false)
   const mine = data.pings.find((p) => p.author === me)
-  const recent = mine && Date.now() - new Date(mine.created_at).getTime() < 15 * 60_000
+  const recent = !sent && mine && Date.now() - new Date(mine.created_at).getTime() < 15 * 60_000
   const name = partner?.display_name ?? 'votre moitié'
   const pronoun = partner ? member(partner.user_id).pronoun : 'il'
+  const e = pronoun === 'elle' ? 'e' : ''
+
+  const send = () => {
+    insert('pings', { kind: 'shopping', place: 'store' })
+    setSent(true)
+    setTimeout(onDone, 1700)
+  }
+
+  if (sent)
+    return (
+      <div className="flex flex-col items-center py-6 text-center">
+        <SuccessCheck />
+        <p className="animate-pop mt-5 font-serif text-[24px] font-medium" style={{ animationDelay: '0.35s' }}>
+          {name} est prévenu{e}
+        </p>
+        <p className="animate-pop mt-1.5 text-[15px] text-muted" style={{ animationDelay: '0.45s' }}>
+          Bonnes courses !
+        </p>
+      </div>
+    )
 
   return (
-    <div className="space-y-5">
-      <p className="px-1 text-[15px] leading-relaxed text-muted">
-        {name} reçoit une notification pour ajouter ce qui manque avant que vous ne soyez sur place.
+    <div className="flex flex-col items-center text-center">
+      <div className="mb-4 grid size-20 place-items-center rounded-full bg-sec/15 text-[38px]">🛒</div>
+      <p className="mb-6 max-w-xs text-[15px] leading-relaxed text-muted">
+        {name} reçoit une notification pour ajouter vite ce qui manque à la liste.
       </p>
-      <Chips<'store' | 'drive'>
-        label="Où ?"
-        value={place}
-        onChange={setPlace}
-        options={[
-          { value: 'store', label: '🛒 En magasin' },
-          { value: 'drive', label: '🚗 Au drive' },
-        ]}
-      />
       {recent && (
-        <p className="rounded-2xl bg-surface-2 px-4 py-3 text-[14px] text-muted">
-          Déjà prévenu{pronoun === 'elle' ? 'e' : ''} {ago(mine!.created_at)}.
+        <p className="mb-3 text-[14px] text-muted">
+          Déjà prévenu{e} {ago(mine!.created_at)}.
         </p>
       )}
-      <Button
-        className="w-full"
-        disabled={recent}
-        onClick={() => {
-          insert('pings', { kind: 'shopping', place })
-          onDone()
-        }}
-      >
+      <Button className="w-full" disabled={!!recent} onClick={send}>
         Prévenir {name}
       </Button>
     </div>

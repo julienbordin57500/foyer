@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
-import { ArrowUp, Check, X } from 'lucide-react'
+import { ArrowUp, Check, ChevronDown, X } from 'lucide-react'
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
 
@@ -7,7 +7,13 @@ export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Bool
 
 export function Card({ className, children, ...rest }: { className?: string; children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cx('rounded-[24px] bg-surface shadow-soft ring-1 ring-line/60', className)} {...rest}>
+    <div
+      className={cx(
+        'rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent shadow-soft ring-1 ring-line/60',
+        className,
+      )}
+      {...rest}
+    >
       {children}
     </div>
   )
@@ -92,7 +98,10 @@ export function HeroButton({ label, children, ...rest }: ButtonHTMLAttributes<HT
 export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div className="mb-2 mt-8 flex h-5 items-center justify-between px-4">
-      <h2 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">{children}</h2>
+      <h2 className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
+        <span aria-hidden className="size-1.5 rounded-full bg-sec shadow-[0_0_8px_var(--sec)]" />
+        {children}
+      </h2>
       {aside != null && <span className="num text-[12px] font-medium text-muted">{aside}</span>}
     </div>
   )
@@ -194,6 +203,135 @@ export function Composer({
         <ArrowUp size={20} strokeWidth={2.4} />
       </button>
     </form>
+  )
+}
+
+/**
+ * Réglage en une ligne (« Pour qui ? · Nous deux ›ˮ) qui se déplie vers le bas en liste d'options.
+ * Tout se lit de haut en bas, une option par ligne.
+ */
+export function OptionRow<T extends string>({
+  label,
+  icon,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  icon?: ReactNode
+  value: T
+  options: { value: T; label: ReactNode }[]
+  onChange(v: T): void
+}) {
+  const [open, setOpen] = useState(false)
+  const current = options.find((o) => o.value === value)
+  return (
+    <div className="overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-line/50">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex h-14 w-full items-center gap-3 px-4 text-left"
+      >
+        {icon && <span className="text-sec">{icon}</span>}
+        <span className="flex-1 text-[15px] text-muted">{label}</span>
+        <span className="text-[15px] font-semibold">{current?.label}</span>
+        <ChevronDown size={18} className={cx('text-faint transition-transform duration-300 ease-smooth', open && 'rotate-180')} />
+      </button>
+      <div className={cx('grid transition-[grid-template-rows] duration-400 ease-smooth', open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+        <ul className="overflow-hidden">
+          {options.map((o) => (
+            <li key={o.value} className="border-t border-line/50">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(o.value)
+                  setOpen(false)
+                }}
+                className={cx(
+                  'flex h-12 w-full items-center gap-3 px-4 text-left text-[15px] active:bg-line/40',
+                  o.value === value && 'font-semibold text-sec',
+                )}
+              >
+                <span className="flex-1">{o.label}</span>
+                {o.value === value && <Check size={17} strokeWidth={2.6} />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+/** Ligne de date (même style que OptionRow), avec de quoi l'effacer. */
+export function DateRow({
+  label,
+  icon,
+  value,
+  onChange,
+  min,
+}: {
+  label: string
+  icon?: ReactNode
+  value: string
+  onChange(v: string): void
+  min?: string
+}) {
+  return (
+    <label className="flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 ring-1 ring-line/50 focus-within:ring-2 focus-within:ring-sec/50">
+      {icon && <span className="text-sec">{icon}</span>}
+      <span className="flex-1 text-[15px] text-muted">{label}</span>
+      <input
+        type="date"
+        value={value}
+        min={min}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-w-0 bg-transparent text-right text-[15px] font-semibold outline-none"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          aria-label="Retirer la date"
+          className="grid size-7 place-items-center rounded-full text-faint active:bg-line/40"
+        >
+          <X size={15} />
+        </button>
+      )}
+    </label>
+  )
+}
+
+/** Champ principal d'une fiche : grand, centré. */
+export function TitleInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="h-16 w-full rounded-2xl bg-surface-2 px-4 text-center font-serif text-[22px] font-medium outline-none ring-1 ring-line/50 placeholder:text-faint focus:ring-2 focus:ring-sec/50"
+    />
+  )
+}
+
+/** Bas de fiche : « Enregistrer » en grand, « Supprimer » discret en dessous. */
+export function SheetActions({
+  saveLabel = 'Enregistrer',
+  onDelete,
+  deleteLabel = 'Supprimer',
+}: {
+  saveLabel?: string
+  onDelete?(): void
+  deleteLabel?: string
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 pt-3">
+      <Button className="w-full">{saveLabel}</Button>
+      {onDelete && (
+        <button type="button" onClick={onDelete} className="h-11 px-4 text-[14px] font-semibold text-late active:opacity-60">
+          {deleteLabel}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -311,12 +449,12 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
       <div className="sheet-backdrop absolute inset-0 backdrop-blur-[2px]" style={{ background: 'var(--backdrop)' }} onClick={onClose} />
       <div className="sheet-panel pb-safe relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[30px] bg-surface px-5 pt-3 shadow-2xl">
         <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-line" />
-        <div className="mb-5 flex items-center justify-between">
+        <div className="relative mb-6 flex items-center justify-center">
           <h2 className="font-serif text-[26px] font-medium leading-none">{title}</h2>
           <button
             onClick={onClose}
             aria-label="Fermer"
-            className="grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition active:scale-90"
+            className="absolute right-0 grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition active:scale-90"
           >
             <X size={18} />
           </button>
@@ -535,5 +673,24 @@ export function SwipeRow({
         {children}
       </div>
     </div>
+  )
+}
+
+/** Grande coche animée : le cercle apparaît, puis la coche se dessine. */
+export function SuccessCheck() {
+  return (
+    <svg width="96" height="96" viewBox="0 0 96 96" className="success-check" aria-hidden>
+      <circle cx="48" cy="48" r="44" fill="var(--sec)" className="success-disc" />
+      <path
+        d="M30 49 L43 62 L67 36"
+        fill="none"
+        stroke="var(--bg)"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pathLength={1}
+        className="success-tick"
+      />
+    </svg>
   )
 }

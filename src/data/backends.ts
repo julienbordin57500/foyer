@@ -65,7 +65,12 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
       if (rows.length) check(await sb.from(table).insert(rows.map((r) => ({ ...r, household_id: householdId })) as never))
     },
     async update(table, id, patch) {
-      check(await sb.from(table).update(patch as never).eq('id', id))
+      check(
+        await sb
+          .from(table)
+          .update(patch as never)
+          .eq('id', id),
+      )
     },
     async remove(table, id) {
       check(await sb.from(table).delete().eq('id', id))
@@ -126,12 +131,79 @@ const seed = (): Data => {
       item('Beurre', 'Frais', DEMO_OTHER, { status: 'bought', bought_at: ago(3000) }),
     ],
     todos: [
-      { id: uid(), title: 'Appeler le garage pour la révision', assignee: DEMO_ME, due_date: inDays(1), added_by: DEMO_OTHER, done_by: null, done_at: null, created_at: ago(200), repeat: null, ...noReminder },
-      { id: uid(), title: 'Réserver le resto pour samedi', assignee: null, due_date: inDays(4), added_by: DEMO_ME, done_by: null, done_at: null, created_at: ago(400), repeat: null, ...noReminder, remind_at: inHours(3) },
-      { id: uid(), title: 'Monter l’étagère du salon', assignee: null, due_date: null, added_by: DEMO_OTHER, done_by: null, done_at: null, created_at: ago(900), repeat: null, ...noReminder },
-      { id: uid(), title: 'Sortir les poubelles', assignee: DEMO_ME, due_date: inDays(2), added_by: DEMO_OTHER, done_by: null, done_at: null, created_at: ago(950), repeat: 'week', ...noReminder },
-      { id: uid(), title: 'Renvoyer le colis Zalando', assignee: DEMO_OTHER, due_date: inDays(-1), added_by: DEMO_OTHER, done_by: null, done_at: null, created_at: ago(2000), repeat: null, ...noReminder },
-      { id: uid(), title: 'Acheter un cadeau pour Léa', assignee: null, due_date: null, added_by: DEMO_ME, done_by: DEMO_OTHER, done_at: ago(120), created_at: ago(3000), repeat: null, ...noReminder },
+      {
+        id: uid(),
+        title: 'Appeler le garage pour la révision',
+        assignee: DEMO_ME,
+        due_date: inDays(1),
+        added_by: DEMO_OTHER,
+        done_by: null,
+        done_at: null,
+        created_at: ago(200),
+        repeat: null,
+        ...noReminder,
+      },
+      {
+        id: uid(),
+        title: 'Réserver le resto pour samedi',
+        assignee: null,
+        due_date: inDays(4),
+        added_by: DEMO_ME,
+        done_by: null,
+        done_at: null,
+        created_at: ago(400),
+        repeat: null,
+        ...noReminder,
+        remind_at: inHours(3),
+      },
+      {
+        id: uid(),
+        title: 'Monter l’étagère du salon',
+        assignee: null,
+        due_date: null,
+        added_by: DEMO_OTHER,
+        done_by: null,
+        done_at: null,
+        created_at: ago(900),
+        repeat: null,
+        ...noReminder,
+      },
+      {
+        id: uid(),
+        title: 'Sortir les poubelles',
+        assignee: DEMO_ME,
+        due_date: inDays(2),
+        added_by: DEMO_OTHER,
+        done_by: null,
+        done_at: null,
+        created_at: ago(950),
+        repeat: 'week',
+        ...noReminder,
+      },
+      {
+        id: uid(),
+        title: 'Renvoyer le colis Zalando',
+        assignee: DEMO_OTHER,
+        due_date: inDays(-1),
+        added_by: DEMO_OTHER,
+        done_by: null,
+        done_at: null,
+        created_at: ago(2000),
+        repeat: null,
+        ...noReminder,
+      },
+      {
+        id: uid(),
+        title: 'Acheter un cadeau pour Léa',
+        assignee: null,
+        due_date: null,
+        added_by: DEMO_ME,
+        done_by: DEMO_OTHER,
+        done_at: ago(120),
+        created_at: ago(3000),
+        repeat: null,
+        ...noReminder,
+      },
     ],
     lists: [
       { id: 'demo-list-valise', title: 'Valise week-end', emoji: '🧳', added_by: DEMO_OTHER, created_at: ago(5000) },
@@ -139,10 +211,24 @@ const seed = (): Data => {
     ],
     list_items: [
       ...['Brosses à dents', 'Chargeurs', 'Pyjamas', 'Doudou de Noah', 'Couches', 'Papiers d’identité'].map((text, i) => ({
-        id: uid(), list_id: 'demo-list-valise', text, done: i < 2, done_by: i < 2 ? DEMO_OTHER : null, added_by: DEMO_OTHER, created_at: ago(5000 - i), ...noReminder,
+        id: uid(),
+        list_id: 'demo-list-valise',
+        text,
+        done: i < 2,
+        done_by: i < 2 ? DEMO_OTHER : null,
+        added_by: DEMO_OTHER,
+        created_at: ago(5000 - i),
+        ...noReminder,
       })),
       ...['Étagère KALLAX blanche', 'Boîtes de rangement ×4', 'Lampe de chevet'].map((text, i) => ({
-        id: uid(), list_id: 'demo-list-ikea', text, done: false, done_by: null, added_by: DEMO_ME, created_at: ago(3000 - i), ...noReminder,
+        id: uid(),
+        list_id: 'demo-list-ikea',
+        text,
+        done: false,
+        done_by: null,
+        added_by: DEMO_ME,
+        created_at: ago(3000 - i),
+        ...noReminder,
       })),
     ],
     pings: [{ id: uid(), author: DEMO_OTHER, kind: 'shopping', place: 'store', created_at: ago(8) }],
@@ -160,7 +246,16 @@ export function rowDefaults(table: TableName, me: string) {
   const now = new Date().toISOString()
   if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, created_at: now }
   if (table === 'todos')
-    return { added_by: me, done_by: null, done_at: null, repeat: null, remind_at: null, remind_to: null, reminded_at: null, created_at: now }
+    return {
+      added_by: me,
+      done_by: null,
+      done_at: null,
+      repeat: null,
+      remind_at: null,
+      remind_to: null,
+      reminded_at: null,
+      created_at: now,
+    }
   if (table === 'lists') return { added_by: me, created_at: now }
   if (table === 'list_items')
     return { done: false, done_by: null, added_by: me, remind_at: null, remind_to: null, reminded_at: null, created_at: now }

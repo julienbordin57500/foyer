@@ -8,8 +8,11 @@ export function hideSplash() {
   hidden = true
   const el = document.getElementById('splash')
   if (!el) return
-  setTimeout(() => {
-    el.classList.add('out')
-    setTimeout(() => el.remove(), 500)
-  }, Math.max(0, MIN_VISIBLE_MS - performance.now()))
+  setTimeout(
+    () => {
+      el.classList.add('out')
+      setTimeout(() => el.remove(), 500)
+    },
+    Math.max(0, MIN_VISIBLE_MS - performance.now()),
+  )
 }

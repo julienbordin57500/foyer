@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { CalendarDays, Check, Repeat as RepeatIcon, Trash2 } from 'lucide-react'
+import { CalendarDays, Check, Repeat as RepeatIcon, Trash2, Users } from 'lucide-react'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { addDays, nextOccurrence, nextSaturday, parseISODate, toISODate, today } from '../lib/dates'
@@ -9,14 +9,15 @@ import { ReminderBadge, ReminderPicker, type ReminderValue } from '../components
 import { SearchButton } from '../components/Search'
 import {
   Avatar,
-  Button,
   Card,
   CheckCircle,
-  Chips,
+  DateRow,
+  OptionRow,
+  SheetActions,
+  TitleInput,
   Collapsible,
   Composer,
   Empty,
-  Field,
   Hero,
   SectionTitle,
   Sheet,
@@ -35,10 +36,10 @@ export const REPEAT_LABEL: Record<Repeat, string> = {
 }
 type RepeatChoice = Repeat | 'none'
 const REPEAT_OPTIONS: { value: RepeatChoice; label: string }[] = [
-  { value: 'none', label: 'Une fois' },
+  { value: 'none', label: 'Non, une fois' },
   { value: 'day', label: 'Chaque jour' },
   { value: 'week', label: 'Chaque semaine' },
-  { value: '2weeks', label: '2 semaines' },
+  { value: '2weeks', label: 'Toutes les 2 semaines' },
   { value: 'month', label: 'Chaque mois' },
 ]
 
@@ -130,10 +131,11 @@ export default function TodosPage() {
         )}
       >
         <div className="overflow-hidden">
-          <div className="mb-2 space-y-4 px-1">
-            <Chips label="Pour qui ?" value={assignee} onChange={setAssignee} options={assigneeOptions} />
-            <Chips<When>
+          <div className="mb-2 space-y-2">
+            <OptionRow label="Pour qui ?" icon={<Users size={18} />} value={assignee} onChange={setAssignee} options={assigneeOptions} />
+            <OptionRow<When>
               label="Quand ?"
+              icon={<CalendarDays size={18} />}
               value={when}
               onChange={setWhen}
               options={[
@@ -141,20 +143,17 @@ export default function TodosPage() {
                 { value: 'today', label: "Aujourd'hui" },
                 { value: 'tomorrow', label: 'Demain' },
                 { value: 'weekend', label: 'Ce week-end' },
-                { value: 'custom', label: <CalendarDays size={16} className="inline" aria-label="Choisir une date" /> },
+                { value: 'custom', label: 'Une date précise' },
               ]}
             />
-            {when === 'custom' && (
-              <input
-                type="date"
-                value={custom}
-                min={toISODate(today())}
-                onChange={(e) => setCustom(e.target.value)}
-                className="h-11 rounded-2xl bg-surface-2 px-4 text-[16px] outline-none"
-                aria-label="Date"
-              />
-            )}
-            <Chips<RepeatChoice> label="Revient ?" value={repeat} onChange={setRepeat} options={REPEAT_OPTIONS} />
+            {when === 'custom' && <DateRow label="Le" value={custom} onChange={setCustom} min={toISODate(today())} />}
+            <OptionRow<RepeatChoice>
+              label="Revient ?"
+              icon={<RepeatIcon size={18} />}
+              value={repeat}
+              onChange={setRepeat}
+              options={REPEAT_OPTIONS}
+            />
           </div>
         </div>
       </div>
@@ -344,10 +343,11 @@ function TodoForm({ todo, onClose }: { todo: Todo; onClose(): void }) {
   }
 
   return (
-    <form onSubmit={save} className="space-y-5">
-      <Field label="Quoi ?" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <Chips
+    <form onSubmit={save} className="flex flex-col gap-2">
+      <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Quoi ?" />
+      <OptionRow
         label="Pour qui ?"
+        icon={<Users size={18} />}
         value={assignee}
         onChange={setAssignee}
         options={[
@@ -356,35 +356,26 @@ function TodoForm({ todo, onClose }: { todo: Todo; onClose(): void }) {
           ...(partner ? [{ value: partner.user_id, label: partner.display_name }] : []),
         ]}
       />
-      <div>
-        <Field label="Pour quand ? (facultatif)" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-        {due && (
-          <button type="button" onClick={() => setDue('')} className="mt-1.5 px-1 text-[13px] font-medium text-sec">
-            Retirer la date
-          </button>
-        )}
-      </div>
-      <Chips<RepeatChoice> label="Revient ?" value={repeat} onChange={setRepeat} options={REPEAT_OPTIONS} />
+      <DateRow label="Date" icon={<CalendarDays size={18} />} value={due} onChange={setDue} />
+      <OptionRow<RepeatChoice>
+        label="Revient ?"
+        icon={<RepeatIcon size={18} />}
+        value={repeat}
+        onChange={setRepeat}
+        options={REPEAT_OPTIONS}
+      />
       <ReminderPicker value={reminder} onChange={setReminder} title={title.trim() || todo.title} />
-      <p className="flex items-center gap-2 px-1 text-[13px] text-muted">
+      <p className="mt-2 flex items-center justify-center gap-2 text-[13px] text-muted">
         <Avatar initial={by.initial} tone={by.tone} size="xs" />
         Notée par {by.isMe ? 'vous' : by.name} · {ago(todo.created_at)}
       </p>
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="danger"
-          aria-label="Supprimer"
-          className="px-4"
-          onClick={() => {
-            remove('todos', todo.id)
-            onClose()
-          }}
-        >
-          <Trash2 size={18} />
-        </Button>
-        <Button className="flex-1">Enregistrer</Button>
-      </div>
+      <SheetActions
+        deleteLabel="Supprimer la tâche"
+        onDelete={() => {
+          remove('todos', todo.id)
+          onClose()
+        }}
+      />
     </form>
   )
 }
