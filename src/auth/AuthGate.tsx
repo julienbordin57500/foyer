@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import type { Household, Member } from '../lib/types'
 import { DEMO_ME, DEMO_OTHER, demoBackend, supabaseBackend, type Backend } from '../data/backends'
 import { DataProvider } from '../data/store'
-import { Button, Field, cx } from '../components/ui'
+import { Button, Field, Hero, cx } from '../components/ui'
 
 interface Session_ {
   me: Member
@@ -122,9 +122,9 @@ function SupabaseGate({ children }: { children: ReactNode }) {
 /** Écran de démarrage : le logo se dessine pendant le chargement. */
 export function Splash() {
   return (
-    <div className="animate-fade grid min-h-dvh place-items-center">
+    <div data-section="accueil" className="animate-fade grid min-h-dvh place-items-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="animate-breathe rounded-[26px] shadow-soft">
+        <div className="animate-breathe rounded-[26px] shadow-[0_20px_60px_-15px_rgba(240,80,90,0.6)]">
           <Logo size={88} animated />
         </div>
         <p className="animate-pop font-serif text-[26px] font-medium" style={{ animationDelay: '0.5s' }}>
@@ -137,31 +137,29 @@ export function Splash() {
 
 function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <div className="relative min-h-dvh overflow-hidden">
-      {/* Halo doux derrière le logo */}
-      <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-accent-soft opacity-70 blur-3xl" />
-      <div className="pt-safe relative mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-10">
-        <div className="mb-9">
-          <div className="mb-6 inline-block rounded-[24px] shadow-soft">
-            <Logo size={68} animated />
+    <div data-section="accueil" className="mx-auto min-h-dvh max-w-lg px-4 pb-10">
+      <Hero eyebrow="" title="">
+        <div className="-mt-16 flex flex-col items-start pb-2">
+          <div className="mb-6 rounded-[24px] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)] ring-2 ring-white/40">
+            <Logo size={72} animated />
           </div>
-          <h1 className="animate-pop font-serif text-[40px] font-medium leading-none tracking-tight" style={{ animationDelay: '0.15s' }}>
+          <h1 className="animate-pop font-serif text-[44px] font-medium leading-none tracking-tight" style={{ animationDelay: '0.15s' }}>
             {title}
           </h1>
-          <p className="animate-pop mt-3 text-[16px] leading-relaxed text-muted" style={{ animationDelay: '0.25s' }}>
+          <p className="animate-pop mt-3 text-[16px] leading-relaxed opacity-85" style={{ animationDelay: '0.25s' }}>
             {subtitle}
           </p>
         </div>
-        <div className="animate-pop" style={{ animationDelay: '0.35s' }}>
-          {children}
-        </div>
+      </Hero>
+      <div className="animate-pop mx-auto max-w-sm px-2" style={{ animationDelay: '0.35s' }}>
+        {children}
       </div>
     </div>
   )
 }
 
 const Message = ({ tone, children }: { tone: 'error' | 'info'; children: ReactNode }) => (
-  <p className={cx('rounded-2xl px-4 py-3 text-sm', tone === 'error' ? 'bg-late-soft text-late' : 'bg-accent-soft text-accent')}>{children}</p>
+  <p className={cx('rounded-2xl px-4 py-3 text-sm', tone === 'error' ? 'bg-late-soft text-late' : 'bg-sec/15 text-sec')}>{children}</p>
 )
 
 const translateAuthError = (msg: string) => {
@@ -214,7 +212,7 @@ function Login() {
           {mode === 'in' ? 'Se connecter' : 'Créer mon compte'}
         </Button>
       </form>
-      <button onClick={() => setMode(mode === 'in' ? 'up' : 'in')} className="mt-6 text-sm font-medium text-accent">
+      <button onClick={() => setMode(mode === 'in' ? 'up' : 'in')} className="mt-6 text-sm font-medium text-sec">
         {mode === 'in' ? 'Pas encore de compte ? Créer un compte' : "J'ai déjà un compte"}
       </button>
     </AuthShell>

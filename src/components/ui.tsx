@@ -7,7 +7,7 @@ export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Bool
 
 export function Card({ className, children, ...rest }: { className?: string; children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cx('rounded-[24px] bg-surface shadow-soft ring-1 ring-line/80', className)} {...rest}>
+    <div className={cx('rounded-[24px] bg-surface shadow-soft ring-1 ring-line/60', className)} {...rest}>
       {children}
     </div>
   )
@@ -25,6 +25,43 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
   )
 }
 
+/**
+ * En-tête de page en dégradé, aux couleurs de la rubrique (voir [data-section] dans index.css).
+ * Il déborde jusqu'aux bords et passe sous la barre d'état du téléphone.
+ */
+export function Hero({ eyebrow, title, action, children }: { eyebrow?: ReactNode; title: ReactNode; action?: ReactNode; children?: ReactNode }) {
+  return (
+    <header
+      className="animate-hero relative -mx-4 mb-6 overflow-hidden rounded-b-[34px] px-5 pb-6 text-hero-ink"
+      style={{ background: 'linear-gradient(140deg, var(--hero-from), var(--hero-to))' }}
+    >
+      <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-white/12" />
+      <span aria-hidden className="pointer-events-none absolute -bottom-28 -left-16 size-64 rounded-full bg-black/6" />
+      <div className="pt-safe relative flex min-h-[72px] items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="mb-1.5 h-[18px] text-[13px] font-medium opacity-75 first-letter:uppercase">{eyebrow}</p>
+          <h1 className="truncate font-serif text-[38px] font-medium leading-[1.02] tracking-[-0.01em]">{title}</h1>
+        </div>
+        {action}
+      </div>
+      {children && <div className="relative mt-5">{children}</div>}
+    </header>
+  )
+}
+
+/** Bouton rond posé sur un en-tête coloré. */
+export function HeroButton({ label, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  return (
+    <button
+      aria-label={label}
+      className="mb-1 grid size-11 shrink-0 place-items-center rounded-full bg-white/18 ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-90"
+      {...rest}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div className="mb-2 mt-8 flex h-5 items-center justify-between px-4">
@@ -36,7 +73,7 @@ export function SectionTitle({ children, aside }: { children: ReactNode; aside?:
 
 type Variant = 'primary' | 'secondary' | 'danger'
 const variants: Record<Variant, string> = {
-  primary: 'bg-ink text-bg',
+  primary: 'bg-sec text-bg',
   secondary: 'bg-surface-2 text-ink',
   danger: 'bg-late-soft text-late',
 }
@@ -55,7 +92,7 @@ export function Button({ variant = 'primary', className, ...rest }: ButtonHTMLAt
 }
 
 const inputCls =
-  'h-12 w-full rounded-2xl bg-surface-2 px-4 text-[16px] text-ink outline-none ring-accent/50 transition-shadow duration-200 placeholder:text-faint focus:ring-2'
+  'h-12 w-full rounded-2xl bg-surface-2 px-4 text-[16px] text-ink outline-none ring-sec/50 transition-shadow duration-200 placeholder:text-faint focus:ring-2'
 
 export function Field({ label, hint, className, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   return (
@@ -78,6 +115,7 @@ export function Composer({
   inputRef,
   accent,
   enterKeyHint = 'done',
+  onHero,
 }: {
   value: string
   onChange(v: string): void
@@ -88,6 +126,8 @@ export function Composer({
   inputRef?: React.Ref<HTMLInputElement>
   accent?: boolean
   enterKeyHint?: 'done' | 'send'
+  /** Version translucide, posée sur un en-tête coloré. */
+  onHero?: boolean
 }) {
   return (
     <form
@@ -95,7 +135,12 @@ export function Composer({
         e.preventDefault()
         onSubmit()
       }}
-      className="flex h-14 items-center gap-1.5 rounded-[22px] bg-surface pl-4 pr-2 shadow-soft ring-1 ring-line/80 transition-shadow duration-300 focus-within:ring-2 focus-within:ring-accent/40"
+      className={cx(
+        'flex h-14 items-center gap-1.5 rounded-[22px] pl-4 pr-2 transition-shadow duration-300',
+        onHero
+          ? 'bg-white/18 text-hero-ink ring-1 ring-white/25 backdrop-blur-md focus-within:ring-2 focus-within:ring-white/60'
+          : 'bg-surface shadow-soft ring-1 ring-line/80 focus-within:ring-2 focus-within:ring-sec/50',
+      )}
     >
       <input
         ref={inputRef}
@@ -104,7 +149,7 @@ export function Composer({
         placeholder={placeholder}
         aria-label={label}
         enterKeyHint={enterKeyHint}
-        className="h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-faint"
+        className={cx('h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none', onHero ? 'placeholder:text-hero-ink/60' : 'placeholder:text-faint')}
       />
       {middle}
       <button
@@ -112,8 +157,9 @@ export function Composer({
         disabled={!value.trim()}
         className={cx(
           'grid size-10 shrink-0 place-items-center rounded-full transition duration-300 ease-smooth active:scale-90 disabled:scale-90 disabled:opacity-20',
-          accent ? 'bg-accent text-accent-ink' : 'bg-ink text-bg',
+          onHero ? 'bg-hero-ink' : accent ? 'bg-accent text-accent-ink' : 'bg-ink text-bg',
         )}
+        style={onHero ? { color: 'var(--hero-to)' } : undefined}
       >
         <ArrowUp size={20} strokeWidth={2.4} />
       </button>
@@ -145,7 +191,7 @@ export function Chips<T extends string>({
             aria-pressed={value === o.value}
             className={cx(
               'inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-medium transition duration-200 ease-smooth active:scale-95',
-              value === o.value ? 'bg-ink text-bg' : 'bg-surface-2 text-ink',
+              value === o.value ? 'bg-sec text-bg' : 'bg-surface-2 text-ink',
             )}
           >
             {o.label}
@@ -268,12 +314,12 @@ export function CheckCircle({
       className={cx(
         'relative grid size-[26px] shrink-0 place-items-center rounded-full border-[1.5px] transition-colors duration-300 active:scale-90',
         checked
-          ? 'border-done bg-done text-surface'
+          ? 'border-sec bg-sec text-bg'
           : tone === 'late'
             ? 'border-late'
             : tone === 'drive'
               ? 'border-drive bg-drive-soft text-drive'
-              : 'border-faint',
+              : 'border-faint hover:border-sec',
       )}
     >
       {checked ? <Check size={15} strokeWidth={3} className="animate-check" /> : children}
@@ -347,7 +393,11 @@ export function SwipeRow({ right, left, children, bare }: { right?: SwipeAction;
       if (Math.abs(dx) < 10) return
       s.decided = true
       s.moved = true
-      fg.current!.setPointerCapture(e.pointerId)
+      try {
+        fg.current!.setPointerCapture(e.pointerId)
+      } catch {
+        /* pointeur déjà relâché */
+      }
     }
     let x = dx
     if ((x > 0 && !right) || (x < 0 && !left)) x = 0
@@ -386,7 +436,7 @@ export function SwipeRow({ right, left, children, bare }: { right?: SwipeAction;
           className={cx(
             'group absolute inset-0 flex items-center gap-2 px-5 text-[14px] font-semibold opacity-0',
             side === 'right' ? 'justify-start' : 'justify-end',
-            action.tone === 'done' ? 'bg-done/15 text-done' : 'bg-late-soft text-late',
+            action.tone === 'done' ? 'bg-sec/18 text-sec' : 'bg-late-soft text-late',
           )}
         >
           <span className="transition-transform duration-200 ease-smooth group-data-[armed=true]:scale-125">{action.icon}</span>

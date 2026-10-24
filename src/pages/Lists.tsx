@@ -13,7 +13,8 @@ import {
   Composer,
   Empty,
   Field,
-  PageHeader,
+  Hero,
+  HeroButton,
   SectionTitle,
   Sheet,
   SwipeRow,
@@ -70,17 +71,13 @@ export default function ListsPage() {
 
   return (
     <div className="animate-page">
-      <PageHeader
+      <Hero
         eyebrow={data.lists.length ? `${data.lists.length} liste${data.lists.length > 1 ? 's' : ''}` : 'À cocher à deux'}
         title="Listes"
         action={
-          <button
-            onClick={() => setCreating(true)}
-            aria-label="Nouvelle liste"
-            className="grid size-11 place-items-center rounded-full bg-ink text-bg shadow-soft transition duration-300 ease-smooth active:scale-90"
-          >
+          <HeroButton label="Nouvelle liste" onClick={() => setCreating(true)}>
             <Plus size={22} />
-          </button>
+          </HeroButton>
         }
       />
 
@@ -138,14 +135,14 @@ function ListCard({ list, items, index, onOpen }: { list: List; items: ListItem[
       style={{ animationDelay: `${index * 40}ms` }}
     >
       <span className="flex items-start justify-between">
-        <span className="grid size-11 place-items-center rounded-2xl bg-surface-2 text-[22px]">{list.emoji}</span>
+        <span className="grid size-11 place-items-center rounded-2xl bg-sec/15 text-[22px]">{list.emoji}</span>
         <Avatar initial={by.initial} tone={by.tone} size="xs" />
       </span>
       <span className="mt-auto block pt-4 font-serif text-[20px] font-medium leading-tight">{list.title}</span>
       <span className="mt-2 flex items-center gap-2">
         <span className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
           <span
-            className={cx('block h-full rounded-full transition-[width] duration-700 ease-smooth', complete ? 'bg-done' : 'bg-accent')}
+            className={cx('block h-full rounded-full transition-[width] duration-700 ease-smooth', complete ? 'bg-done' : 'bg-sec')}
             style={{ width: `${pct}%` }}
           />
         </span>
@@ -199,7 +196,7 @@ function CreateForm({ onDone }: { onDone(id: string | null): void }) {
               aria-pressed={emoji === em}
               className={cx(
                 'grid aspect-square place-items-center rounded-2xl text-[22px] transition duration-200 ease-smooth active:scale-90',
-                emoji === em ? 'bg-accent-soft ring-2 ring-accent/60' : 'bg-surface-2',
+                emoji === em ? 'bg-sec/18 ring-2 ring-sec/60' : 'bg-surface-2',
               )}
             >
               {em}
@@ -241,50 +238,53 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
 
   return (
     <div className="animate-slide">
-      <div className="pt-safe flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="-ml-2 flex h-10 items-center gap-0.5 rounded-full pl-1 pr-3 text-[15px] font-medium text-muted active:bg-surface-2"
-        >
-          <ChevronLeft size={22} />
-          Listes
-        </button>
-        <button
-          onClick={() => setMenu(true)}
-          aria-label="Options de la liste"
-          className="grid size-10 place-items-center rounded-full text-muted active:bg-surface-2"
-        >
-          <MoreHorizontal size={22} />
-        </button>
-      </div>
-
-      <header className="mb-6 mt-3 flex items-center gap-4 px-1">
-        <span className="grid size-14 shrink-0 place-items-center rounded-[20px] bg-surface text-[28px] shadow-soft ring-1 ring-line/80">
-          {list.emoji}
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate font-serif text-[32px] font-medium leading-[1.05]">{list.title}</h1>
-          <p className="mt-1 text-[13px] font-medium text-muted">
-            {items.length === 0 ? 'Liste vide' : todo.length === 0 ? 'Tout est coché ✨' : `${done.length} sur ${items.length} cochés`}
-          </p>
+      <Hero
+        eyebrow={
+          <button onClick={onBack} className="-ml-1.5 inline-flex items-center gap-0.5 rounded-full pr-2 font-semibold active:opacity-60">
+            <ChevronLeft size={18} />
+            Listes
+          </button>
+        }
+        title={
+          <span className="flex items-center gap-3">
+            <span className="text-[30px]">{list.emoji}</span>
+            <span className="truncate">{list.title}</span>
+          </span>
+        }
+        action={
+          <HeroButton label="Options de la liste" onClick={() => setMenu(true)}>
+            <MoreHorizontal size={22} />
+          </HeroButton>
+        }
+      >
+        <div className="mb-4 flex items-center gap-3">
+          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
+            <span
+              className="block h-full rounded-full bg-white transition-[width] duration-700 ease-smooth"
+              style={{ width: `${items.length ? (done.length / items.length) * 100 : 0}%` }}
+            />
+          </span>
+          <span className="num text-[13px] font-semibold opacity-90">
+            {items.length === 0 ? 'Vide' : todo.length === 0 ? 'Tout est coché ✨' : `${done.length}/${items.length}`}
+          </span>
         </div>
-      </header>
-
-      <Composer
-        value={text}
-        onChange={setText}
-        onSubmit={add}
-        placeholder="Ajouter à la liste…"
-        label="Nouvel élément"
-        inputRef={inputRef}
-      />
+        <Composer
+          value={text}
+          onChange={setText}
+          onSubmit={add}
+          placeholder="Ajouter à la liste…"
+          label="Nouvel élément"
+          inputRef={inputRef}
+          onHero
+        />
+      </Hero>
 
       {items.length === 0 && (
         <Empty emoji={list.emoji} title="Rien pour l'instant" text="Ajoutez les premiers éléments : ils apparaîtront aussi chez l'autre." />
       )}
 
       {todo.length > 0 && (
-        <Card className="mt-5 overflow-hidden">
+        <Card className="overflow-hidden">
           <ul>
             {todo.map((i) => (
               <ItemRow key={i.id} item={i} fresh={isNew(i.id)} onEdit={() => setEditing(i)} />
@@ -299,7 +299,7 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
             aside={
               <button
                 onClick={() => done.forEach((i) => update('list_items', i.id, { done: false, done_by: null }))}
-                className="flex items-center gap-1 text-accent"
+                className="flex items-center gap-1 text-sec"
               >
                 <RotateCcw size={12} /> Tout décocher
               </button>
@@ -414,7 +414,7 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
             onClick={() => setEmoji(em)}
             className={cx(
               'grid aspect-square place-items-center rounded-2xl text-[22px] transition active:scale-90',
-              emoji === em ? 'bg-accent-soft ring-2 ring-accent/60' : 'bg-surface-2',
+              emoji === em ? 'bg-sec/18 ring-2 ring-sec/60' : 'bg-surface-2',
             )}
           >
             {em}

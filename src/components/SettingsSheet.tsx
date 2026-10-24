@@ -58,7 +58,7 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
           <p className="mb-2 px-1 text-[13px] font-medium text-muted">Code d'invitation</p>
           <button onClick={copy} className="mb-2 flex w-full items-center justify-between rounded-2xl bg-surface-2 px-4 py-3">
             <span className="num text-2xl font-bold tracking-[0.3em]">{household.invite_code}</span>
-            <span className="flex items-center gap-1.5 text-sm font-semibold text-accent">
+            <span className="flex items-center gap-1.5 text-sm font-semibold text-sec">
               {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? 'Copié' : 'Copier'}
             </span>
@@ -118,7 +118,7 @@ function Notifications({ householdId }: { householdId: string }) {
       >
         <Bell size={18} className="text-muted" />
         <span className="flex-1 font-medium">Me prévenir</span>
-        <span className={cx('relative h-7 w-12 rounded-full transition-colors duration-300', state === 'on' ? 'bg-done' : 'bg-line')}>
+        <span className={cx('relative h-7 w-12 rounded-full transition-colors duration-300', state === 'on' ? 'bg-sec' : 'bg-line')}>
           <span
             className={cx(
               'absolute left-0.5 top-0.5 size-6 rounded-full bg-surface shadow-soft transition-transform duration-300 ease-smooth',

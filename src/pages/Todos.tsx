@@ -15,7 +15,7 @@ import {
   Composer,
   Empty,
   Field,
-  PageHeader,
+  Hero,
   SectionTitle,
   Sheet,
   SwipeRow,
@@ -82,23 +82,24 @@ export default function TodosPage() {
 
   return (
     <div className="animate-page">
-      <PageHeader
+      <Hero
         eyebrow={
           open.length === 0
             ? 'Tout est fait'
             : `${open.length} chose${open.length > 1 ? 's' : ''} à faire${lateCount ? ` · ${lateCount} en retard` : ''}`
         }
         title="À faire"
-      />
-
-      <Composer
-        value={text}
-        onChange={setText}
-        onSubmit={add}
-        placeholder="Une chose à faire…"
-        label="Nouvelle tâche"
-        inputRef={inputRef}
-      />
+      >
+        <Composer
+          value={text}
+          onChange={setText}
+          onSubmit={add}
+          placeholder="Une chose à faire…"
+          label="Nouvelle tâche"
+          inputRef={inputRef}
+          onHero
+        />
+      </Hero>
       <div
         className={cx(
           'grid transition-[grid-template-rows,opacity] duration-500 ease-smooth',
@@ -106,7 +107,7 @@ export default function TodosPage() {
         )}
       >
         <div className="overflow-hidden">
-          <div className="mt-4 space-y-4 px-1">
+          <div className="mb-2 space-y-4 px-1">
             <Chips label="Pour qui ?" value={assignee} onChange={setAssignee} options={assigneeOptions} />
             <Chips<When>
               label="Quand ?"
@@ -208,7 +209,7 @@ function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit()
               {todo.title}
             </span>
             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
-              {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-accent' : '')}>{due.text}</span>}
+              {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-sec' : '')}>{due.text}</span>}
               {due && <span className="text-faint">·</span>}
               {who ? (
                 <span className="inline-flex items-center gap-1">
@@ -246,7 +247,7 @@ function DoneList({ items }: { items: Todo[] }) {
           const by = member(t.done_by)
           return (
             <li key={t.id} className="animate-fade flex min-h-12 items-center gap-3 px-4">
-              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-done/15 text-done">
+              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-sec/15 text-sec">
                 <Check size={14} strokeWidth={3} />
               </span>
               <span className="min-w-0 flex-1">
@@ -300,7 +301,7 @@ function TodoForm({ todo, onClose }: { todo: Todo; onClose(): void }) {
       <div>
         <Field label="Pour quand ? (facultatif)" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
         {due && (
-          <button type="button" onClick={() => setDue('')} className="mt-1.5 px-1 text-[13px] font-medium text-accent">
+          <button type="button" onClick={() => setDue('')} className="mt-1.5 px-1 text-[13px] font-medium text-sec">
             Retirer la date
           </button>
         )}

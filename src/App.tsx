@@ -44,23 +44,23 @@ export default function App() {
   if (loading) return <Splash />
 
   return (
-    <div className="mx-auto min-h-dvh max-w-lg px-4 pb-28">
+    <div data-section={tab} className="mx-auto min-h-dvh max-w-lg px-4 pb-36">
       {tab === 'accueil' && <HomePage go={go} />}
       {tab === 'courses' && <GroceriesPage />}
       {tab === 'afaire' && <TodosPage />}
       {tab === 'listes' && <ListsPage />}
 
       {toast && (
-        <div className="animate-pop fixed inset-x-4 bottom-24 z-40 mx-auto flex h-12 max-w-md items-center gap-3 rounded-2xl bg-ink pl-4 pr-1.5 text-[14px] text-bg shadow-soft">
+        <div className="animate-pop fixed inset-x-4 bottom-28 z-40 mx-auto flex h-12 max-w-md items-center gap-3 rounded-2xl bg-ink pl-4 pr-1.5 text-[14px] text-bg shadow-soft">
           <p className="min-w-0 flex-1 truncate">{toast.message}</p>
-          <button onClick={toast.undo} className="h-9 rounded-xl px-3 font-semibold text-accent-soft active:bg-white/10">
+          <button onClick={toast.undo} className="h-9 rounded-xl px-3 font-semibold text-sec active:bg-white/10">
             Annuler
           </button>
         </div>
       )}
 
       {error && (
-        <div className="animate-fade fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-late-soft p-3 text-sm text-late">
+        <div className="animate-fade fixed inset-x-4 bottom-28 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-late-soft p-3 text-sm text-late">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           <p className="flex-1">Synchronisation impossible : {error}</p>
           <button onClick={dismissError} aria-label="Fermer">
@@ -69,32 +69,30 @@ export default function App() {
         </div>
       )}
 
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line/80 bg-surface/80 backdrop-blur-xl">
-        <ul className="relative mx-auto grid max-w-lg grid-cols-4 px-2">
-          {/* Pastille qui glisse sous l'onglet actif */}
+      {/* Barre d'onglets flottante ; chaque onglet s'allume dans la couleur de sa rubrique. */}
+      <nav className="fixed inset-x-3 z-30 mx-auto max-w-md" style={{ bottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+        <ul className="relative grid grid-cols-4 rounded-[28px] p-1.5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/8 backdrop-blur-xl" style={{ background: 'var(--nav)' }}>
           <span
             aria-hidden
-            className="absolute left-2 top-2.5 flex h-8 justify-center transition-transform duration-500 ease-smooth"
-            style={{ width: 'calc((100% - 16px) / 4)', transform: `translateX(${index * 100}%)` }}
+            className="absolute bottom-1.5 left-1.5 top-1.5 transition-transform duration-500 ease-smooth"
+            style={{ width: 'calc((100% - 12px) / 4)', transform: `translateX(${index * 100}%)` }}
           >
-            <span className="h-full w-14 rounded-full bg-accent-soft" />
+            <span data-section={tab} className="block h-full rounded-[22px] bg-sec/16 transition-colors duration-500" />
           </span>
           {TABS.map(({ id, label, icon: Icon }) => (
-            <li key={id}>
+            <li key={id} data-section={id}>
               <button
                 onClick={() => go(id)}
                 aria-current={tab === id ? 'page' : undefined}
                 className={cx(
-                  'relative flex w-full flex-col items-center gap-1 pb-1 pt-2.5 text-[11px] font-medium transition-colors duration-300',
-                  tab === id ? 'text-accent' : 'text-muted',
+                  'relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-300 active:scale-95',
+                  tab === id ? 'text-sec' : 'text-[#8e8e95]',
                 )}
               >
-                <span className="grid h-8 w-14 place-items-center">
-                  <Icon size={21} strokeWidth={tab === id ? 2.3 : 1.9} />
-                </span>
+                <Icon size={21} strokeWidth={tab === id ? 2.3 : 1.9} />
                 {label}
                 {id === 'afaire' && lateCount > 0 && (
-                  <span className="num absolute right-[calc(50%-22px)] top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-late px-1 text-[10px] font-bold text-surface">
+                  <span className="num absolute right-[calc(50%-20px)] top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-late px-1 text-[10px] font-bold text-white">
                     {lateCount}
                   </span>
                 )}

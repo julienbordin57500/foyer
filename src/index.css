@@ -3,87 +3,110 @@
 @import '@fontsource-variable/newsreader/opsz.css';
 @import '@fontsource-variable/newsreader/opsz-italic.css';
 
-/* Doux + épuré : fond crème, encre presque noire, une seule couleur chaude. */
+/* Épuré mais vivant : fond profond, en-têtes en dégradé, une couleur vive par rubrique. */
 :root {
   color-scheme: light;
-  --bg: #f6f1ea;
-  --surface: #fffcf8;
-  --surface-2: #f0e9df;
-  --ink: #221d18;
-  --muted: #877d73;
-  --faint: #bdb2a6;
-  --line: #e9e1d6;
-  --accent: #b4603a;
-  --accent-ink: #fffcf8;
-  --accent-soft: #f4e5da;
+  --bg: #f5f3f0;
+  --surface: #ffffff;
+  --surface-2: #efece7;
+  --ink: #141416;
+  --muted: #6f6f76;
+  --faint: #b9b6b0;
+  --line: #e7e3dd;
+  --accent: #f0603f;
+  --accent-ink: #ffffff;
+  --accent-soft: #ffe7df;
 
   /* Couleurs des deux membres */
-  --person-a: #b4603a;
-  --person-a-soft: #f4e5da;
-  --person-b: #5c8263;
-  --person-b-soft: #e2ece0;
+  --person-a: #e8553a;
+  --person-a-soft: #ffe4dc;
+  --person-b: #0f9b6c;
+  --person-b-soft: #d9f5e8;
 
-  --drive: #46698c;
-  --drive-soft: #e3eaf1;
-  --late: #b4443a;
-  --late-soft: #f7e2de;
-  --done: #5c8263;
+  --drive: #2f6fd0;
+  --drive-soft: #e1ecfb;
+  --late: #e5484d;
+  --late-soft: #fde4e4;
+  --done: #12a06a;
 
-  --shadow: 0 1px 2px rgba(60, 40, 20, 0.04), 0 10px 30px -14px rgba(60, 40, 20, 0.14);
-  --backdrop: rgba(34, 22, 12, 0.32);
+  /* Une couleur par rubrique */
+  --mint: #0f9b6c;
+  --amber: #c97c00;
+  --violet: #6e56e8;
+  --coral: #e8553a;
+
+  --shadow: 0 1px 2px rgba(20, 20, 22, 0.04), 0 10px 30px -16px rgba(20, 20, 22, 0.18);
+  --backdrop: rgba(10, 10, 12, 0.4);
+  --nav: rgba(20, 20, 22, 0.92);
 }
 
-/* Nuit : choisie dans les réglages, ou automatique si le téléphone est en mode sombre. */
+/* Nuit (par défaut) : choisie dans les réglages, ou « Auto » si le téléphone est en mode sombre. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #14110f;
-    --surface: #1d1916;
-    --surface-2: #27221e;
-    --ink: #f3ece4;
-    --muted: #a3988d;
-    --faint: #5e554d;
-    --line: #2d2723;
-    --accent: #e38c62;
-    --accent-ink: #1a1512;
-    --accent-soft: #382519;
-    --person-a: #e38c62;
-    --person-a-soft: #382519;
-    --person-b: #8fb894;
-    --person-b-soft: #1f2e22;
-    --drive: #8fb0d3;
-    --drive-soft: #1d2833;
-    --late: #ef8a7f;
-    --late-soft: #3a1f1c;
-    --done: #8fb894;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --backdrop: rgba(0, 0, 0, 0.5);
+    --bg: #0e0e10;
+    --surface: #1a1a1d;
+    --surface-2: #242428;
+    --ink: #f5f2ee;
+    --muted: #8e8e95;
+    --faint: #4b4b52;
+    --line: #2a2a2f;
+    --accent: #ff7a59;
+    --accent-ink: #ffffff;
+    --accent-soft: #3a211b;
+    --person-a: #ff8a6b;
+    --person-a-soft: #3a211b;
+    --person-b: #7ee0b0;
+    --person-b-soft: #17332a;
+    --drive: #7fb8ff;
+    --drive-soft: #172638;
+    --late: #ff6b6b;
+    --late-soft: #3a1a1c;
+    --done: #7ee0b0;
+    --mint: #7ee0b0;
+    --amber: #ffc15e;
+    --violet: #b9a8ff;
+    --coral: #ff8a6b;
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --backdrop: rgba(0, 0, 0, 0.6);
+    --nav: rgba(28, 28, 31, 0.86);
   }
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #14110f;
-  --surface: #1d1916;
-  --surface-2: #27221e;
-  --ink: #f3ece4;
-  --muted: #a3988d;
-  --faint: #5e554d;
-  --line: #2d2723;
-  --accent: #e38c62;
-  --accent-ink: #1a1512;
-  --accent-soft: #382519;
-  --person-a: #e38c62;
-  --person-a-soft: #382519;
-  --person-b: #8fb894;
-  --person-b-soft: #1f2e22;
-  --drive: #8fb0d3;
-  --drive-soft: #1d2833;
-  --late: #ef8a7f;
-  --late-soft: #3a1f1c;
-  --done: #8fb894;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --backdrop: rgba(0, 0, 0, 0.5);
+  --bg: #0e0e10;
+  --surface: #1a1a1d;
+  --surface-2: #242428;
+  --ink: #f5f2ee;
+  --muted: #8e8e95;
+  --faint: #4b4b52;
+  --line: #2a2a2f;
+  --accent: #ff7a59;
+  --accent-ink: #ffffff;
+  --accent-soft: #3a211b;
+  --person-a: #ff8a6b;
+  --person-a-soft: #3a211b;
+  --person-b: #7ee0b0;
+  --person-b-soft: #17332a;
+  --drive: #7fb8ff;
+  --drive-soft: #172638;
+  --late: #ff6b6b;
+  --late-soft: #3a1a1c;
+  --done: #7ee0b0;
+  --mint: #7ee0b0;
+  --amber: #ffc15e;
+  --violet: #b9a8ff;
+  --coral: #ff8a6b;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --nav: rgba(28, 28, 31, 0.86);
 }
+
+/* En-têtes : dégradé et couleur propres à chaque rubrique. */
+[data-section='accueil'] { --sec: var(--coral); --hero-from: #ff7a59; --hero-to: #e0457b; --hero-ink: #ffffff; }
+[data-section='courses'] { --sec: var(--mint); --hero-from: #19c08a; --hero-to: #0b8a8f; --hero-ink: #ffffff; }
+[data-section='afaire'] { --sec: var(--amber); --hero-from: #ffc65c; --hero-to: #ff8a2a; --hero-ink: #2b1700; }
+[data-section='listes'] { --sec: var(--violet); --hero-from: #a78bfa; --hero-to: #6d3fe6; --hero-ink: #ffffff; }
 
 @theme inline {
   --color-bg: var(--bg);
@@ -105,6 +128,12 @@
   --color-late: var(--late);
   --color-late-soft: var(--late-soft);
   --color-done: var(--done);
+  --color-sec: var(--sec);
+  --color-hero-ink: var(--hero-ink);
+  --color-mint: var(--mint);
+  --color-amber: var(--amber);
+  --color-violet: var(--violet);
+  --color-coral: var(--coral);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: 'Newsreader Variable', ui-serif, Georgia, serif;
   --shadow-soft: var(--shadow);
@@ -219,4 +248,20 @@ body {
 .animate-breathe { animation: breathe 2.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .logo-animated .logo-roof, .logo-animated .logo-dot-a, .logo-animated .logo-dot-b, .animate-breathe { animation: none; }
+}
+
+/* En-tête : arrive en glissant du haut, avec un léger fondu. */
+@keyframes hero-in {
+  from { opacity: 0.4; transform: translateY(-14px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-hero { animation: hero-in 0.55s var(--ease-smooth) backwards; }
+@media (prefers-reduced-motion: reduce) { .animate-hero { animation: none; } }
+
+/* La barre d'onglets est sombre dans les deux thèmes : couleurs vives partout. */
+nav {
+  --mint: #7ee0b0;
+  --amber: #ffc15e;
+  --violet: #b9a8ff;
+  --coral: #ff8a6b;
 }

@@ -3,16 +3,17 @@ import { useEffect, useState } from 'react'
 export type ThemePref = 'auto' | 'light' | 'dark'
 const KEY = 'foyer-theme'
 
-const COLORS = { light: '#f6f1ea', dark: '#14110f' }
+const COLORS = { light: '#f5f3f0', dark: '#0e0e10' }
 
 export function readTheme(): ThemePref {
   try {
     const v = localStorage.getItem(KEY)
-    if (v === 'light' || v === 'dark') return v
+    if (v === 'light' || v === 'dark' || v === 'auto') return v
   } catch {
     /* stockage indisponible */
   }
-  return 'auto'
+  // Nuit par défaut : le design est pensé d'abord pour le sombre.
+  return 'dark'
 }
 
 /** Pose data-theme sur <html> et accorde la barre d'état du téléphone. */
@@ -32,8 +33,7 @@ export function useTheme() {
   useEffect(() => {
     applyTheme(pref)
     try {
-      if (pref === 'auto') localStorage.removeItem(KEY)
-      else localStorage.setItem(KEY, pref)
+      localStorage.setItem(KEY, pref)
     } catch {
       /* ignoré */
     }

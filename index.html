@@ -9,14 +9,14 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Foyer" />
-    <meta name="theme-color" content="#f6f1ea" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#14110f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f3f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)" />
     <script>
       try {
         var t = localStorage.getItem('foyer-theme')
-        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+        if (t !== 'auto') document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark'
       } catch (e) {}
     </script>
   </head>

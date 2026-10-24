@@ -3,6 +3,13 @@
 ## À faire
 _(rien pour l'instant — ajoutez ici les prochaines idées)_
 
+## v5 (24/10)
+- Refonte « nuit vibrante » : fond profond, mode Nuit par défaut (Jour et Auto restent dans les réglages)
+- En-têtes en dégradé, une couleur par rubrique : Accueil corail-rose, Courses menthe, À faire ambre, Listes violet
+- Le dernier petit mot s'affiche en grand dans l'en-tête de l'accueil
+- Barre d'onglets flottante, chaque onglet s'allume dans sa couleur
+- Logo aux nouvelles couleurs (dégradé corail-rose)
+
 ## v4 (24/10)
 - Nouveau logo « toit à deux » (icône de l'app, écran de démarrage, connexion)
 - **Notifications** (à activer dans Réglages) : petit mot, article ajouté aux courses (au plus une fois toutes les 10 min), tâche pour vous, réaction à vos mots. Sur iPhone : depuis l'app installée sur l'écran d'accueil

@@ -5,13 +5,13 @@ import { writeFile } from 'node:fs/promises'
 
 const motif = `
   <path d="M24 52 L50 30 L76 52" fill="none" stroke="#FFFCF8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="40" cy="66" r="8" fill="#F6F1EA"/>
-  <circle cx="60" cy="66" r="8" fill="#B9D3BC"/>`
+  <circle cx="40" cy="66" r="8" fill="#FFF3EC"/>
+  <circle cx="60" cy="66" r="8" fill="#7EE0B0"/>`
 // Coins arrondis : icônes « classiques ». Plein cadre : iOS et Android arrondissent eux-mêmes.
-const rounded = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="23" fill="#B4603A"/>${motif}</svg>`
-const square = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B4603A"/>${motif}</svg>`
+const rounded = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="foyer-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A59"/><stop offset="1" stop-color="#E0457B"/></linearGradient></defs><rect width="100" height="100" rx="23" fill="url(#foyer-g)"/>${motif}</svg>`
+const square = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="foyer-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A59"/><stop offset="1" stop-color="#E0457B"/></linearGradient></defs><rect width="100" height="100" fill="url(#foyer-g)"/>${motif}</svg>`
 // Android « maskable » : le dessin doit tenir dans le cercle central (80 %).
-const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B4603A"/><g transform="translate(50 50) scale(0.8) translate(-50 -50)">${motif}</g></svg>`
+const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="foyer-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A59"/><stop offset="1" stop-color="#E0457B"/></linearGradient></defs><rect width="100" height="100" fill="url(#foyer-g)"/><g transform="translate(50 50) scale(0.8) translate(-50 -50)">${motif}</g></svg>`
 
 const png = (svg, size, file) => sharp(Buffer.from(svg), { density: 600 }).resize(size, size).png().toFile(`public/${file}`)
 

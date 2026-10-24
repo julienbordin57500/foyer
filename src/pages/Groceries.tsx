@@ -15,7 +15,7 @@ import {
   Composer,
   Empty,
   Field,
-  PageHeader,
+  Hero,
   SectionTitle,
   Segmented,
   Sheet,
@@ -97,44 +97,42 @@ export default function GroceriesPage() {
 
   return (
     <div className="animate-page">
-      <PageHeader
-        eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'}
-        title="Courses"
-      />
-
-      <Composer
-        value={text}
-        onChange={setText}
-        onSubmit={add}
-        placeholder="Ajouter un article…"
-        label="Nouvel article"
-        inputRef={inputRef}
-        middle={
-          <button
-            type="button"
-            onClick={() => setPlace(nextPlace[place])}
-            title="Où l'acheter ? (appuyer pour changer)"
-            className={cx(
-              'flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors duration-300',
-              place === 'store' ? 'bg-surface-2 text-muted' : 'bg-drive-soft text-drive',
-            )}
-          >
-            <PlaceIcon place={place} />
-            {PLACES.find((p) => p.value === place)!.short}
-          </button>
-        }
-      />
-      <p className={cx('h-5 px-4 pt-2 text-[13px] text-muted transition-opacity duration-300', preview ? 'opacity-100' : 'opacity-0')}>
-        {preview && (
-          <>
-            {EMOJI[preview]} {preview}
-            {parsed.quantity && <> · quantité {parsed.quantity}</>}
-          </>
-        )}
-      </p>
+      <Hero eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'} title="Courses">
+        <Composer
+          value={text}
+          onChange={setText}
+          onSubmit={add}
+          placeholder="Ajouter un article…"
+          label="Nouvel article"
+          inputRef={inputRef}
+          onHero
+          middle={
+            <button
+              type="button"
+              onClick={() => setPlace(nextPlace[place])}
+              title="Où l'acheter ? (appuyer pour changer)"
+              className={cx(
+                'flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors duration-300',
+                place === 'store' ? 'bg-white/14' : 'bg-white text-[#0b6f73]',
+              )}
+            >
+              <PlaceIcon place={place} />
+              {PLACES.find((p) => p.value === place)!.short}
+            </button>
+          }
+        />
+        <p className={cx('h-4 px-4 pt-2 text-[13px] transition-opacity duration-300', preview ? 'opacity-85' : 'opacity-0')}>
+          {preview && (
+            <>
+              {EMOJI[preview]} {preview}
+              {parsed.quantity && <> · quantité {parsed.quantity}</>}
+            </>
+          )}
+        </p>
+      </Hero>
 
       {open.length > 0 && (
-        <div className="mt-4">
+        <div>
           <Segmented<Filter>
             value={filter}
             onChange={setFilter}
