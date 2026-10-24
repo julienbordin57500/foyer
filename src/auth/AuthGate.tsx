@@ -26,8 +26,8 @@ const DEMO: Omit<Session_, 'signOut'> = {
   me: { user_id: DEMO_ME, display_name: 'Julien' },
   household: { id: 'demo', name: 'Foyer démo', invite_code: 'DEMO42' },
   members: [
-    { user_id: DEMO_ME, display_name: 'Julien' },
-    { user_id: DEMO_OTHER, display_name: 'Claire' },
+    { user_id: DEMO_ME, display_name: 'Julien', gender: 'm' },
+    { user_id: DEMO_OTHER, display_name: 'Claire', gender: 'f' },
   ],
   demo: true,
 }
@@ -43,6 +43,8 @@ export function useMember() {
       initial: (m?.display_name ?? '?').slice(0, 1).toUpperCase(),
       tone: (i === 1 ? 'b' : 'a') as 'a' | 'b',
       isMe: id === me.user_id,
+      /** Accord : « il » / « elle ». */
+      pronoun: m?.gender === 'f' ? 'elle' : 'il',
     }
   }
 }
@@ -64,7 +66,7 @@ function DemoGate({ children }: { children: ReactNode }) {
     () => ({
       ...DEMO,
       signOut: () => {
-        localStorage.removeItem('foyer-demo-v2')
+        localStorage.removeItem('foyer-demo-v3')
         location.reload()
       },
     }),
@@ -94,7 +96,7 @@ function SupabaseGate({ children }: { children: ReactNode }) {
     if (!me) return setProfile(null)
     const [{ data: household }, { data: members }] = await Promise.all([
       sb.from('households').select('id, name, invite_code').eq('id', me.household_id).single(),
-      sb.from('members').select('user_id, display_name').eq('household_id', me.household_id).order('created_at'),
+      sb.from('members').select('user_id, display_name, gender').eq('household_id', me.household_id).order('created_at'),
     ])
     setProfile({ me, household: household!, members: members ?? [] })
   }, [sb, session])
@@ -222,7 +224,7 @@ function SetupHousehold({ onDone }: { onDone(): void }) {
   }
 
   return (
-    <AuthShell title="Bienvenue" subtitle="Créez votre foyer, ou rejoignez celui de votre conjoint avec son code.">
+    <AuthShell title="Bienvenue" subtitle="Créez votre foyer, ou rejoignez celui de votre moitié avec son code.">
       <div className="mb-5 grid grid-cols-2 rounded-2xl bg-surface-2 p-1 text-sm font-semibold">
         {(['create', 'join'] as const).map((m) => (
           <button
@@ -241,7 +243,7 @@ function SetupHousehold({ onDone }: { onDone(): void }) {
         ) : (
           <Field
             label="Code d'invitation"
-            hint="Visible dans les réglages de l'app de votre conjoint."
+            hint="Visible dans les réglages de l'app de votre moitié."
             required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}

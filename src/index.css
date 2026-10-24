@@ -1,38 +1,41 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
-@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/newsreader/opsz-italic.css';
 
 /* Doux + épuré : fond crème, encre presque noire, une seule couleur chaude. */
 :root {
   color-scheme: light;
   --bg: #f6f1ea;
   --surface: #fffcf8;
-  --surface-2: #efe8de;
+  --surface-2: #f0e9df;
   --ink: #221d18;
-  --muted: #8b8177;
-  --faint: #bfb4a8;
-  --line: #e7ded3;
+  --muted: #877d73;
+  --faint: #bdb2a6;
+  --line: #e9e1d6;
   --accent: #b4603a;
   --accent-ink: #fffcf8;
-  --accent-soft: #f3e2d6;
+  --accent-soft: #f4e5da;
 
   /* Couleurs des deux membres */
   --person-a: #b4603a;
-  --person-a-soft: #f3e2d6;
-  --person-b: #5f8466;
-  --person-b-soft: #e1ebdf;
+  --person-a-soft: #f4e5da;
+  --person-b: #5c8263;
+  --person-b-soft: #e2ece0;
 
-  --drive: #4a6a8a;
-  --drive-soft: #e2e9f0;
+  --drive: #46698c;
+  --drive-soft: #e3eaf1;
   --late: #b4443a;
-  --late-soft: #f6e0dc;
-  --done: #5f8466;
+  --late-soft: #f7e2de;
+  --done: #5c8263;
 
-  --shadow: 0 1px 2px rgba(60, 40, 20, 0.04), 0 8px 24px -12px rgba(60, 40, 20, 0.12);
+  --shadow: 0 1px 2px rgba(60, 40, 20, 0.04), 0 10px 30px -14px rgba(60, 40, 20, 0.14);
+  --backdrop: rgba(34, 22, 12, 0.32);
 }
 
+/* Nuit : choisie dans les réglages, ou automatique si le téléphone est en mode sombre. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     color-scheme: dark;
     --bg: #14110f;
     --surface: #1d1916;
@@ -40,24 +43,46 @@
     --ink: #f3ece4;
     --muted: #a3988d;
     --faint: #5e554d;
-    --line: #2f2924;
+    --line: #2d2723;
     --accent: #e38c62;
     --accent-ink: #1a1512;
-    --accent-soft: #3a271d;
-
+    --accent-soft: #382519;
     --person-a: #e38c62;
-    --person-a-soft: #3a271d;
+    --person-a-soft: #382519;
     --person-b: #8fb894;
-    --person-b-soft: #213026;
-
+    --person-b-soft: #1f2e22;
     --drive: #8fb0d3;
-    --drive-soft: #1f2a35;
+    --drive-soft: #1d2833;
     --late: #ef8a7f;
     --late-soft: #3a1f1c;
     --done: #8fb894;
-
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --backdrop: rgba(0, 0, 0, 0.5);
   }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #14110f;
+  --surface: #1d1916;
+  --surface-2: #27221e;
+  --ink: #f3ece4;
+  --muted: #a3988d;
+  --faint: #5e554d;
+  --line: #2d2723;
+  --accent: #e38c62;
+  --accent-ink: #1a1512;
+  --accent-soft: #382519;
+  --person-a: #e38c62;
+  --person-a-soft: #382519;
+  --person-b: #8fb894;
+  --person-b-soft: #1f2e22;
+  --drive: #8fb0d3;
+  --drive-soft: #1d2833;
+  --late: #ef8a7f;
+  --late-soft: #3a1f1c;
+  --done: #8fb894;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --backdrop: rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -81,8 +106,9 @@
   --color-late-soft: var(--late-soft);
   --color-done: var(--done);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-serif: 'Newsreader Variable', ui-serif, Georgia, serif;
   --shadow-soft: var(--shadow);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html,
@@ -91,6 +117,7 @@ body {
   color: var(--ink);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  transition: background-color 0.4s var(--ease-smooth);
 }
 
 body {
@@ -99,48 +126,73 @@ body {
   font-feature-settings: 'cv11', 'ss01';
 }
 
-.font-serif {
-  font-variation-settings: 'SOFT' 100, 'WONK' 0;
-}
-
 .num {
   font-variant-numeric: tabular-nums;
 }
 
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top), 1rem);
+  padding-top: max(env(safe-area-inset-top), 1.25rem);
 }
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
 
-@keyframes sheet-in {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+/* ─── Mouvements ──────────────────────────────────────────────────────────── */
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes pop-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
 @keyframes check-pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.25); }
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
-@keyframes leave {
-  to { opacity: 0; transform: translateX(24px); }
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
 }
 
-.animate-sheet { animation: sheet-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.animate-fade { animation: fade-in 0.2s ease-out; }
-.animate-pop { animation: pop-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.animate-check { animation: check-pop 0.3s ease-out; }
-.animate-leave { animation: leave 0.35s ease-in forwards; }
+.animate-page { animation: page-in 0.42s var(--ease-smooth) backwards; }
+.animate-pop { animation: pop-in 0.38s var(--ease-smooth) backwards; }
+.animate-fade { animation: fade-in 0.25s ease-out both; }
+.animate-check { animation: check-pop 0.36s var(--ease-smooth); }
+.animate-slide { animation: slide-in-right 0.4s var(--ease-smooth) backwards; }
+
+/* Ligne qui se replie en douceur (article acheté, tâche faite). */
+.collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 0.38s var(--ease-smooth) 0.18s,
+    opacity 0.3s ease 0.18s,
+    transform 0.38s var(--ease-smooth) 0.18s;
+}
+.collapsible > * {
+  overflow: hidden;
+  min-height: 0;
+}
+.collapsible.is-leaving {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateX(14px);
+}
+
+/* Fiche du bas : entrée et sortie */
+.sheet-backdrop { transition: opacity 0.3s ease; }
+.sheet-panel { transition: transform 0.42s var(--ease-smooth); }
+.sheet-closed .sheet-backdrop { opacity: 0; }
+.sheet-closed .sheet-panel { transform: translateY(100%); }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-sheet, .animate-fade, .animate-pop, .animate-check, .animate-leave { animation: none; }
+  .animate-page, .animate-pop, .animate-fade, .animate-check, .animate-slide { animation: none; }
+  .collapsible, .sheet-backdrop, .sheet-panel { transition: none; }
 }

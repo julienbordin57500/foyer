@@ -1,12 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { TableName, Tables } from '../lib/types'
+import type { Place, TableName, Tables } from '../lib/types'
 
 export type Data = { [T in TableName]: Tables[T][] }
 /** Champs remplis par la base (id, dates, auteur) exclus. */
 export type NewRow<T extends TableName> = {
-  grocery_items: Pick<Tables['grocery_items'], 'name' | 'quantity' | 'category' | 'drive'>
+  grocery_items: Pick<Tables['grocery_items'], 'name' | 'quantity' | 'category' | 'place'>
   todos: Pick<Tables['todos'], 'title' | 'assignee' | 'due_date'>
   notes: Pick<Tables['notes'], 'body'>
+  lists: Pick<Tables['lists'], 'title' | 'emoji'>
+  list_items: Pick<Tables['list_items'], 'list_id' | 'text'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
 
@@ -16,13 +18,14 @@ export interface Backend {
   load(): Promise<Data>
   reload<T extends TableName>(table: T): Promise<Tables[T][]>
   insert<T extends TableName>(table: T, row: NewRow<T> & { id: string }): Promise<void>
+  insertMany<T extends TableName>(table: T, rows: (NewRow<T> & { id: string })[]): Promise<void>
   update<T extends TableName>(table: T, id: string, patch: Patch<T>): Promise<void>
   remove(table: TableName, id: string): Promise<void>
   /** Appelé quand l'autre téléphone modifie une table. */
   subscribe(onChange: (table: TableName) => void): () => void
 }
 
-export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes']
+export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes', 'lists', 'list_items']
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
   const check = ({ error }: { error: { message: string } | null }) => {
@@ -30,7 +33,11 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
   }
 
   const reload = async <T extends TableName>(table: T) => {
-    let q = sb.from(table).select('*').eq('household_id', householdId).order('created_at', { ascending: false })
+    let q = sb
+      .from(table)
+      .select('*')
+      .eq('household_id', householdId)
+      .order('created_at', { ascending: table === 'list_items' })
     // Les petits mots s'accumulent : seuls les plus récents servent.
     if (table === 'notes') q = q.limit(30)
     // Tâches faites : on ne garde que les 30 derniers jours.
@@ -44,11 +51,14 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
     me,
     reload,
     async load() {
-      const [grocery_items, todos, notes] = await Promise.all(TABLES.map(reload))
-      return { grocery_items, todos, notes } as Data
+      const [grocery_items, todos, notes, lists, list_items] = await Promise.all(TABLES.map(reload))
+      return { grocery_items, todos, notes, lists, list_items } as Data
     },
     async insert(table, row) {
       check(await sb.from(table).insert({ ...row, household_id: householdId } as never))
+    },
+    async insertMany(table, rows) {
+      if (rows.length) check(await sb.from(table).insert(rows.map((r) => ({ ...r, household_id: householdId })) as never))
     },
     async update(table, id, patch) {
       check(await sb.from(table).update(patch as never).eq('id', id))
@@ -71,7 +81,7 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
 
 // ─── Mode démo : localStorage, synchronisé entre onglets ───────────────────
 
-const KEY = 'foyer-demo-v2'
+const KEY = 'foyer-demo-v3'
 const uid = () => crypto.randomUUID()
 export const DEMO_ME = 'demo-1'
 export const DEMO_OTHER = 'demo-2'
@@ -88,7 +98,7 @@ const seed = (): Data => {
     name,
     quantity: null,
     category,
-    drive: false,
+    place: 'store' as Place,
     status: 'todo' as const,
     added_by,
     bought_at: null,
@@ -99,13 +109,13 @@ const seed = (): Data => {
     grocery_items: [
       item('Tomates cerises', 'Fruits & légumes', DEMO_OTHER),
       item('Avocats', 'Fruits & légumes', DEMO_ME, { quantity: '3' }),
-      item('Lait demi-écrémé', 'Frais', DEMO_OTHER, { drive: true, quantity: '6' }),
+      item('Lait demi-écrémé', 'Frais', DEMO_OTHER, { place: 'both', quantity: '6' }),
       item('Comté', 'Frais', DEMO_ME),
-      item('Pâtes', 'Épicerie', DEMO_ME, { drive: true, status: 'ordered' }),
-      item('Café en grains', 'Épicerie', DEMO_OTHER, { drive: true }),
-      item('Eau pétillante', 'Boissons', DEMO_ME, { drive: true, quantity: '2 packs' }),
+      item('Pâtes', 'Épicerie', DEMO_ME, { place: 'drive', status: 'ordered' }),
+      item('Café en grains', 'Épicerie', DEMO_OTHER, { place: 'drive' }),
+      item('Eau pétillante', 'Boissons', DEMO_ME, { place: 'drive', quantity: '2 packs' }),
       item('Liquide vaisselle', 'Maison & hygiène', DEMO_OTHER),
-      item('Couches taille 3', 'Bébé', DEMO_OTHER, { drive: true }),
+      item('Couches taille 3', 'Bébé', DEMO_OTHER, { place: 'drive' }),
       item('Bananes', 'Fruits & légumes', DEMO_ME, { status: 'bought', bought_at: ago(1500) }),
       item('Beurre', 'Frais', DEMO_OTHER, { status: 'bought', bought_at: ago(3000) }),
     ],
@@ -115,6 +125,18 @@ const seed = (): Data => {
       { id: uid(), title: 'Monter l’étagère du salon', assignee: null, due_date: null, added_by: DEMO_OTHER, done_by: null, done_at: null, created_at: ago(900) },
       { id: uid(), title: 'Renvoyer le colis Zalando', assignee: DEMO_OTHER, due_date: inDays(-1), added_by: DEMO_OTHER, done_by: null, done_at: null, created_at: ago(2000) },
       { id: uid(), title: 'Acheter un cadeau pour Léa', assignee: null, due_date: null, added_by: DEMO_ME, done_by: DEMO_OTHER, done_at: ago(120), created_at: ago(3000) },
+    ],
+    lists: [
+      { id: 'demo-list-valise', title: 'Valise week-end', emoji: '🧳', added_by: DEMO_OTHER, created_at: ago(5000) },
+      { id: 'demo-list-ikea', title: 'Ikea', emoji: '🛋️', added_by: DEMO_ME, created_at: ago(3000) },
+    ],
+    list_items: [
+      ...['Brosses à dents', 'Chargeurs', 'Pyjamas', 'Doudou de Noah', 'Couches', 'Papiers d’identité'].map((text, i) => ({
+        id: uid(), list_id: 'demo-list-valise', text, done: i < 2, done_by: i < 2 ? DEMO_OTHER : null, added_by: DEMO_OTHER, created_at: ago(5000 - i),
+      })),
+      ...['Étagère KALLAX blanche', 'Boîtes de rangement ×4', 'Lampe de chevet'].map((text, i) => ({
+        id: uid(), list_id: 'demo-list-ikea', text, done: false, done_by: null, added_by: DEMO_ME, created_at: ago(3000 - i),
+      })),
     ],
     notes: [
       { id: uid(), body: 'Bonne journée mon cœur, pense à prendre ton parapluie ☔️', author: DEMO_OTHER, created_at: ago(35) },
@@ -129,6 +151,8 @@ export function rowDefaults(table: TableName, me: string) {
   const now = new Date().toISOString()
   if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, created_at: now }
   if (table === 'todos') return { added_by: me, done_by: null, done_at: null, created_at: now }
+  if (table === 'lists') return { added_by: me, created_at: now }
+  if (table === 'list_items') return { done: false, done_by: null, added_by: me, created_at: now }
   return { author: me, created_at: now }
 }
 
@@ -164,8 +188,14 @@ export function demoBackend(): Backend {
     reload: async (table) => read()[table],
     async insert(table, row) {
       edit((d) => {
-        ;(d[table] as unknown[]).unshift({ ...defaults(table), ...row })
+        const rows = d[table] as unknown[]
+        const full = { ...defaults(table), ...row }
+        if (table === 'list_items') rows.push(full)
+        else rows.unshift(full)
       })
+    },
+    async insertMany(table, rows) {
+      for (const row of rows) await this.insert(table, row)
     },
     async update(table, id, patch) {
       edit((d) => {

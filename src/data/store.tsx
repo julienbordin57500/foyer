@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { TableName, Tables } from '../lib/types'
+import type { ListItem, TableName, Tables } from '../lib/types'
 import { TABLES, rowDefaults, type Backend, type Data, type NewRow, type Patch } from './backends'
 
 interface Store {
@@ -11,9 +11,11 @@ interface Store {
   insert<T extends TableName>(table: T, row: NewRow<T>): void
   update<T extends TableName>(table: T, id: string, patch: Patch<T>): void
   remove(table: TableName, id: string): void
+  /** Crée une liste et ses premiers éléments (modèle), dans cet ordre. */
+  createList(list: NewRow<'lists'>, items: string[]): string
 }
 
-const EMPTY: Data = { grocery_items: [], todos: [], notes: [] }
+const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [] }
 const Ctx = createContext<Store | null>(null)
 
 export function DataProvider({ backend, children }: { backend: Backend; children: ReactNode }) {
@@ -21,7 +23,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   // Écritures en vol par table : un rechargement temps réel pendant ce temps ferait clignoter l'écran.
-  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0 })
+  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0, lists: 0, list_items: 0 })
 
   const refresh = useCallback(
     async (table: TableName) => {
@@ -80,10 +82,35 @@ export function DataProvider({ backend, children }: { backend: Backend; children
       insert: (table, row) => {
         const full = { ...row, id: crypto.randomUUID() }
         const optimistic = { ...rowDefaults(table, backend.me), ...full } as unknown as Tables[TableName]
-        run(table, (rows) => [optimistic, ...rows], () => backend.insert(table, full))
+        // Les éléments de liste s'affichent dans l'ordre d'ajout, le reste du plus récent au plus ancien.
+        run(table, (rows) => (table === 'list_items' ? [...rows, optimistic] : [optimistic, ...rows]), () => backend.insert(table, full))
       },
       update: (table, id, patch) =>
         run(table, (rows) => rows.map((r) => (r.id === id ? ({ ...r, ...patch } as typeof r) : r)), () => backend.update(table, id, patch)),
+      createList: (list, items) => {
+        const id = crypto.randomUUID()
+        const rows = items.map((text) => ({ id: crypto.randomUUID(), list_id: id, text }))
+        const now = rowDefaults('lists', backend.me)
+        setData((d) => ({
+          ...d,
+          list_items: [...d.list_items, ...rows.map((r) => ({ ...rowDefaults('list_items', backend.me), ...r }) as unknown as ListItem)],
+        }))
+        pending.current.list_items++
+        run(
+          'lists',
+          (existing) => [{ ...now, ...list, id } as unknown as Tables['lists'], ...existing],
+          async () => {
+            try {
+              await backend.insert('lists', { ...list, id })
+              await backend.insertMany('list_items', rows)
+            } finally {
+              pending.current.list_items--
+              refresh('list_items')
+            }
+          },
+        )
+        return id
+      },
       remove: (table, id) => run(table, (rows) => rows.filter((r) => r.id !== id), () => backend.remove(table, id)),
     }),
     [data, loading, error, backend, run],

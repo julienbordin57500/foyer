@@ -1,11 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { ArrowUp, CalendarDays, Check, Trash2 } from 'lucide-react'
+import { CalendarDays, Check, Trash2 } from 'lucide-react'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { addDays, nextSaturday, toISODate, today } from '../lib/dates'
 import { ago, capitalize, dueLabel } from '../lib/format'
 import type { Todo } from '../lib/types'
-import { Avatar, Button, Card, Chips, Empty, Field, PageHeader, SectionTitle, Sheet, cx } from '../components/ui'
+import { Avatar, Button, Card, CheckCircle, Chips, Collapsible, Composer, Empty, Field, PageHeader, SectionTitle, Sheet, cx, useArrivals } from '../components/ui'
 
 type When = 'none' | 'today' | 'tomorrow' | 'weekend' | 'custom'
 
@@ -43,9 +43,9 @@ export default function TodosPage() {
   const dated = sorted.filter((t) => t.due_date)
   const someday = sorted.filter((t) => !t.due_date)
   const lateCount = dated.filter((t) => dueLabel(t.due_date!).late).length
+  const isNew = useArrivals(data.todos.map((t) => t.id))
 
-  const add = (e: FormEvent) => {
-    e.preventDefault()
+  const add = () => {
     const title = text.trim()
     if (!title) return
     insert('todos', {
@@ -65,7 +65,7 @@ export default function TodosPage() {
   ]
 
   return (
-    <>
+    <div className="animate-page">
       <PageHeader
         eyebrow={
           open.length === 0
@@ -75,28 +75,15 @@ export default function TodosPage() {
         title="À faire"
       />
 
-      <form onSubmit={add}>
-        <div className="flex items-center gap-2 rounded-[22px] bg-surface p-1.5 pl-4 shadow-soft ring-1 ring-line/70 focus-within:ring-2 focus-within:ring-accent/50">
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Une chose à faire…"
-            aria-label="Nouvelle tâche"
-            enterKeyHint="done"
-            className="h-11 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-faint"
-          />
-          <button
-            aria-label="Ajouter"
-            disabled={!text.trim()}
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-bg transition active:scale-95 disabled:opacity-20"
-          >
-            <ArrowUp size={20} strokeWidth={2.4} />
-          </button>
-        </div>
-
-        {text.trim() && (
-          <div className="animate-pop mt-3 space-y-3 px-1">
+      <Composer value={text} onChange={setText} onSubmit={add} placeholder="Une chose à faire…" label="Nouvelle tâche" inputRef={inputRef} />
+      <div
+        className={cx(
+          'grid transition-[grid-template-rows,opacity] duration-500 ease-smooth',
+          text.trim() ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="mt-4 space-y-4 px-1">
             <Chips label="Pour qui ?" value={assignee} onChange={setAssignee} options={assigneeOptions} />
             <Chips<When>
               label="Quand ?"
@@ -121,8 +108,8 @@ export default function TodosPage() {
               />
             )}
           </div>
-        )}
-      </form>
+        </div>
+      </div>
 
       {open.length === 0 && done.length === 0 && (
         <Empty emoji="🌿" title="Rien à faire" text="Notez ici ce qui vous trotte dans la tête. Quand l'un coche, c'est fait pour les deux." />
@@ -131,10 +118,10 @@ export default function TodosPage() {
       {dated.length > 0 && (
         <>
           <SectionTitle>Avec une date</SectionTitle>
-          <Card className="px-1.5 py-1">
-            <ul className="divide-y divide-line/70">
+          <Card className="overflow-hidden">
+            <ul>
               {dated.map((t) => (
-                <TodoRow key={t.id} todo={t} onEdit={() => setEditing(t)} />
+                <TodoRow key={t.id} todo={t} fresh={isNew(t.id)} onEdit={() => setEditing(t)} />
               ))}
             </ul>
           </Card>
@@ -144,10 +131,10 @@ export default function TodosPage() {
       {someday.length > 0 && (
         <>
           <SectionTitle>Quand on peut</SectionTitle>
-          <Card className="px-1.5 py-1">
-            <ul className="divide-y divide-line/70">
+          <Card className="overflow-hidden">
+            <ul>
               {someday.map((t) => (
-                <TodoRow key={t.id} todo={t} onEdit={() => setEditing(t)} />
+                <TodoRow key={t.id} todo={t} fresh={isNew(t.id)} onEdit={() => setEditing(t)} />
               ))}
             </ul>
           </Card>
@@ -159,11 +146,11 @@ export default function TodosPage() {
       <Sheet open={!!editing} title="Tâche" onClose={() => setEditing(null)}>
         {editing && <TodoForm key={editing.id} todo={editing} onClose={() => setEditing(null)} />}
       </Sheet>
-    </>
+    </div>
   )
 }
 
-function TodoRow({ todo, onEdit }: { todo: Todo; onEdit(): void }) {
+function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit(): void }) {
   const { update, me } = useStore()
   const member = useMember()
   const [leaving, setLeaving] = useState(false)
@@ -173,41 +160,32 @@ function TodoRow({ todo, onEdit }: { todo: Todo; onEdit(): void }) {
 
   const complete = () => {
     setLeaving(true)
-    setTimeout(() => update('todos', todo.id, { done_at: new Date().toISOString(), done_by: me }), 380)
+    setTimeout(() => update('todos', todo.id, { done_at: new Date().toISOString(), done_by: me }), 560)
   }
 
   return (
-    <li className={cx('flex items-start gap-3 px-2.5 py-3', leaving && 'animate-leave')}>
-      <button
-        onClick={complete}
-        aria-label={`Marquer « ${todo.title} » comme fait`}
-        className={cx(
-          'mt-px grid size-[26px] shrink-0 place-items-center rounded-full border-[1.5px] transition',
-          leaving ? 'animate-check border-done bg-done text-surface' : due?.late ? 'border-late' : 'border-faint',
-        )}
-      >
-        {leaving && <Check size={15} strokeWidth={3} />}
-      </button>
-      <button onClick={onEdit} className="min-w-0 flex-1 text-left">
-        <span className={cx('block text-[16px] leading-snug', leaving && 'text-muted line-through')}>{todo.title}</span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">
-          {due && (
-            <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-accent' : '')}>{due.text}</span>
-          )}
-          {due && <span className="text-faint">·</span>}
-          {who ? (
-            <span className="flex items-center gap-1">
-              <Avatar initial={who.initial} tone={who.tone} size="xs" />
-              {who.isMe ? 'Pour moi' : `Pour ${who.name}`}
-            </span>
-          ) : (
-            <span>Nous deux</span>
-          )}
-          <span className="text-faint">·</span>
-          <span>noté par {by.isMe ? 'moi' : by.name}</span>
-        </span>
-      </button>
-    </li>
+    <Collapsible leaving={leaving} className={cx('border-b border-line/70 last:border-0', fresh && 'animate-pop')}>
+      <div className="flex min-h-14 items-start gap-3 px-4 py-3">
+        <CheckCircle checked={leaving} tone={due?.late ? 'late' : 'default'} onClick={complete} label={`Marquer « ${todo.title} » comme faite`} />
+        <button onClick={onEdit} className="min-w-0 flex-1 pt-0.5 text-left">
+          <span className={cx('block text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}>{todo.title}</span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
+            {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-accent' : '')}>{due.text}</span>}
+            {due && <span className="text-faint">·</span>}
+            {who ? (
+              <span className="inline-flex items-center gap-1">
+                <Avatar initial={who.initial} tone={who.tone} size="xs" />
+                {who.isMe ? 'Pour moi' : `Pour ${who.name}`}
+              </span>
+            ) : (
+              <span>Nous deux</span>
+            )}
+            <span className="text-faint">·</span>
+            <span>notée par {by.isMe ? 'moi' : by.name}</span>
+          </span>
+        </button>
+      </div>
+    </Collapsible>
   )
 }
 
@@ -222,18 +200,18 @@ function DoneList({ items }: { items: Todo[] }) {
       <SectionTitle aside={items.length > 3 && <button onClick={() => setOpen(!open)}>{open ? 'Réduire' : `Tout voir (${items.length})`}</button>}>
         Fait cette semaine
       </SectionTitle>
-      <ul className="space-y-1 px-1">
+      <ul>
         {shown.map((t) => {
           const by = member(t.done_by)
           return (
-            <li key={t.id} className="flex items-center gap-3 py-1.5">
-              <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-done/15 text-done">
-                <Check size={13} strokeWidth={3} />
+            <li key={t.id} className="animate-fade flex min-h-12 items-center gap-3 px-4">
+              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-done/15 text-done">
+                <Check size={14} strokeWidth={3} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] text-muted line-through decoration-faint">{t.title}</span>
                 <span className="block text-[12px] text-faint">
-                  Fait par {by.isMe ? 'moi' : by.name} · {ago(t.done_at!)}
+                  Faite par {by.isMe ? 'moi' : by.name} · {ago(t.done_at!)}
                 </span>
               </span>
               <button
@@ -288,7 +266,7 @@ function TodoForm({ todo, onClose }: { todo: Todo; onClose(): void }) {
       </div>
       <p className="flex items-center gap-2 px-1 text-[13px] text-muted">
         <Avatar initial={by.initial} tone={by.tone} size="xs" />
-        Noté par {by.isMe ? 'vous' : by.name} · {ago(todo.created_at)}
+        Notée par {by.isMe ? 'vous' : by.name} · {ago(todo.created_at)}
       </p>
       <div className="flex gap-3">
         <Button

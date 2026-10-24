@@ -1,22 +1,21 @@
-# Notes de patch — à faire
+# Notes de patch
 
-## Prochaine version (v3)
+## À faire
+_(rien pour l'instant — ajoutez ici les prochaines idées)_
 
-### Design
-- [ ] Revoir le design dans l'ensemble, plus soigné
-- [ ] Animations fluides partout : changement d'onglet, ouverture des fiches, cases cochées, apparition des articles et des petits mots
-- [ ] Bien aligner tous les éléments (marges, icônes, pastilles, textes des lignes)
-- [ ] Titre « Bonsoir Julien » : le « J » de la police à empattements est bizarre → changer de police de titre ou la régler
+## v3 (24/10)
+- Nouvel onglet **Listes** : listes à cocher à deux (valise, Ikea, bricolage, sac de crèche…), avec modèles prêts à l'emploi, « Tout décocher » pour les réutiliser
+- Courses : un article peut être **au drive, en magasin ou les deux**
+- Réglages : thème **Jour / Nuit / Auto**
+- Design revu : animations fluides (changement d'onglet, fiches qui montent et redescendent, lignes qui se replient quand on coche, pastille qui glisse sous l'onglet actif), alignements harmonisés
+- Nouvelle police de titre (Newsreader) : le « J » de « Julien » ne descend plus sous la ligne
+- Accords au féminin pour Claire (« elle le verra », tâche « notée » / « faite » par…)
 
-### Courses
-- [ ] Pouvoir mettre un article à la fois « Drive » et « Magasin » (choix des deux)
+## v2 (24/10)
+- Courses partagées rangées par rayon, drive (à commander → commandé → acheté), récemment achetés
+- À faire : pour qui, pour quand, fait par qui
+- Petits mots sur l'accueil
+- Retrait des abonnements, du budget et du stock
 
-### Réglages
-- [ ] Choix du thème : Jour / Nuit / Automatique (suit le téléphone)
-
-### Textes
-- [ ] Accords au féminin pour Claire, notamment dans les petits mots (« elle le verra », « Notée par Claire »…) → accorder selon la personne
-
-## Fait
-- v2 (24/10) : courses partagées par rayon avec drive, à faire, petits mots ; retrait abonnements, budget, stock
-- v1 (24/10) : première maquette
+## v1 (24/10)
+- Première maquette

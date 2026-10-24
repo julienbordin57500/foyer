@@ -13,6 +13,12 @@
     <meta name="apple-mobile-web-app-title" content="Foyer" />
     <meta name="theme-color" content="#f6f1ea" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#14110f" media="(prefers-color-scheme: dark)" />
+    <script>
+      try {
+        var t = localStorage.getItem('foyer-theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

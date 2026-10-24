@@ -12,13 +12,15 @@ export const CATEGORIES = [
 export type Category = (typeof CATEGORIES)[number]['id']
 
 export type GroceryStatus = 'todo' | 'ordered' | 'bought'
+/** Où l'acheter : en magasin, au drive, ou l'un ou l'autre. */
+export type Place = 'store' | 'drive' | 'both'
 
 export interface GroceryItem {
   id: string
   name: string
   quantity: string | null
   category: Category
-  drive: boolean
+  place: Place
   status: GroceryStatus
   added_by: string
   bought_at: string | null
@@ -46,6 +48,25 @@ export interface Note {
 export interface Member {
   user_id: string
   display_name: string
+  gender?: 'f' | 'm' | null
+}
+
+export interface List {
+  id: string
+  title: string
+  emoji: string
+  added_by: string
+  created_at: string
+}
+
+export interface ListItem {
+  id: string
+  list_id: string
+  text: string
+  done: boolean
+  done_by: string | null
+  added_by: string
+  created_at: string
 }
 
 export interface Household {
@@ -58,6 +79,8 @@ export interface Tables {
   grocery_items: GroceryItem
   todos: Todo
   notes: Note
+  lists: List
+  list_items: ListItem
 }
 
 export type TableName = keyof Tables
