@@ -309,3 +309,108 @@ export function Empty({ emoji, title, text }: { emoji: string; title: string; te
     </div>
   )
 }
+
+type SwipeAction = { label: string; icon: ReactNode; tone: 'done' | 'late'; run(): void }
+
+/**
+ * Ligne qu'on peut faire glisser : vers la droite (action positive), vers la gauche (supprimer).
+ * Le défilement vertical reste prioritaire ; le mouvement suit le doigt sans re-rendu React.
+ */
+export function SwipeRow({ right, left, children, bare }: { right?: SwipeAction; left?: SwipeAction; children: ReactNode; bare?: boolean }) {
+  const fg = useRef<HTMLDivElement>(null)
+  const bg = useRef<HTMLDivElement>(null)
+  const g = useRef({ x: 0, y: 0, dx: 0, active: false, decided: false, moved: false, width: 1 })
+  const [side, setSide] = useState<'left' | 'right' | null>(null)
+
+  const setX = (x: number, animate: boolean) => {
+    const el = fg.current!
+    el.style.transition = animate ? 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
+    el.style.transform = `translate3d(${x}px, 0, 0)`
+    const p = Math.min(1, Math.abs(x) / (g.current.width * 0.35))
+    if (bg.current) {
+      bg.current.style.opacity = String(Math.min(1, p * 1.4))
+      bg.current.dataset.armed = p >= 1 ? 'true' : 'false'
+    }
+  }
+
+  const onDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    g.current = { x: e.clientX, y: e.clientY, dx: 0, active: true, decided: false, moved: false, width: fg.current!.offsetWidth }
+  }
+  const onMove = (e: React.PointerEvent) => {
+    const s = g.current
+    if (!s.active) return
+    const dx = e.clientX - s.x
+    const dy = e.clientY - s.y
+    if (!s.decided) {
+      if (Math.abs(dy) > 10) return void (s.active = false) // défilement vertical
+      if (Math.abs(dx) < 10) return
+      s.decided = true
+      s.moved = true
+      fg.current!.setPointerCapture(e.pointerId)
+    }
+    let x = dx
+    if ((x > 0 && !right) || (x < 0 && !left)) x = 0
+    // Résistance au-delà de la moitié de la ligne.
+    const max = s.width * 0.5
+    if (Math.abs(x) > max) x = Math.sign(x) * (max + (Math.abs(x) - max) * 0.25)
+    s.dx = x
+    const next = x > 0 ? 'right' : x < 0 ? 'left' : null
+    if (next !== side) setSide(next)
+    setX(x, false)
+  }
+  const onUp = () => {
+    const s = g.current
+    if (!s.active) return
+    s.active = false
+    const action = s.dx > 0 ? right : left
+    if (action && Math.abs(s.dx) >= s.width * 0.35) {
+      setX(Math.sign(s.dx) * s.width, true)
+      setTimeout(() => {
+        action.run()
+        setX(0, false)
+        setSide(null)
+      }, 240)
+    } else {
+      setX(0, true)
+    }
+  }
+
+  const action = side === 'right' ? right : side === 'left' ? left : null
+  return (
+    <div className="relative overflow-hidden">
+      {action && (
+        <div
+          ref={bg}
+          data-armed="false"
+          className={cx(
+            'group absolute inset-0 flex items-center gap-2 px-5 text-[14px] font-semibold opacity-0',
+            side === 'right' ? 'justify-start' : 'justify-end',
+            action.tone === 'done' ? 'bg-done/15 text-done' : 'bg-late-soft text-late',
+          )}
+        >
+          <span className="transition-transform duration-200 ease-smooth group-data-[armed=true]:scale-125">{action.icon}</span>
+          {action.label}
+        </div>
+      )}
+      <div
+        ref={fg}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        onClickCapture={(e) => {
+          // Un glissement ne doit pas ouvrir la fiche de l'élément.
+          if (g.current.moved) {
+            e.stopPropagation()
+            g.current.moved = false
+          }
+        }}
+        className={cx('relative', bare ? 'bg-bg' : 'bg-surface')}
+        style={{ touchAction: 'pan-y' }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}

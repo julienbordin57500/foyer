@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Home, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import Logo from '../components/Logo'
 import { supabase } from '../lib/supabase'
 import type { Household, Member } from '../lib/types'
 import { DEMO_ME, DEMO_OTHER, demoBackend, supabaseBackend, type Backend } from '../data/backends'
@@ -118,25 +119,43 @@ function SupabaseGate({ children }: { children: ReactNode }) {
   )
 }
 
-function Splash() {
+/** Écran de démarrage : le logo se dessine pendant le chargement. */
+export function Splash() {
   return (
-    <div className="grid min-h-dvh place-items-center text-muted">
-      <Loader2 className="animate-spin" />
+    <div className="animate-fade grid min-h-dvh place-items-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-breathe rounded-[26px] shadow-soft">
+          <Logo size={88} animated />
+        </div>
+        <p className="animate-pop font-serif text-[26px] font-medium" style={{ animationDelay: '0.5s' }}>
+          Foyer
+        </p>
+      </div>
     </div>
   )
 }
 
 function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <div className="pt-safe mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-10">
-      <div className="mb-8">
-        <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-accent text-accent-ink shadow-soft">
-          <Home size={26} />
+    <div className="relative min-h-dvh overflow-hidden">
+      {/* Halo doux derrière le logo */}
+      <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-accent-soft opacity-70 blur-3xl" />
+      <div className="pt-safe relative mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-10">
+        <div className="mb-9">
+          <div className="mb-6 inline-block rounded-[24px] shadow-soft">
+            <Logo size={68} animated />
+          </div>
+          <h1 className="animate-pop font-serif text-[40px] font-medium leading-none tracking-tight" style={{ animationDelay: '0.15s' }}>
+            {title}
+          </h1>
+          <p className="animate-pop mt-3 text-[16px] leading-relaxed text-muted" style={{ animationDelay: '0.25s' }}>
+            {subtitle}
+          </p>
         </div>
-        <h1 className="font-serif text-4xl font-medium tracking-tight">{title}</h1>
-        <p className="mt-2 text-muted">{subtitle}</p>
+        <div className="animate-pop" style={{ animationDelay: '0.35s' }}>
+          {children}
+        </div>
       </div>
-      {children}
     </div>
   )
 }
@@ -247,7 +266,7 @@ function SetupHousehold({ onDone }: { onDone(): void }) {
             required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="h-12 w-full rounded-2xl bg-surface-2 px-4 text-[16px] font-semibold uppercase tracking-[0.3em] outline-none ring-accent focus:ring-2"
+            className="font-semibold uppercase tracking-[0.3em]"
             maxLength={6}
           />
         )}

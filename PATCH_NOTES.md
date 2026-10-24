@@ -3,6 +3,13 @@
 ## À faire
 _(rien pour l'instant — ajoutez ici les prochaines idées)_
 
+## v4 (24/10)
+- Nouveau logo « toit à deux » (icône de l'app, écran de démarrage, connexion)
+- **Notifications** (à activer dans Réglages) : petit mot, article ajouté aux courses (au plus une fois toutes les 10 min), tâche pour vous, réaction à vos mots. Sur iPhone : depuis l'app installée sur l'écran d'accueil
+- **Réactions** aux petits mots : ❤️ 😂 😘 👍 🥹
+- **Glisser** : vers la droite pour cocher, vers la gauche pour supprimer, avec « Annuler » pendant 5 secondes
+- Écran de démarrage animé (le toit se dessine), écran de connexion revu
+
 ## v3 (24/10)
 - Nouvel onglet **Listes** : listes à cocher à deux (valise, Ikea, bricolage, sac de crèche…), avec modèles prêts à l'emploi, « Tout décocher » pour les réutiliser
 - Courses : un article peut être **au drive, en magasin ou les deux**

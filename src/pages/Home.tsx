@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { ChevronRight, Settings, X } from 'lucide-react'
+import { ChevronRight, Settings, SmilePlus, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { ago, dueLabel, greeting, longDate } from '../lib/format'
-import type { Note } from '../lib/types'
+import { REACTIONS, type Note, type Reaction } from '../lib/types'
 import { Avatar, Card, Composer, SectionTitle, cx, useArrivals } from '../components/ui'
 import SettingsSheet from '../components/SettingsSheet'
 
@@ -187,6 +187,68 @@ function NoteBody({ note, big, animate }: { note: Note; big?: boolean; animate?:
         <Avatar initial={m.initial} tone={m.tone} size="xs" />
         {m.isMe ? 'Vous' : m.name} · {ago(note.created_at)}
       </p>
+      <Reactions note={note} />
+    </div>
+  )
+}
+
+/** Réactions sous un petit mot : une par personne, un appui pour changer ou retirer. */
+function Reactions({ note }: { note: Note }) {
+  const { data, insert, update, remove, me } = useStore()
+  const member = useMember()
+  const [picking, setPicking] = useState(false)
+  const list = data.note_reactions.filter((r) => r.note_id === note.id)
+  const mine = list.find((r) => r.user_id === me)
+
+  const choose = (emoji: Reaction) => {
+    if (mine?.emoji === emoji) remove('note_reactions', mine.id)
+    else if (mine) update('note_reactions', mine.id, { emoji })
+    else insert('note_reactions', { note_id: note.id, emoji })
+    setPicking(false)
+  }
+
+  return (
+    <div className="mt-2 flex min-h-8 flex-wrap items-center gap-1.5">
+      {list.map((r) => {
+        const who = member(r.user_id)
+        return (
+          <button
+            key={r.id}
+            onClick={() => r.user_id === me && choose(r.emoji)}
+            title={who.isMe ? 'Votre réaction (appuyer pour retirer)' : `${who.name} a réagi`}
+            className={cx(
+              'animate-pop flex h-8 items-center gap-1 rounded-full pl-2 pr-1.5 text-[15px] ring-1 transition active:scale-90',
+              r.user_id === me ? 'bg-accent-soft ring-accent/30' : 'bg-surface ring-line',
+            )}
+          >
+            {r.emoji}
+            <Avatar initial={who.initial} tone={who.tone} size="xs" />
+          </button>
+        )
+      })}
+      {picking ? (
+        <div className="animate-pop flex h-8 items-center gap-0.5 rounded-full bg-surface px-1 shadow-soft ring-1 ring-line">
+          {REACTIONS.map((e, i) => (
+            <button
+              key={e}
+              onClick={() => choose(e)}
+              aria-label={`Réagir ${e}`}
+              className="animate-pop grid size-7 place-items-center rounded-full text-[17px] transition active:scale-75"
+              style={{ animationDelay: `${i * 30}ms` }}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          onClick={() => setPicking(true)}
+          aria-label="Ajouter une réaction"
+          className="grid size-8 place-items-center rounded-full text-faint transition active:scale-90 active:bg-surface-2"
+        >
+          <SmilePlus size={17} />
+        </button>
+      )}
     </div>
   )
 }

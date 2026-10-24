@@ -11,19 +11,24 @@ interface Store {
   insert<T extends TableName>(table: T, row: NewRow<T>): void
   update<T extends TableName>(table: T, id: string, patch: Patch<T>): void
   remove(table: TableName, id: string): void
+  /** Supprime après quelques secondes, avec un bouton « Annuler » entre-temps. */
+  removeWithUndo(table: TableName, id: string, label: string): void
+  toast: { message: string; undo(): void } | null
   /** Crée une liste et ses premiers éléments (modèle), dans cet ordre. */
   createList(list: NewRow<'lists'>, items: string[]): string
 }
 
-const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [] }
+const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [], note_reactions: [] }
 const Ctx = createContext<Store | null>(null)
 
 export function DataProvider({ backend, children }: { backend: Backend; children: ReactNode }) {
   const [data, setData] = useState<Data>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [toast, setToast] = useState<Store['toast']>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Écritures en vol par table : un rechargement temps réel pendant ce temps ferait clignoter l'écran.
-  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0, lists: 0, list_items: 0 })
+  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0, lists: 0, list_items: 0, note_reactions: 0 })
 
   const refresh = useCallback(
     async (table: TableName) => {
@@ -111,9 +116,38 @@ export function DataProvider({ backend, children }: { backend: Backend; children
         )
         return id
       },
+      toast,
+      removeWithUndo: (table, id, label) => {
+        // Masqué tout de suite, supprimé pour de bon 5 s plus tard sauf « Annuler ».
+        setData((d) => ({ ...d, [table]: (d[table] as { id: string }[]).filter((r) => r.id !== id) }))
+        pending.current[table]++
+        let undone = false
+        const commit = setTimeout(() => {
+          if (undone) return
+          backend
+            .remove(table, id)
+            .catch((e) => setError((e as Error).message))
+            .finally(() => {
+              pending.current[table]--
+              refresh(table)
+            })
+        }, 5000)
+        if (toastTimer.current) clearTimeout(toastTimer.current)
+        toastTimer.current = setTimeout(() => setToast(null), 5000)
+        setToast({
+          message: `« ${label} » supprimé`,
+          undo: () => {
+            undone = true
+            clearTimeout(commit)
+            pending.current[table]--
+            refresh(table)
+            setToast(null)
+          },
+        })
+      },
       remove: (table, id) => run(table, (rows) => rows.filter((r) => r.id !== id), () => backend.remove(table, id)),
     }),
-    [data, loading, error, backend, run],
+    [data, loading, error, toast, backend, run, refresh],
   )
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>

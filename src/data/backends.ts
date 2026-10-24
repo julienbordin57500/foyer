@@ -9,6 +9,7 @@ export type NewRow<T extends TableName> = {
   notes: Pick<Tables['notes'], 'body'>
   lists: Pick<Tables['lists'], 'title' | 'emoji'>
   list_items: Pick<Tables['list_items'], 'list_id' | 'text'>
+  note_reactions: Pick<Tables['note_reactions'], 'note_id' | 'emoji'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
 
@@ -25,7 +26,7 @@ export interface Backend {
   subscribe(onChange: (table: TableName) => void): () => void
 }
 
-export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes', 'lists', 'list_items']
+export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes', 'lists', 'list_items', 'note_reactions']
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
   const check = ({ error }: { error: { message: string } | null }) => {
@@ -51,8 +52,8 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
     me,
     reload,
     async load() {
-      const [grocery_items, todos, notes, lists, list_items] = await Promise.all(TABLES.map(reload))
-      return { grocery_items, todos, notes, lists, list_items } as Data
+      const [grocery_items, todos, notes, lists, list_items, note_reactions] = await Promise.all(TABLES.map(reload))
+      return { grocery_items, todos, notes, lists, list_items, note_reactions } as Data
     },
     async insert(table, row) {
       check(await sb.from(table).insert({ ...row, household_id: householdId } as never))
@@ -81,7 +82,7 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
 
 // ─── Mode démo : localStorage, synchronisé entre onglets ───────────────────
 
-const KEY = 'foyer-demo-v3'
+const KEY = 'foyer-demo-v4'
 const uid = () => crypto.randomUUID()
 export const DEMO_ME = 'demo-1'
 export const DEMO_OTHER = 'demo-2'
@@ -138,9 +139,10 @@ const seed = (): Data => {
         id: uid(), list_id: 'demo-list-ikea', text, done: false, done_by: null, added_by: DEMO_ME, created_at: ago(3000 - i),
       })),
     ],
+    note_reactions: [{ id: uid(), note_id: 'demo-note-2', user_id: DEMO_OTHER, emoji: '❤️', created_at: ago(1400) }],
     notes: [
       { id: uid(), body: 'Bonne journée mon cœur, pense à prendre ton parapluie ☔️', author: DEMO_OTHER, created_at: ago(35) },
-      { id: uid(), body: 'J’ai réservé pour samedi soir, surprise 😉', author: DEMO_ME, created_at: ago(1440) },
+      { id: 'demo-note-2', body: 'J’ai réservé pour samedi soir, surprise 😉', author: DEMO_ME, created_at: ago(1440) },
     ],
   }
 }
@@ -153,6 +155,7 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'todos') return { added_by: me, done_by: null, done_at: null, created_at: now }
   if (table === 'lists') return { added_by: me, created_at: now }
   if (table === 'list_items') return { done: false, done_by: null, added_by: me, created_at: now }
+  if (table === 'note_reactions') return { user_id: me, created_at: now }
   return { author: me, created_at: now }
 }
 

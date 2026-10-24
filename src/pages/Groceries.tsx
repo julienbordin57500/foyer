@@ -1,11 +1,28 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
-import { RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
+import { Check, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
 import { useMember } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { guessCategory } from '../lib/categorize'
 import { ago, capitalize, normalizeName, splitQuantity } from '../lib/format'
 import { CATEGORIES, type Category, type GroceryItem, type Place } from '../lib/types'
-import { Avatar, Button, Card, CheckCircle, Chips, Collapsible, Composer, Empty, Field, PageHeader, SectionTitle, Segmented, Sheet, cx, useArrivals } from '../components/ui'
+import {
+  Avatar,
+  Button,
+  Card,
+  CheckCircle,
+  Chips,
+  Collapsible,
+  Composer,
+  Empty,
+  Field,
+  PageHeader,
+  SectionTitle,
+  Segmented,
+  Sheet,
+  SwipeRow,
+  cx,
+  useArrivals,
+} from '../components/ui'
 
 type Filter = 'all' | 'drive' | 'store'
 const EMOJI = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.emoji])) as Record<Category, string>
@@ -80,7 +97,10 @@ export default function GroceriesPage() {
 
   return (
     <div className="animate-page">
-      <PageHeader eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'} title="Courses" />
+      <PageHeader
+        eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'}
+        title="Courses"
+      />
 
       <Composer
         value={text}
@@ -119,17 +139,42 @@ export default function GroceriesPage() {
             value={filter}
             onChange={setFilter}
             options={[
-              { value: 'all', label: <>Tout <span className="num text-faint">{open.length}</span></> },
-              { value: 'drive', label: <>Drive <span className="num text-faint">{driveCount}</span></> },
-              { value: 'store', label: <>Magasin <span className="num text-faint">{storeCount}</span></> },
+              {
+                value: 'all',
+                label: (
+                  <>
+                    Tout <span className="num text-faint">{open.length}</span>
+                  </>
+                ),
+              },
+              {
+                value: 'drive',
+                label: (
+                  <>
+                    Drive <span className="num text-faint">{driveCount}</span>
+                  </>
+                ),
+              },
+              {
+                value: 'store',
+                label: (
+                  <>
+                    Magasin <span className="num text-faint">{storeCount}</span>
+                  </>
+                ),
+              },
             ]}
           />
         </div>
       )}
 
-      {open.length === 0 && <Empty emoji="🧺" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />}
+      {open.length === 0 && (
+        <Empty emoji="🧺" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />
+      )}
       {open.length > 0 && groups.length === 0 && (
-        <p className="animate-fade py-12 text-center text-[15px] text-muted">{filter === 'drive' ? 'Rien à prendre au drive.' : 'Rien à prendre en magasin.'}</p>
+        <p className="animate-fade py-12 text-center text-[15px] text-muted">
+          {filter === 'drive' ? 'Rien à prendre au drive.' : 'Rien à prendre en magasin.'}
+        </p>
       )}
 
       <div key={filter} className="animate-fade">
@@ -178,43 +223,58 @@ export default function GroceriesPage() {
 }
 
 function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean; onEdit(): void }) {
-  const { update } = useStore()
+  const { update, removeWithUndo } = useStore()
   const member = useMember()(item.added_by)
   const [leaving, setLeaving] = useState(false)
   const ordered = item.status === 'ordered'
 
+  const buy = (delay = 560) => {
+    setLeaving(true)
+    setTimeout(() => update('grocery_items', item.id, { status: 'bought', bought_at: new Date().toISOString() }), delay)
+  }
   // Drive seul : à commander → commandé → acheté. Sinon : à acheter → acheté.
   const advance = () => {
     if (item.place === 'drive' && item.status === 'todo') return update('grocery_items', item.id, { status: 'ordered' })
-    setLeaving(true)
-    setTimeout(() => update('grocery_items', item.id, { status: 'bought', bought_at: new Date().toISOString() }), 560)
+    buy()
   }
 
   return (
     <Collapsible leaving={leaving} className={cx('border-b border-line/70 last:border-0', fresh && 'animate-pop')}>
-      <div className="flex min-h-14 items-center gap-3 px-4 py-2">
-        <CheckCircle
-          checked={leaving}
-          tone={ordered ? 'drive' : 'default'}
-          onClick={advance}
-          label={item.place === 'drive' && !ordered ? `Marquer ${item.name} comme commandé` : `Marquer ${item.name} comme acheté`}
-        >
-          {ordered && <Truck size={13} strokeWidth={2.4} />}
-        </CheckCircle>
-        <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
-          <span className={cx('block truncate text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}>
-            {item.name}
-            {item.quantity && <span className="num ml-1.5 text-[14px] text-muted">× {item.quantity}</span>}
-          </span>
-          {item.place !== 'store' && (
-            <span className="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-drive">
-              <PlaceIcon place={item.place} size={12} />
-              {ordered ? 'Commandé au drive' : item.place === 'both' ? 'Drive ou magasin' : 'Drive'}
+      <SwipeRow
+        right={{ label: 'Acheté', icon: <Check size={18} strokeWidth={2.6} />, tone: 'done', run: () => buy(200) }}
+        left={{
+          label: 'Supprimer',
+          icon: <Trash2 size={18} />,
+          tone: 'late',
+          run: () => removeWithUndo('grocery_items', item.id, item.name),
+        }}
+      >
+        <div className="flex min-h-14 items-center gap-3 px-4 py-2">
+          <CheckCircle
+            checked={leaving}
+            tone={ordered ? 'drive' : 'default'}
+            onClick={advance}
+            label={item.place === 'drive' && !ordered ? `Marquer ${item.name} comme commandé` : `Marquer ${item.name} comme acheté`}
+          >
+            {ordered && <Truck size={13} strokeWidth={2.4} />}
+          </CheckCircle>
+          <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
+            <span
+              className={cx('block truncate text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}
+            >
+              {item.name}
+              {item.quantity && <span className="num ml-1.5 text-[14px] text-muted">× {item.quantity}</span>}
             </span>
-          )}
-        </button>
-        <Avatar initial={member.initial} tone={member.tone} size="xs" />
-      </div>
+            {item.place !== 'store' && (
+              <span className="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-drive">
+                <PlaceIcon place={item.place} size={12} />
+                {ordered ? 'Commandé au drive' : item.place === 'both' ? 'Drive ou magasin' : 'Drive'}
+              </span>
+            )}
+          </button>
+          <Avatar initial={member.initial} tone={member.tone} size="xs" />
+        </div>
+      </SwipeRow>
     </Collapsible>
   )
 }
@@ -256,7 +316,14 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
         label="Où ?"
         value={place}
         onChange={setPlace}
-        options={PLACES.map((p) => ({ value: p.value, label: <><PlaceIcon place={p.value} /> {p.label}</> }))}
+        options={PLACES.map((p) => ({
+          value: p.value,
+          label: (
+            <>
+              <PlaceIcon place={p.value} /> {p.label}
+            </>
+          ),
+        }))}
       />
       {place === 'drive' && (
         <Chips

@@ -3,6 +3,7 @@ import { AlertCircle, ClipboardList, House, ListChecks, ShoppingBasket, X } from
 import { useStore } from './data/store'
 import { cx } from './components/ui'
 import { toISODate, today } from './lib/dates'
+import { Splash } from './auth/AuthGate'
 import HomePage from './pages/Home'
 import GroceriesPage from './pages/Groceries'
 import TodosPage from './pages/Todos'
@@ -24,7 +25,7 @@ const readHash = (): Tab => {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>(readHash)
-  const { data, error, dismissError } = useStore()
+  const { data, loading, error, dismissError, toast } = useStore()
   const index = TABS.findIndex((t) => t.id === tab)
   const lateCount = data.todos.filter((t) => !t.done_at && t.due_date && t.due_date < toISODate(today())).length
 
@@ -40,12 +41,23 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }
 
+  if (loading) return <Splash />
+
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-28">
       {tab === 'accueil' && <HomePage go={go} />}
       {tab === 'courses' && <GroceriesPage />}
       {tab === 'afaire' && <TodosPage />}
       {tab === 'listes' && <ListsPage />}
+
+      {toast && (
+        <div className="animate-pop fixed inset-x-4 bottom-24 z-40 mx-auto flex h-12 max-w-md items-center gap-3 rounded-2xl bg-ink pl-4 pr-1.5 text-[14px] text-bg shadow-soft">
+          <p className="min-w-0 flex-1 truncate">{toast.message}</p>
+          <button onClick={toast.undo} className="h-9 rounded-xl px-3 font-semibold text-accent-soft active:bg-white/10">
+            Annuler
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="animate-fade fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-late-soft p-3 text-sm text-late">

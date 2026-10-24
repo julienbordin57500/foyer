@@ -1,10 +1,25 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { ChevronLeft, MoreHorizontal, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Check, ChevronLeft, MoreHorizontal, Plus, RotateCcw, Trash2, Undo2 } from 'lucide-react'
 import { useMember } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { capitalize } from '../lib/format'
 import type { List, ListItem } from '../lib/types'
-import { Avatar, Button, Card, CheckCircle, Chips, Composer, Empty, Field, PageHeader, SectionTitle, Sheet, cx, useArrivals } from '../components/ui'
+import {
+  Avatar,
+  Button,
+  Card,
+  CheckCircle,
+  Chips,
+  Composer,
+  Empty,
+  Field,
+  PageHeader,
+  SectionTitle,
+  Sheet,
+  SwipeRow,
+  cx,
+  useArrivals,
+} from '../components/ui'
 
 const EMOJIS = ['📋', '🧳', '🛋️', '🔨', '🎒', '🎁', '🏕️', '🎄', '🍼', '🌱', '🎉', '🚗']
 
@@ -14,8 +29,20 @@ const TEMPLATES: { id: string; title: string; emoji: string; items: string[] }[]
     title: 'Valise',
     emoji: '🧳',
     items: [
-      'Brosses à dents', 'Dentifrice', 'Gel douche et shampoing', 'Chargeurs', 'Pyjamas', 'Sous-vêtements', 'Tenues',
-      'Chaussures', 'Maillots de bain', 'Médicaments', "Papiers d'identité", 'Doudou de Noah', 'Couches et lingettes', 'Biberons',
+      'Brosses à dents',
+      'Dentifrice',
+      'Gel douche et shampoing',
+      'Chargeurs',
+      'Pyjamas',
+      'Sous-vêtements',
+      'Tenues',
+      'Chaussures',
+      'Maillots de bain',
+      'Médicaments',
+      "Papiers d'identité",
+      'Doudou de Noah',
+      'Couches et lingettes',
+      'Biberons',
     ],
   },
   { id: 'ikea', title: 'Ikea', emoji: '🛋️', items: ['Prendre les mesures', 'Sacs de courses'] },
@@ -59,7 +86,11 @@ export default function ListsPage() {
 
       {data.lists.length === 0 ? (
         <>
-          <Empty emoji="📋" title="Aucune liste" text="Une valise à préparer, un passage chez Ikea, du bricolage… Créez une liste et cochez-la à deux." />
+          <Empty
+            emoji="📋"
+            title="Aucune liste"
+            text="Une valise à préparer, un passage chez Ikea, du bricolage… Créez une liste et cochez-la à deux."
+          />
           <div className="flex justify-center">
             <Button onClick={() => setCreating(true)}>
               <Plus size={18} /> Créer une liste
@@ -69,7 +100,13 @@ export default function ListsPage() {
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {data.lists.map((l, i) => (
-            <ListCard key={l.id} list={l} items={data.list_items.filter((x) => x.list_id === l.id)} index={i} onOpen={() => setOpenId(l.id)} />
+            <ListCard
+              key={l.id}
+              list={l}
+              items={data.list_items.filter((x) => x.list_id === l.id)}
+              index={i}
+              onOpen={() => setOpenId(l.id)}
+            />
           ))}
         </div>
       )}
@@ -205,17 +242,26 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
   return (
     <div className="animate-slide">
       <div className="pt-safe flex items-center justify-between">
-        <button onClick={onBack} className="-ml-2 flex h-10 items-center gap-0.5 rounded-full pl-1 pr-3 text-[15px] font-medium text-muted active:bg-surface-2">
+        <button
+          onClick={onBack}
+          className="-ml-2 flex h-10 items-center gap-0.5 rounded-full pl-1 pr-3 text-[15px] font-medium text-muted active:bg-surface-2"
+        >
           <ChevronLeft size={22} />
           Listes
         </button>
-        <button onClick={() => setMenu(true)} aria-label="Options de la liste" className="grid size-10 place-items-center rounded-full text-muted active:bg-surface-2">
+        <button
+          onClick={() => setMenu(true)}
+          aria-label="Options de la liste"
+          className="grid size-10 place-items-center rounded-full text-muted active:bg-surface-2"
+        >
           <MoreHorizontal size={22} />
         </button>
       </div>
 
       <header className="mb-6 mt-3 flex items-center gap-4 px-1">
-        <span className="grid size-14 shrink-0 place-items-center rounded-[20px] bg-surface text-[28px] shadow-soft ring-1 ring-line/80">{list.emoji}</span>
+        <span className="grid size-14 shrink-0 place-items-center rounded-[20px] bg-surface text-[28px] shadow-soft ring-1 ring-line/80">
+          {list.emoji}
+        </span>
         <div className="min-w-0">
           <h1 className="truncate font-serif text-[32px] font-medium leading-[1.05]">{list.title}</h1>
           <p className="mt-1 text-[13px] font-medium text-muted">
@@ -224,9 +270,18 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
         </div>
       </header>
 
-      <Composer value={text} onChange={setText} onSubmit={add} placeholder="Ajouter à la liste…" label="Nouvel élément" inputRef={inputRef} />
+      <Composer
+        value={text}
+        onChange={setText}
+        onSubmit={add}
+        placeholder="Ajouter à la liste…"
+        label="Nouvel élément"
+        inputRef={inputRef}
+      />
 
-      {items.length === 0 && <Empty emoji={list.emoji} title="Rien pour l'instant" text="Ajoutez les premiers éléments : ils apparaîtront aussi chez l'autre." />}
+      {items.length === 0 && (
+        <Empty emoji={list.emoji} title="Rien pour l'instant" text="Ajoutez les premiers éléments : ils apparaîtront aussi chez l'autre." />
+      )}
 
       {todo.length > 0 && (
         <Card className="mt-5 overflow-hidden">
@@ -242,7 +297,10 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
         <>
           <SectionTitle
             aside={
-              <button onClick={() => done.forEach((i) => update('list_items', i.id, { done: false, done_by: null }))} className="flex items-center gap-1 text-accent">
+              <button
+                onClick={() => done.forEach((i) => update('list_items', i.id, { done: false, done_by: null }))}
+                className="flex items-center gap-1 text-accent"
+              >
                 <RotateCcw size={12} /> Tout décocher
               </button>
             }
@@ -251,7 +309,7 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
           </SectionTitle>
           <ul>
             {done.map((i) => (
-              <ItemRow key={i.id} item={i} fresh={false} onEdit={() => setEditing(i)} />
+              <ItemRow key={i.id} item={i} fresh={false} bare onEdit={() => setEditing(i)} />
             ))}
           </ul>
         </>
@@ -268,23 +326,35 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
   )
 }
 
-function ItemRow({ item, fresh, onEdit }: { item: ListItem; fresh: boolean; onEdit(): void }) {
-  const { update, me } = useStore()
+function ItemRow({ item, fresh, bare, onEdit }: { item: ListItem; fresh: boolean; bare?: boolean; onEdit(): void }) {
+  const { update, removeWithUndo, me } = useStore()
   const by = useMember()(item.done_by)
+  const toggle = () => update('list_items', item.id, item.done ? { done: false, done_by: null } : { done: true, done_by: me })
 
   return (
     <li className={cx('border-b border-line/70 last:border-0', fresh && 'animate-pop')}>
-      <div className="flex min-h-14 items-center gap-3 px-4 py-2">
-        <CheckCircle
-          checked={item.done}
-          label={item.done ? `Décocher ${item.text}` : `Cocher ${item.text}`}
-          onClick={() => update('list_items', item.id, item.done ? { done: false, done_by: null } : { done: true, done_by: me })}
-        />
-        <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
-          <span className={cx('block text-[16px] transition-colors duration-300', item.done && 'text-muted line-through decoration-faint')}>{item.text}</span>
-        </button>
-        {item.done && item.done_by && <Avatar initial={by.initial} tone={by.tone} size="xs" />}
-      </div>
+      <SwipeRow
+        bare={bare}
+        right={{
+          label: item.done ? 'Décocher' : 'Cocher',
+          icon: item.done ? <Undo2 size={18} /> : <Check size={18} strokeWidth={2.6} />,
+          tone: 'done',
+          run: toggle,
+        }}
+        left={{ label: 'Supprimer', icon: <Trash2 size={18} />, tone: 'late', run: () => removeWithUndo('list_items', item.id, item.text) }}
+      >
+        <div className="flex min-h-14 items-center gap-3 px-4 py-2">
+          <CheckCircle checked={item.done} label={item.done ? `Décocher ${item.text}` : `Cocher ${item.text}`} onClick={toggle} />
+          <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
+            <span
+              className={cx('block text-[16px] transition-colors duration-300', item.done && 'text-muted line-through decoration-faint')}
+            >
+              {item.text}
+            </span>
+          </button>
+          {item.done && item.done_by && <Avatar initial={by.initial} tone={by.tone} size="xs" />}
+        </div>
+      </SwipeRow>
     </li>
   )
 }
@@ -342,7 +412,10 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
             key={em}
             type="button"
             onClick={() => setEmoji(em)}
-            className={cx('grid aspect-square place-items-center rounded-2xl text-[22px] transition active:scale-90', emoji === em ? 'bg-accent-soft ring-2 ring-accent/60' : 'bg-surface-2')}
+            className={cx(
+              'grid aspect-square place-items-center rounded-2xl text-[22px] transition active:scale-90',
+              emoji === em ? 'bg-accent-soft ring-2 ring-accent/60' : 'bg-surface-2',
+            )}
           >
             {em}
           </button>
@@ -378,4 +451,3 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
     </form>
   )
 }
-

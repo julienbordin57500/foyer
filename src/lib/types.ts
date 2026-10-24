@@ -45,6 +45,17 @@ export interface Note {
   created_at: string
 }
 
+export const REACTIONS = ['❤️', '😂', '😘', '👍', '🥹'] as const
+export type Reaction = (typeof REACTIONS)[number]
+
+export interface NoteReaction {
+  id: string
+  note_id: string
+  user_id: string
+  emoji: Reaction
+  created_at: string
+}
+
 export interface Member {
   user_id: string
   display_name: string
@@ -81,6 +92,7 @@ export interface Tables {
   notes: Note
   lists: List
   list_items: ListItem
+  note_reactions: NoteReaction
 }
 
 export type TableName = keyof Tables

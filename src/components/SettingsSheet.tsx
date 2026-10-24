@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Check, Copy, LogOut, Monitor, Moon, Sun } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Bell, Check, Copy, LogOut, Monitor, Moon, Sun } from 'lucide-react'
 import { useSession } from '../auth/AuthGate'
 import { useTheme, type ThemePref } from '../lib/theme'
-import { Avatar, Button, Segmented, Sheet } from './ui'
+import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
+import { Avatar, Button, Segmented, Sheet, cx } from './ui'
 
 export default function SettingsSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { household, members, me, demo, signOut } = useSession()
@@ -39,6 +40,8 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
       />
       <p className="mb-6 mt-1.5 px-1 text-xs text-muted">« Auto » suit le réglage du téléphone.</p>
 
+      {!demo && <Notifications householdId={household.id} />}
+
       <p className="mb-2 px-1 text-[13px] font-medium text-muted">{household.name}</p>
       <ul className="mb-6 divide-y divide-line rounded-2xl bg-surface-2 px-4">
         {members.map((m, i) => (
@@ -69,5 +72,62 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
         {demo ? 'Réinitialiser la démo' : 'Se déconnecter'}
       </Button>
     </Sheet>
+  )
+}
+
+const PUSH_HINT: Record<PushState, string> = {
+  unsupported: "Ce téléphone ne permet pas les notifications web.",
+  'needs-install': "Sur iPhone : installez d'abord l'app (Partager → Sur l'écran d'accueil), puis activez ici depuis l'app installée.",
+  denied: 'Notifications refusées : réactivez-les dans Réglages → Notifications → Foyer.',
+  off: 'Un petit mot, un article, une tâche pour vous : votre téléphone vous prévient.',
+  on: 'Activées sur ce téléphone. Vous pouvez les couper à tout moment.',
+}
+
+function Notifications({ householdId }: { householdId: string }) {
+  const [state, setState] = useState<PushState | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    pushState().then(setState)
+  }, [])
+
+  const toggle = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      setState(state === 'on' ? await disablePush() : await enablePush(householdId))
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!state) return null
+  const usable = state === 'on' || state === 'off'
+  return (
+    <div className="mb-6">
+      <p className="mb-2 px-1 text-[13px] font-medium text-muted">Notifications</p>
+      <button
+        onClick={toggle}
+        disabled={!usable || busy}
+        role="switch"
+        aria-checked={state === 'on'}
+        className="flex h-14 w-full items-center gap-3 rounded-2xl bg-surface-2 px-4 text-left disabled:opacity-60"
+      >
+        <Bell size={18} className="text-muted" />
+        <span className="flex-1 font-medium">Me prévenir</span>
+        <span className={cx('relative h-7 w-12 rounded-full transition-colors duration-300', state === 'on' ? 'bg-done' : 'bg-line')}>
+          <span
+            className={cx(
+              'absolute left-0.5 top-0.5 size-6 rounded-full bg-surface shadow-soft transition-transform duration-300 ease-smooth',
+              state === 'on' && 'translate-x-5',
+            )}
+          />
+        </span>
+      </button>
+      <p className="mt-1.5 px-1 text-xs leading-relaxed text-muted">{error ?? PUSH_HINT[state]}</p>
+    </div>
   )
 }

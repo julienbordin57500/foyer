@@ -5,7 +5,23 @@ import { useStore } from '../data/store'
 import { addDays, nextSaturday, toISODate, today } from '../lib/dates'
 import { ago, capitalize, dueLabel } from '../lib/format'
 import type { Todo } from '../lib/types'
-import { Avatar, Button, Card, CheckCircle, Chips, Collapsible, Composer, Empty, Field, PageHeader, SectionTitle, Sheet, cx, useArrivals } from '../components/ui'
+import {
+  Avatar,
+  Button,
+  Card,
+  CheckCircle,
+  Chips,
+  Collapsible,
+  Composer,
+  Empty,
+  Field,
+  PageHeader,
+  SectionTitle,
+  Sheet,
+  SwipeRow,
+  cx,
+  useArrivals,
+} from '../components/ui'
 
 type When = 'none' | 'today' | 'tomorrow' | 'weekend' | 'custom'
 
@@ -75,7 +91,14 @@ export default function TodosPage() {
         title="À faire"
       />
 
-      <Composer value={text} onChange={setText} onSubmit={add} placeholder="Une chose à faire…" label="Nouvelle tâche" inputRef={inputRef} />
+      <Composer
+        value={text}
+        onChange={setText}
+        onSubmit={add}
+        placeholder="Une chose à faire…"
+        label="Nouvelle tâche"
+        inputRef={inputRef}
+      />
       <div
         className={cx(
           'grid transition-[grid-template-rows,opacity] duration-500 ease-smooth',
@@ -112,7 +135,11 @@ export default function TodosPage() {
       </div>
 
       {open.length === 0 && done.length === 0 && (
-        <Empty emoji="🌿" title="Rien à faire" text="Notez ici ce qui vous trotte dans la tête. Quand l'un coche, c'est fait pour les deux." />
+        <Empty
+          emoji="🌿"
+          title="Rien à faire"
+          text="Notez ici ce qui vous trotte dans la tête. Quand l'un coche, c'est fait pour les deux."
+        />
       )}
 
       {dated.length > 0 && (
@@ -151,40 +178,52 @@ export default function TodosPage() {
 }
 
 function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit(): void }) {
-  const { update, me } = useStore()
+  const { update, removeWithUndo, me } = useStore()
   const member = useMember()
   const [leaving, setLeaving] = useState(false)
   const due = todo.due_date ? dueLabel(todo.due_date) : null
   const who = todo.assignee ? member(todo.assignee) : null
   const by = member(todo.added_by)
 
-  const complete = () => {
+  const complete = (delay = 560) => {
     setLeaving(true)
-    setTimeout(() => update('todos', todo.id, { done_at: new Date().toISOString(), done_by: me }), 560)
+    setTimeout(() => update('todos', todo.id, { done_at: new Date().toISOString(), done_by: me }), delay)
   }
 
   return (
     <Collapsible leaving={leaving} className={cx('border-b border-line/70 last:border-0', fresh && 'animate-pop')}>
-      <div className="flex min-h-14 items-start gap-3 px-4 py-3">
-        <CheckCircle checked={leaving} tone={due?.late ? 'late' : 'default'} onClick={complete} label={`Marquer « ${todo.title} » comme faite`} />
-        <button onClick={onEdit} className="min-w-0 flex-1 pt-0.5 text-left">
-          <span className={cx('block text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}>{todo.title}</span>
-          <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
-            {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-accent' : '')}>{due.text}</span>}
-            {due && <span className="text-faint">·</span>}
-            {who ? (
-              <span className="inline-flex items-center gap-1">
-                <Avatar initial={who.initial} tone={who.tone} size="xs" />
-                {who.isMe ? 'Pour moi' : `Pour ${who.name}`}
-              </span>
-            ) : (
-              <span>Nous deux</span>
-            )}
-            <span className="text-faint">·</span>
-            <span>notée par {by.isMe ? 'moi' : by.name}</span>
-          </span>
-        </button>
-      </div>
+      <SwipeRow
+        right={{ label: 'Faite', icon: <Check size={18} strokeWidth={2.6} />, tone: 'done', run: () => complete(200) }}
+        left={{ label: 'Supprimer', icon: <Trash2 size={18} />, tone: 'late', run: () => removeWithUndo('todos', todo.id, todo.title) }}
+      >
+        <div className="flex min-h-14 items-start gap-3 px-4 py-3">
+          <CheckCircle
+            checked={leaving}
+            tone={due?.late ? 'late' : 'default'}
+            onClick={() => complete()}
+            label={`Marquer « ${todo.title} » comme faite`}
+          />
+          <button onClick={onEdit} className="min-w-0 flex-1 pt-0.5 text-left">
+            <span className={cx('block text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}>
+              {todo.title}
+            </span>
+            <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
+              {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-accent' : '')}>{due.text}</span>}
+              {due && <span className="text-faint">·</span>}
+              {who ? (
+                <span className="inline-flex items-center gap-1">
+                  <Avatar initial={who.initial} tone={who.tone} size="xs" />
+                  {who.isMe ? 'Pour moi' : `Pour ${who.name}`}
+                </span>
+              ) : (
+                <span>Nous deux</span>
+              )}
+              <span className="text-faint">·</span>
+              <span>notée par {by.isMe ? 'moi' : by.name}</span>
+            </span>
+          </button>
+        </div>
+      </SwipeRow>
     </Collapsible>
   )
 }
@@ -197,7 +236,9 @@ function DoneList({ items }: { items: Todo[] }) {
 
   return (
     <>
-      <SectionTitle aside={items.length > 3 && <button onClick={() => setOpen(!open)}>{open ? 'Réduire' : `Tout voir (${items.length})`}</button>}>
+      <SectionTitle
+        aside={items.length > 3 && <button onClick={() => setOpen(!open)}>{open ? 'Réduire' : `Tout voir (${items.length})`}</button>}
+      >
         Fait cette semaine
       </SectionTitle>
       <ul>

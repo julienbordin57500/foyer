@@ -196,3 +196,27 @@ body {
   .animate-page, .animate-pop, .animate-fade, .animate-check, .animate-slide { animation: none; }
   .collapsible, .sheet-backdrop, .sheet-panel { transition: none; }
 }
+
+/* Logo animé (démarrage, connexion) : le toit se dessine, puis vous deux arrivez. */
+@keyframes roof-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes dot-in {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.logo-animated .logo-roof { stroke-dasharray: 1; animation: roof-draw 0.7s var(--ease-smooth) 0.1s backwards; }
+.logo-animated .logo-dot-a,
+.logo-animated .logo-dot-b { transform-box: fill-box; transform-origin: center; animation: dot-in 0.45s var(--ease-smooth) backwards; }
+.logo-animated .logo-dot-a { animation-delay: 0.55s; }
+.logo-animated .logo-dot-b { animation-delay: 0.68s; }
+.animate-breathe { animation: breathe 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .logo-animated .logo-roof, .logo-animated .logo-dot-a, .logo-animated .logo-dot-b, .animate-breathe { animation: none; }
+}

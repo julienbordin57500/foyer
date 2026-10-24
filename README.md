@@ -16,13 +16,19 @@ Sans fichier `.env`, l'app tourne en **mode démo** : données d'exemple stocké
 ## Brancher Supabase
 
 1. Créez un projet sur supabase.com.
-2. Dans **SQL Editor**, exécutez `supabase/schema.sql`, puis `v2_courses_todos_mots.sql` et `v3_listes_drive_genre.sql` (tables, RLS, temps réel).
+2. Dans **SQL Editor**, exécutez `supabase/schema.sql`, puis `v2_…`, `v3_…` et `v4_…` dans l'ordre (tables, RLS, temps réel).
 3. Copiez `.env.example` en `.env` et renseignez l'URL du projet et la clé publique (anon / publishable),
    disponibles dans **Project Settings → API**.
 4. Facultatif : dans **Authentication → Providers → Email**, désactivez « Confirm email »
    pour éviter l'étape de confirmation par mail.
 5. Premier compte : « Créer » un foyer. Le code d'invitation s'affiche dans les réglages (icône ⚙︎ sur l'accueil).
    Second compte : « Rejoindre » avec ce code. Un foyer accepte deux membres au maximum.
+
+## Notifications
+
+La fonction `supabase/functions/foyer-push` envoie les notifications. Elle crée elle-même ses clés au premier appel
+et les garde côté serveur ; la base l'appelle à chaque nouveau mot, article, tâche ou réaction (`v4_…sql`).
+Déploiement : `supabase functions deploy foyer-push --no-verify-jwt` (elle vérifie elle-même un secret partagé).
 
 ## Installer sur le téléphone
 
@@ -35,6 +41,7 @@ Chaque push sur `main` publie l'app sur https://julienbordin57500.github.io/foye
 - `supabase/` — foyers et membres (`schema.sql`), courses, tâches et petits mots (`v2_…sql`), RLS par foyer
 - `src/data/` — accès aux données (Supabase ou démo) et store React avec mises à jour optimistes
 - `src/lib/categorize.ts` — rangement automatique des articles par rayon
+- `scripts/icons.mjs` — génère les icônes à partir du logo
 - `src/pages/` — Accueil (petits mots), Courses, À faire, Listes
 
 Les tables `products`, `subscriptions`, `charges` et `incomes` de la v1 ne sont plus utilisées.
