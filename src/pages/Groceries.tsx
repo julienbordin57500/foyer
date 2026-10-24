@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Check, Hash, LayoutGrid, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
@@ -58,6 +58,7 @@ export default function GroceriesPage() {
   const [editing, setEditing] = useState<GroceryItem | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [leaving, setLeaving] = useState(false)
+  const [celebrate, setCelebrate] = useState(0)
 
   const open = data.grocery_items.filter((i) => i.status !== 'bought')
   const bought = data.grocery_items
@@ -220,6 +221,7 @@ export default function GroceriesPage() {
             const before = shown.map((i) => ({ id: i.id, status: i.status }))
             const now = new Date().toISOString()
             before.forEach((b) => update('grocery_items', b.id, { status: 'bought', bought_at: now }))
+            setCelebrate(Date.now())
             showToast(`${before.length} articles achetés`, () =>
               before.forEach((b) => update('grocery_items', b.id, { status: b.status, bought_at: null })),
             )
@@ -249,6 +251,8 @@ export default function GroceriesPage() {
           <p className="mt-2 px-4 text-[12px] text-faint">Un appui remet l'article sur la liste.</p>
         </section>
       )}
+
+      {celebrate > 0 && <CartRun key={celebrate} onDone={() => setCelebrate(0)} />}
 
       <Sheet open={leaving} title="Je pars faire les courses" onClose={() => setLeaving(false)}>
         {leaving && <LeavingForm onDone={() => setLeaving(false)} />}
@@ -457,6 +461,27 @@ function LeavingForm({ onDone }: { onDone(): void }) {
       <Button className="w-full" disabled={!!recent} onClick={send}>
         Prévenir {name}
       </Button>
+    </div>
+  )
+}
+
+/** Fin des courses : le caddie arrive, marque une pause, puis file vers la droite. */
+function CartRun({ onDone }: { onDone(): void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1700)
+    return () => clearTimeout(t)
+  }, [onDone])
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center">
+      <div className="cart-run relative">
+        <span className="speed-lines absolute right-full top-1/2 mr-1 flex -translate-y-1/2 flex-col items-end gap-1.5">
+          <span className="h-[3px] w-10 rounded-full bg-sec/70" />
+          <span className="h-[3px] w-6 rounded-full bg-sec/50" />
+          <span className="h-[3px] w-8 rounded-full bg-sec/60" />
+        </span>
+        <span className="cart-bump block text-[72px] drop-shadow-[0_12px_24px_rgba(0,0,0,0.45)]">🛒</span>
+      </div>
+      <p className="cart-label mt-2 rounded-full bg-sec px-4 py-1.5 text-[15px] font-semibold text-[#0e0e10]">Tout est dans le caddie !</p>
     </div>
   )
 }

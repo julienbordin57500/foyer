@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AlertCircle, ClipboardList, House, ListChecks, ShoppingCart, X } from 'lucide-react'
-import { useStore } from './data/store'
+import { TOAST_MS, useStore } from './data/store'
 import { cx } from './components/ui'
 import { toISODate, today } from './lib/dates'
 import { hideSplash } from './lib/splash'
@@ -86,14 +86,7 @@ export default function App() {
           style={{ background: 'linear-gradient(to top, var(--bg) 30%, color-mix(in srgb, var(--bg) 70%, transparent) 60%, transparent)' }}
         />
 
-        {toast && (
-          <div className="animate-pop fixed inset-x-4 bottom-28 z-40 mx-auto flex h-12 max-w-md items-center gap-3 rounded-2xl bg-ink pl-4 pr-1.5 text-[14px] text-bg shadow-soft">
-            <p className="min-w-0 flex-1 truncate">{toast.message}</p>
-            <button onClick={toast.undo} className="h-9 rounded-xl px-3 font-semibold text-sec active:bg-white/10">
-              Annuler
-            </button>
-          </div>
-        )}
+        <UndoToast toast={toast} />
 
         {error && (
           <div className="animate-fade fixed inset-x-4 bottom-28 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-late-soft p-3 text-sm text-late">
@@ -168,5 +161,49 @@ export default function App() {
         />
       </div>
     </SearchContext.Provider>
+  )
+}
+
+/** Petit bandeau « Annuler » en bas à droite : glisse depuis la droite, repart vers la droite. */
+function UndoToast({ toast }: { toast: { id: number; message: string; undo(): void } | null }) {
+  const [shown, setShown] = useState(toast)
+  const [leaving, setLeaving] = useState(false)
+
+  useEffect(() => {
+    if (toast) {
+      setShown(toast)
+      setLeaving(false)
+      return
+    }
+    setLeaving(true)
+    const t = setTimeout(() => setShown(null), 350)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  if (!shown) return null
+  return (
+    <div
+      key={shown.id}
+      className={cx(
+        'fixed right-3 z-40 flex max-w-[78%] items-center gap-1 overflow-hidden rounded-full bg-ink py-1 pl-4 pr-1 text-[13.5px] text-bg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)]',
+        leaving ? 'toast-out' : 'toast-in',
+      )}
+      style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 12px) + 84px)' }}
+      role="status"
+    >
+      <span className="min-w-0 truncate">{shown.message}</span>
+      <button
+        onClick={shown.undo}
+        className="ml-1 h-8 shrink-0 rounded-full bg-white/10 px-3 text-[13px] font-semibold text-sec active:scale-95"
+      >
+        Annuler
+      </button>
+      {/* Le temps restant fond doucement le long du bord bas */}
+      <span
+        aria-hidden
+        className="toast-timer absolute inset-x-0 bottom-0 h-[2px] origin-left bg-sec/70"
+        style={{ animationDuration: `${TOAST_MS}ms` }}
+      />
+    </div>
   )
 }

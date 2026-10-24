@@ -470,3 +470,49 @@ nav {
     0 12px 32px -22px color-mix(in srgb, var(--sec) 75%, transparent),
     0 1px 2px rgba(0, 0, 0, 0.2);
 }
+
+/* Bandeau « Annuler » : arrive de la droite, repart vers la droite. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(110%); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translateX(110%); }
+}
+@keyframes toast-timer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.toast-in { animation: toast-in 0.45s var(--ease-smooth) both; }
+.toast-out { animation: toast-out 0.35s ease-in forwards; }
+.toast-timer { animation: toast-timer linear forwards; }
+
+/* « J'ai tout pris » : le caddie arrive, s'arrête, puis file vers la droite. */
+@keyframes cart-run {
+  0% { transform: translateX(-70vw) rotate(-4deg); }
+  35% { transform: translateX(0) rotate(0); }
+  45% { transform: translateX(-10px) rotate(2deg); }
+  62% { transform: translateX(0) rotate(0); }
+  100% { transform: translateX(90vw) rotate(-6deg); }
+}
+@keyframes cart-bump {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -5px; }
+}
+@keyframes speed-lines {
+  0%, 55% { opacity: 0; transform: translateX(0) scaleX(0.4); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-40px) scaleX(1); }
+}
+.cart-run { animation: cart-run 1.6s cubic-bezier(0.45, 0, 0.2, 1) forwards; }
+.cart-bump { animation: cart-bump 0.28s ease-in-out infinite; }
+.speed-lines { animation: speed-lines 1.6s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .toast-in, .toast-out, .cart-run, .cart-bump, .speed-lines { animation-duration: 0.01s; }
+}
+@keyframes cart-label {
+  0%, 15% { opacity: 0; transform: translateY(8px) scale(0.96); }
+  30%, 80% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+.cart-label { animation: cart-label 1.7s var(--ease-smooth) forwards; }

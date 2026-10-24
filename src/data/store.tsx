@@ -13,12 +13,15 @@ interface Store {
   remove(table: TableName, id: string): void
   /** Supprime après quelques secondes, avec un bouton « Annuler » entre-temps. */
   removeWithUndo(table: TableName, id: string, label: string): void
-  toast: { message: string; undo(): void } | null
+  toast: { id: number; message: string; undo(): void } | null
   /** Bandeau « … · Annuler » pendant 5 secondes. */
   showToast(message: string, undo: () => void): void
   /** Crée une liste et ses premiers éléments (modèle), dans cet ordre. */
   createList(list: NewRow<'lists'>, items: string[]): string
 }
+
+/** Durée d'affichage du bandeau « Annuler » : assez pour réagir, pas assez pour gêner. */
+export const TOAST_MS = 4000
 
 const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [], note_reactions: [], pings: [] }
 const Ctx = createContext<Store | null>(null)
@@ -137,8 +140,9 @@ export function DataProvider({ backend, children }: { backend: Backend; children
       toast,
       showToast: (message, undo) => {
         if (toastTimer.current) clearTimeout(toastTimer.current)
-        toastTimer.current = setTimeout(() => setToast(null), 5000)
+        toastTimer.current = setTimeout(() => setToast(null), TOAST_MS)
         setToast({
+          id: Date.now(),
           message,
           undo: () => {
             undo()
@@ -147,7 +151,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
         })
       },
       removeWithUndo: (table, id, label) => {
-        // Masqué tout de suite, supprimé pour de bon 5 s plus tard sauf « Annuler ».
+        // Masqué tout de suite, supprimé pour de bon juste après la disparition du bandeau sauf « Annuler ».
         setData((d) => ({ ...d, [table]: (d[table] as { id: string }[]).filter((r) => r.id !== id) }))
         pending.current[table]++
         let undone = false
@@ -160,10 +164,11 @@ export function DataProvider({ backend, children }: { backend: Backend; children
               pending.current[table]--
               refresh(table)
             })
-        }, 5000)
+        }, TOAST_MS + 300)
         if (toastTimer.current) clearTimeout(toastTimer.current)
-        toastTimer.current = setTimeout(() => setToast(null), 5000)
+        toastTimer.current = setTimeout(() => setToast(null), TOAST_MS)
         setToast({
+          id: Date.now(),
           message: `« ${label} » supprimé`,
           undo: () => {
             undone = true
