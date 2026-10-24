@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Session } from '@supabase/supabase-js'
 import { Loader2 } from 'lucide-react'
 import Logo from '../components/Logo'
+import { hideSplash } from '../lib/splash'
 import { supabase } from '../lib/supabase'
 import type { Household, Member } from '../lib/types'
 import { DEMO_ME, DEMO_OTHER, demoBackend, supabaseBackend, type Backend } from '../data/backends'
@@ -108,7 +109,8 @@ function SupabaseGate({ children }: { children: ReactNode }) {
 
   const backend = useMemo<Backend | null>(() => (profile ? supabaseBackend(sb, profile.household.id, profile.me.user_id) : null), [sb, profile])
 
-  if (session === undefined || (session && profile === undefined)) return <Splash />
+  // Pendant ce temps, l'écran de démarrage (index.html) reste affiché.
+  if (session === undefined || (session && profile === undefined)) return null
   if (!session) return <Login />
   if (!profile || !backend) return <SetupHousehold onDone={loadProfile} />
 
@@ -119,29 +121,14 @@ function SupabaseGate({ children }: { children: ReactNode }) {
   )
 }
 
-/** Écran de démarrage : le logo se dessine pendant le chargement. */
-export function Splash() {
-  return (
-    <div data-section="accueil" className="animate-fade grid min-h-dvh place-items-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-breathe rounded-[26px] shadow-[0_20px_60px_-15px_rgba(240,80,90,0.6)]">
-          <Logo size={88} animated />
-        </div>
-        <p className="animate-pop font-serif text-[26px] font-medium" style={{ animationDelay: '0.5s' }}>
-          Foyer
-        </p>
-      </div>
-    </div>
-  )
-}
-
 function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  useEffect(hideSplash, [])
   return (
     <div data-section="accueil" className="mx-auto min-h-dvh max-w-lg px-4 pb-10">
       <Hero>
         <div className="flex flex-col items-start py-2">
           <div className="mb-6 rounded-[24px] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)] ring-2 ring-white/40">
-            <Logo size={72} animated />
+            <Logo size={72} />
           </div>
           <h1 className="animate-pop font-serif text-[44px] font-medium leading-none tracking-tight" style={{ animationDelay: '0.15s' }}>
             {title}

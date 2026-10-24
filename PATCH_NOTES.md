@@ -3,6 +3,16 @@
 ## À faire
 _(rien pour l'instant — ajoutez ici les prochaines idées)_
 
+## v6 (24/10)
+- **Rappels** sur une tâche ou un élément de liste : dans 1 h, ce soir, demain 9 h ou à l'heure choisie, pour moi, Claire ou nous deux. Notification à l'heure dite, cloche qui tinte quand c'est imminent, éléments avec rappel en tête de liste
+- **Ajouter au calendrier** : crée un événement avec alerte dans le calendrier du téléphone
+- **Tâches qui reviennent** : chaque jour, chaque semaine, toutes les 2 semaines, chaque mois ; la suivante apparaît dès qu'on coche
+- **« Je pars faire les courses »** (en magasin ou au drive) : prévient l'autre, et un bandeau s'affiche chez lui ou elle pendant 2 h
+- **Recherche** (loupe dans chaque en-tête) : articles, tâches, listes, éléments, petits mots
+- Démarrage : le logo se dessine une seule fois puis reste affiché jusqu'à l'ouverture de l'app (visible dès le lancement)
+- En-tête plus net (lueur plus discrète, bords francs), titres sur deux lignes si besoin
+- Bas de l'app : fondu sous la barre d'onglets, point lumineux sous l'onglet actif, signature « Foyer · Julien & Claire »
+
 ## v5.2 (24/10)
 - 12 listes toutes prêtes, rangées par thème :
   - Noah : Sortie avec Noah, Sac de crèche, Rendez-vous médecin

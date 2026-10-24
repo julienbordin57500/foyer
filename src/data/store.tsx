@@ -18,7 +18,7 @@ interface Store {
   createList(list: NewRow<'lists'>, items: string[]): string
 }
 
-const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [], note_reactions: [] }
+const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [], note_reactions: [], pings: [] }
 const Ctx = createContext<Store | null>(null)
 
 export function DataProvider({ backend, children }: { backend: Backend; children: ReactNode }) {
@@ -28,7 +28,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
   const [toast, setToast] = useState<Store['toast']>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Écritures en vol par table : un rechargement temps réel pendant ce temps ferait clignoter l'écran.
-  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0, lists: 0, list_items: 0, note_reactions: 0 })
+  const pending = useRef<Record<TableName, number>>({ grocery_items: 0, todos: 0, notes: 0, lists: 0, list_items: 0, note_reactions: 0, pings: 0 })
 
   const refresh = useCallback(
     async (table: TableName) => {

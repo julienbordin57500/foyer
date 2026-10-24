@@ -19,8 +19,44 @@
         if (t !== 'auto') document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark'
       } catch (e) {}
     </script>
+    <style>
+      /* Écran de démarrage : visible dès l'ouverture, avant même le chargement de l'app.
+         Le logo se dessine une seule fois, puis reste affiché jusqu'à ce que l'interface soit prête. */
+      #splash { position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 16px;
+        background: #0e0e10; color: #f5f2ee; transition: opacity .45s ease, visibility .45s; }
+      @media (prefers-color-scheme: light) { html:not([data-theme='dark']) #splash { background: #f5f3f0; color: #141416; } }
+      html[data-theme='light'] #splash { background: #f5f3f0; color: #141416; }
+      #splash.out { opacity: 0; visibility: hidden; }
+      #splash svg { border-radius: 26px; box-shadow: 0 22px 60px -18px rgba(240, 80, 100, .65);
+        animation: sp-in .55s cubic-bezier(.22,1,.36,1) both; }
+      #splash .roof { stroke-dasharray: 1; animation: sp-roof .6s cubic-bezier(.22,1,.36,1) .2s both; }
+      #splash .dot { transform-box: fill-box; transform-origin: center; animation: sp-dot .4s cubic-bezier(.22,1,.36,1) both; }
+      #splash .dot.a { animation-delay: .62s; } #splash .dot.b { animation-delay: .74s; }
+      #splash p { margin: 0; font: 500 26px/1 'Newsreader Variable', Georgia, serif; letter-spacing: -.01em;
+        animation: sp-text .5s cubic-bezier(.22,1,.36,1) .5s both; }
+      @keyframes sp-in { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+      @keyframes sp-roof { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+      @keyframes sp-dot { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+      @keyframes sp-text { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) { #splash *, #splash svg { animation: none !important; } }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <svg width="92" height="92" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#FF7A59" />
+            <stop offset="1" stop-color="#E0457B" />
+          </linearGradient>
+        </defs>
+        <rect width="100" height="100" rx="23" fill="url(#splash-g)" />
+        <path class="roof" d="M24 52 L50 30 L76 52" pathLength="1" fill="none" stroke="#FFFCF8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+        <circle class="dot a" cx="40" cy="66" r="8" fill="#FFF3EC" />
+        <circle class="dot b" cx="60" cy="66" r="8" fill="#7EE0B0" />
+      </svg>
+      <p>Foyer</p>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

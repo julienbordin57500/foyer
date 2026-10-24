@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Check, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
-import { useMember } from '../auth/AuthGate'
+import { useMember, usePartner } from '../auth/AuthGate'
+import { SearchButton } from '../components/Search'
 import { useStore } from '../data/store'
 import { guessCategory } from '../lib/categorize'
 import { ago, capitalize, normalizeName, splitQuantity } from '../lib/format'
@@ -54,6 +55,7 @@ export default function GroceriesPage() {
   const [place, setPlace] = useState<Place>('store')
   const [editing, setEditing] = useState<GroceryItem | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [leaving, setLeaving] = useState(false)
 
   const open = data.grocery_items.filter((i) => i.status !== 'bought')
   const bought = data.grocery_items
@@ -97,7 +99,21 @@ export default function GroceriesPage() {
 
   return (
     <div className="animate-page">
-      <Hero eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'} title="Courses">
+      <Hero
+        eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'}
+        title="Courses"
+        action={
+          <div className="flex gap-2">
+            <SearchButton />
+            <button
+              onClick={() => setLeaving(true)}
+              className="flex h-11 items-center gap-1.5 rounded-full bg-white/18 pl-3 pr-4 text-[14px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-95"
+            >
+              <ShoppingCart size={17} /> Je pars
+            </button>
+          </div>
+        }
+      >
         <Composer
           value={text}
           onChange={setText}
@@ -130,6 +146,8 @@ export default function GroceriesPage() {
           )}
         </p>
       </Hero>
+
+      <PartnerShopping />
 
       {open.length > 0 && (
         <div>
@@ -212,6 +230,10 @@ export default function GroceriesPage() {
           <p className="mt-2 px-4 text-[12px] text-faint">Un appui remet l'article sur la liste.</p>
         </section>
       )}
+
+      <Sheet open={leaving} title="Je pars faire les courses" onClose={() => setLeaving(false)}>
+        {leaving && <LeavingForm onDone={() => setLeaving(false)} />}
+      </Sheet>
 
       <Sheet open={!!editing} title="Article" onClose={() => setEditing(null)}>
         {editing && <ItemForm key={editing.id} item={editing} onClose={() => setEditing(null)} />}
@@ -354,5 +376,68 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
         <Button className="flex-1">Enregistrer</Button>
       </div>
     </form>
+  )
+}
+
+/** Bandeau quand l'autre vient de partir faire les courses : c'est le moment d'ajouter ce qui manque. */
+function PartnerShopping() {
+  const { data, me } = useStore()
+  const member = useMember()
+  const ping = data.pings.find((p) => p.author !== me && Date.now() - new Date(p.created_at).getTime() < 2 * 3_600_000)
+  if (!ping) return null
+  const who = member(ping.author)
+  return (
+    <div className="animate-pop mb-4 flex items-center gap-3 rounded-[22px] bg-sec/14 px-4 py-3 ring-1 ring-sec/30">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sec/20 text-[20px]">🛒</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold">
+          {who.name} est parti{who.pronoun === 'elle' ? 'e' : ''} {ping.place === 'drive' ? 'au drive' : 'faire les courses'}
+        </span>
+        <span className="block text-[13px] text-muted">{ago(ping.created_at)} · ajoutez vite ce qui manque</span>
+      </span>
+    </div>
+  )
+}
+
+function LeavingForm({ onDone }: { onDone(): void }) {
+  const { data, insert, me } = useStore()
+  const partner = usePartner()
+  const member = useMember()
+  const [place, setPlace] = useState<'store' | 'drive'>('store')
+  const mine = data.pings.find((p) => p.author === me)
+  const recent = mine && Date.now() - new Date(mine.created_at).getTime() < 15 * 60_000
+  const name = partner?.display_name ?? 'votre moitié'
+  const pronoun = partner ? member(partner.user_id).pronoun : 'il'
+
+  return (
+    <div className="space-y-5">
+      <p className="px-1 text-[15px] leading-relaxed text-muted">
+        {name} reçoit une notification pour ajouter ce qui manque avant que vous ne soyez sur place.
+      </p>
+      <Chips<'store' | 'drive'>
+        label="Où ?"
+        value={place}
+        onChange={setPlace}
+        options={[
+          { value: 'store', label: '🛒 En magasin' },
+          { value: 'drive', label: '🚗 Au drive' },
+        ]}
+      />
+      {recent && (
+        <p className="rounded-2xl bg-surface-2 px-4 py-3 text-[14px] text-muted">
+          Déjà prévenu{pronoun === 'elle' ? 'e' : ''} {ago(mine!.created_at)}.
+        </p>
+      )}
+      <Button
+        className="w-full"
+        disabled={recent}
+        onClick={() => {
+          insert('pings', { kind: 'shopping', place })
+          onDone()
+        }}
+      >
+        Prévenir {name}
+      </Button>
+    </div>
   )
 }

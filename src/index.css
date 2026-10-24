@@ -265,3 +265,12 @@ nav {
   --violet: #b9a8ff;
   --coral: #ff8a6b;
 }
+
+/* Petite cloche qui tinte quand un rappel est imminent. */
+@keyframes ring {
+  0%, 60%, 100% { transform: rotate(0); }
+  10%, 30%, 50% { transform: rotate(14deg); }
+  20%, 40% { transform: rotate(-14deg); }
+}
+.animate-ring { animation: ring 2.4s ease-in-out infinite; transform-origin: 50% 10%; }
+@media (prefers-reduced-motion: reduce) { .animate-ring { animation: none; } }

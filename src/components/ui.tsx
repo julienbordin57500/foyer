@@ -29,22 +29,34 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
  * En-tête de page : une carte en dégradé aux couleurs de la rubrique (voir [data-section] dans index.css),
  * posée sous la barre d'état, avec une lueur douce qui se fond dans le fond au lieu d'un bord coupé net.
  */
-export function Hero({ eyebrow, title, action, children }: { eyebrow?: ReactNode; title?: ReactNode; action?: ReactNode; children?: ReactNode }) {
+export function Hero({
+  eyebrow,
+  title,
+  action,
+  children,
+}: {
+  eyebrow?: ReactNode
+  title?: ReactNode
+  action?: ReactNode
+  children?: ReactNode
+}) {
   return (
     <div className="pt-safe relative mb-6">
       <div
         aria-hidden
-        className="animate-fade pointer-events-none absolute -inset-x-4 top-0 h-[420px]"
+        className="animate-fade pointer-events-none absolute -inset-x-4 top-0 h-[260px]"
         style={{
+          // Lueur limitée au haut de l'écran (sous l'heure) : elle colore sans rendre la carte floue.
           background:
-            'radial-gradient(130% 75% at 50% 0%, color-mix(in srgb, var(--hero-from) 42%, transparent) 0%, color-mix(in srgb, var(--hero-to) 18%, transparent) 50%, transparent 78%)',
+            'radial-gradient(90% 100% at 50% 0%, color-mix(in srgb, var(--hero-from) 30%, transparent) 0%, color-mix(in srgb, var(--hero-to) 10%, transparent) 55%, transparent 80%)',
         }}
       />
       <header
-        className="animate-hero relative mt-2 overflow-hidden rounded-[32px] p-5 text-hero-ink"
+        className="animate-hero relative mt-2 overflow-hidden rounded-[32px] p-5 text-hero-ink ring-1 ring-white/15"
         style={{
           background: 'linear-gradient(140deg, var(--hero-from), var(--hero-to))',
-          boxShadow: '0 26px 60px -30px var(--hero-to), inset 0 1px 0 rgba(255,255,255,0.25)',
+          // Ombre courte et nette + liseré clair en haut : des bords francs.
+          boxShadow: '0 14px 32px -20px var(--hero-to), inset 0 1px 0 rgba(255,255,255,0.3)',
         }}
       >
         <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-white/12" />
@@ -53,7 +65,7 @@ export function Hero({ eyebrow, title, action, children }: { eyebrow?: ReactNode
           <div className="relative flex min-h-[64px] items-end justify-between gap-3">
             <div className="min-w-0">
               <p className="mb-1.5 h-[18px] text-[13px] font-medium opacity-75 first-letter:uppercase">{eyebrow}</p>
-              <h1 className="truncate font-serif text-[36px] font-medium leading-[1.02] tracking-[-0.01em]">{title}</h1>
+              <h1 className="line-clamp-2 font-serif text-[36px] font-medium leading-[1.02] tracking-[-0.01em] text-balance">{title}</h1>
             </div>
             {action}
           </div>
@@ -164,7 +176,10 @@ export function Composer({
         placeholder={placeholder}
         aria-label={label}
         enterKeyHint={enterKeyHint}
-        className={cx('h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none', onHero ? 'placeholder:text-hero-ink/60' : 'placeholder:text-faint')}
+        className={cx(
+          'h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none',
+          onHero ? 'placeholder:text-hero-ink/60' : 'placeholder:text-faint',
+        )}
       />
       {middle}
       <button
@@ -218,10 +233,24 @@ export function Chips<T extends string>({
 }
 
 /** Sélecteur segmenté avec un fond qui glisse sous l'option active. */
-export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: ReactNode }[]; onChange(v: T): void }) {
-  const i = Math.max(0, options.findIndex((o) => o.value === value))
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: { value: T; label: ReactNode }[]
+  onChange(v: T): void
+}) {
+  const i = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  )
   return (
-    <div className="relative grid rounded-2xl bg-surface-2 p-1 text-[14px] font-medium" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
+    <div
+      className="relative grid rounded-2xl bg-surface-2 p-1 text-[14px] font-medium"
+      style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}
+    >
       <span
         aria-hidden
         className="absolute inset-y-1 left-1 rounded-xl bg-surface shadow-soft transition-transform duration-[420ms] ease-smooth"
@@ -273,13 +302,22 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
 
   if (!mounted) return null
   return (
-    <div className={cx('fixed inset-0 z-50 flex items-end justify-center', !shown && 'sheet-closed')} role="dialog" aria-modal="true" aria-label={title}>
+    <div
+      className={cx('fixed inset-0 z-50 flex items-end justify-center', !shown && 'sheet-closed')}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
       <div className="sheet-backdrop absolute inset-0 backdrop-blur-[2px]" style={{ background: 'var(--backdrop)' }} onClick={onClose} />
       <div className="sheet-panel pb-safe relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[30px] bg-surface px-5 pt-3 shadow-2xl">
         <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-line" />
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-serif text-[26px] font-medium leading-none">{title}</h2>
-          <button onClick={onClose} aria-label="Fermer" className="grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition active:scale-90">
+          <button
+            onClick={onClose}
+            aria-label="Fermer"
+            className="grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition active:scale-90"
+          >
             <X size={18} />
           </button>
         </div>
@@ -290,7 +328,17 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
 }
 
 /** Pastille ronde avec l'initiale du membre, dans sa couleur. */
-export function Avatar({ initial, tone, size = 'sm', className }: { initial: string; tone: 'a' | 'b'; size?: 'xs' | 'sm' | 'md'; className?: string }) {
+export function Avatar({
+  initial,
+  tone,
+  size = 'sm',
+  className,
+}: {
+  initial: string
+  tone: 'a' | 'b'
+  size?: 'xs' | 'sm' | 'md'
+  className?: string
+}) {
   return (
     <span
       className={cx(
@@ -377,7 +425,17 @@ type SwipeAction = { label: string; icon: ReactNode; tone: 'done' | 'late'; run(
  * Ligne qu'on peut faire glisser : vers la droite (action positive), vers la gauche (supprimer).
  * Le défilement vertical reste prioritaire ; le mouvement suit le doigt sans re-rendu React.
  */
-export function SwipeRow({ right, left, children, bare }: { right?: SwipeAction; left?: SwipeAction; children: ReactNode; bare?: boolean }) {
+export function SwipeRow({
+  right,
+  left,
+  children,
+  bare,
+}: {
+  right?: SwipeAction
+  left?: SwipeAction
+  children: ReactNode
+  bare?: boolean
+}) {
   const fg = useRef<HTMLDivElement>(null)
   const bg = useRef<HTMLDivElement>(null)
   const g = useRef({ x: 0, y: 0, dx: 0, active: false, decided: false, moved: false, width: 1 })

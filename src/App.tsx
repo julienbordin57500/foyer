@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertCircle, ClipboardList, House, ListChecks, ShoppingBasket, X } from 'lucide-react'
 import { useStore } from './data/store'
 import { cx } from './components/ui'
 import { toISODate, today } from './lib/dates'
-import { Splash } from './auth/AuthGate'
+import { hideSplash } from './lib/splash'
+import Logo from './components/Logo'
+import { useSession } from './auth/AuthGate'
+import { SearchContext, SearchOverlay } from './components/Search'
 import HomePage from './pages/Home'
 import GroceriesPage from './pages/Groceries'
 import TodosPage from './pages/Todos'
@@ -35,72 +38,127 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  const { members } = useSession()
+  const [searching, setSearching] = useState(false)
+  // Change à chaque résultat ouvert : la page se recharge même si on était déjà sur l'onglet.
+  const [visit, setVisit] = useState(0)
+  const openSearch = useCallback(() => setSearching(true), [])
+  const closeSearch = useCallback(() => setSearching(false), [])
+
   const go = (t: Tab) => {
     if (t !== tab) history.pushState(null, '', `#${t}`)
     setTab(t)
     window.scrollTo({ top: 0 })
   }
 
-  if (loading) return <Splash />
+  useEffect(() => {
+    if (!loading) hideSplash()
+  }, [loading])
+
+  // Pendant le chargement, l'écran de démarrage (index.html) reste affiché.
+  if (loading) return null
 
   return (
-    <div data-section={tab} className="mx-auto min-h-dvh max-w-lg px-4 pb-36">
-      {tab === 'accueil' && <HomePage go={go} />}
-      {tab === 'courses' && <GroceriesPage />}
-      {tab === 'afaire' && <TodosPage />}
-      {tab === 'listes' && <ListsPage />}
+    <SearchContext.Provider value={openSearch}>
+      <div data-section={tab} className="mx-auto min-h-dvh max-w-lg px-4 pb-36">
+        {tab === 'accueil' && <HomePage key={visit} go={go} />}
+        {tab === 'courses' && <GroceriesPage key={visit} />}
+        {tab === 'afaire' && <TodosPage key={visit} />}
+        {tab === 'listes' && <ListsPage key={visit} />}
 
-      {toast && (
-        <div className="animate-pop fixed inset-x-4 bottom-28 z-40 mx-auto flex h-12 max-w-md items-center gap-3 rounded-2xl bg-ink pl-4 pr-1.5 text-[14px] text-bg shadow-soft">
-          <p className="min-w-0 flex-1 truncate">{toast.message}</p>
-          <button onClick={toast.undo} className="h-9 rounded-xl px-3 font-semibold text-sec active:bg-white/10">
-            Annuler
-          </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="animate-fade fixed inset-x-4 bottom-28 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-late-soft p-3 text-sm text-late">
-          <AlertCircle size={18} className="mt-0.5 shrink-0" />
-          <p className="flex-1">Synchronisation impossible : {error}</p>
-          <button onClick={dismissError} aria-label="Fermer">
-            <X size={18} />
-          </button>
-        </div>
-      )}
-
-      {/* Barre d'onglets flottante ; chaque onglet s'allume dans la couleur de sa rubrique. */}
-      <nav className="fixed inset-x-3 z-30 mx-auto max-w-md" style={{ bottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
-        <ul className="relative grid grid-cols-4 rounded-[28px] p-1.5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/8 backdrop-blur-xl" style={{ background: 'var(--nav)' }}>
-          <span
-            aria-hidden
-            className="absolute bottom-1.5 left-1.5 top-1.5 transition-transform duration-500 ease-smooth"
-            style={{ width: 'calc((100% - 12px) / 4)', transform: `translateX(${index * 100}%)` }}
-          >
-            <span data-section={tab} className="block h-full rounded-[22px] bg-sec/16 transition-colors duration-500" />
+        {/* Petite signature en bas de chaque page */}
+        <footer className="mt-14 flex flex-col items-center gap-2 pb-2 text-faint">
+          <span className="opacity-70 grayscale-[35%]">
+            <Logo size={26} />
           </span>
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <li key={id} data-section={id}>
-              <button
-                onClick={() => go(id)}
-                aria-current={tab === id ? 'page' : undefined}
-                className={cx(
-                  'relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-300 active:scale-95',
-                  tab === id ? 'text-sec' : 'text-[#8e8e95]',
-                )}
-              >
-                <Icon size={21} strokeWidth={tab === id ? 2.3 : 1.9} />
-                {label}
-                {id === 'afaire' && lateCount > 0 && (
-                  <span className="num absolute right-[calc(50%-20px)] top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-late px-1 text-[10px] font-bold text-white">
-                    {lateCount}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
+          <span className="text-[12px] font-medium tracking-wide">
+            Foyer · {members.map((m) => m.display_name).join(' & ')}
+          </span>
+        </footer>
+
+        {/* Fondu sous la barre d'onglets : le contenu s'efface doucement au lieu d'être coupé. */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-36"
+          style={{ background: 'linear-gradient(to top, var(--bg) 30%, color-mix(in srgb, var(--bg) 70%, transparent) 60%, transparent)' }}
+        />
+
+        {toast && (
+          <div className="animate-pop fixed inset-x-4 bottom-28 z-40 mx-auto flex h-12 max-w-md items-center gap-3 rounded-2xl bg-ink pl-4 pr-1.5 text-[14px] text-bg shadow-soft">
+            <p className="min-w-0 flex-1 truncate">{toast.message}</p>
+            <button onClick={toast.undo} className="h-9 rounded-xl px-3 font-semibold text-sec active:bg-white/10">
+              Annuler
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="animate-fade fixed inset-x-4 bottom-28 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-late-soft p-3 text-sm text-late">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <p className="flex-1">Synchronisation impossible : {error}</p>
+            <button onClick={dismissError} aria-label="Fermer">
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Barre d'onglets flottante ; chaque onglet s'allume dans la couleur de sa rubrique. */}
+        <nav className="fixed inset-x-3 z-30 mx-auto max-w-md" style={{ bottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+          <ul
+            className="relative grid grid-cols-4 rounded-[28px] p-1.5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/10 backdrop-blur-xl"
+            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 60%), var(--nav)' }}
+          >
+            <span
+              aria-hidden
+              className="absolute bottom-1.5 left-1.5 top-1.5 transition-transform duration-500 ease-smooth"
+              style={{ width: 'calc((100% - 12px) / 4)', transform: `translateX(${index * 100}%)` }}
+            >
+              <span data-section={tab} className="block h-full rounded-[22px] bg-sec/16 transition-colors duration-500" />
+            </span>
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <li key={id} data-section={id}>
+                <button
+                  onClick={() => go(id)}
+                  aria-current={tab === id ? 'page' : undefined}
+                  className={cx(
+                    'relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-300 active:scale-95',
+                    tab === id ? 'text-sec' : 'text-[#8e8e95]',
+                  )}
+                >
+                  <Icon
+                    size={21}
+                    strokeWidth={tab === id ? 2.3 : 1.9}
+                    className={cx('transition-transform duration-500 ease-smooth', tab === id && '-translate-y-0.5 scale-110')}
+                  />
+                  {label}
+                  {/* Petit point lumineux sous l'onglet actif */}
+                  <span
+                    aria-hidden
+                    className={cx(
+                      'absolute bottom-1 size-1 rounded-full bg-sec shadow-[0_0_8px_var(--sec)] transition-all duration-500 ease-smooth',
+                      tab === id ? 'scale-100 opacity-100' : 'scale-0 opacity-0',
+                    )}
+                  />
+                  {id === 'afaire' && lateCount > 0 && (
+                    <span className="num absolute right-[calc(50%-20px)] top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-late px-1 text-[10px] font-bold text-white">
+                      {lateCount}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <SearchOverlay
+        open={searching}
+        onClose={closeSearch}
+        go={(t) => {
+          setVisit((v) => v + 1)
+          go(t)
+        }}
+      />
+      </div>
+    </SearchContext.Provider>
   )
 }

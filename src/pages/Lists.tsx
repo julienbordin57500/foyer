@@ -5,6 +5,8 @@ import { useStore } from '../data/store'
 import { capitalize } from '../lib/format'
 import type { List, ListItem } from '../lib/types'
 import { TEMPLATES, TEMPLATE_GROUPS } from '../lib/templates'
+import { ReminderBadge, ReminderPicker, type ReminderValue } from '../components/Reminder'
+import { SearchButton, consumePendingList } from '../components/Search'
 import {
   Avatar,
   Button,
@@ -26,7 +28,7 @@ const EMOJIS = ['📋', '👶', '🎒', '🩺', '🧳', '🏖️', '🧺', '👨
 
 export default function ListsPage() {
   const { data } = useStore()
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(consumePendingList)
   const [creating, setCreating] = useState(false)
   const current = data.lists.find((l) => l.id === openId)
 
@@ -38,9 +40,12 @@ export default function ListsPage() {
         eyebrow={data.lists.length ? `${data.lists.length} liste${data.lists.length > 1 ? 's' : ''}` : 'À cocher à deux'}
         title="Listes"
         action={
-          <HeroButton label="Nouvelle liste" onClick={() => setCreating(true)}>
-            <Plus size={22} />
-          </HeroButton>
+          <div className="flex gap-2">
+            <SearchButton />
+            <HeroButton label="Nouvelle liste" onClick={() => setCreating(true)}>
+              <Plus size={22} />
+            </HeroButton>
+          </div>
         }
       />
 
@@ -207,7 +212,10 @@ function ListDetail({ list, onBack }: { list: List; onBack(): void }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const items = data.list_items.filter((i) => i.list_id === list.id)
-  const todo = items.filter((i) => !i.done)
+  // Les éléments avec un rappel passent en tête, du plus proche au plus lointain.
+  const todo = items
+    .filter((i) => !i.done)
+    .sort((a, b) => (a.remind_at && !a.reminded_at ? a.remind_at : '~').localeCompare(b.remind_at && !b.reminded_at ? b.remind_at : '~'))
   const done = items.filter((i) => i.done)
   const isNew = useArrivals(items.map((i) => i.id))
 
@@ -313,6 +321,7 @@ function ItemRow({ item, fresh, bare, onEdit }: { item: ListItem; fresh: boolean
   const { update, removeWithUndo, me } = useStore()
   const by = useMember()(item.done_by)
   const toggle = () => update('list_items', item.id, item.done ? { done: false, done_by: null } : { done: true, done_by: me })
+  const reminder = !item.done && item.remind_at && !item.reminded_at ? item.remind_at : null
 
   return (
     <li className={cx('border-b border-line/70 last:border-0', fresh && 'animate-pop')}>
@@ -334,6 +343,11 @@ function ItemRow({ item, fresh, bare, onEdit }: { item: ListItem; fresh: boolean
             >
               {item.text}
             </span>
+            {reminder && (
+              <span className="mt-1 flex">
+                <ReminderBadge iso={reminder} />
+              </span>
+            )}
           </button>
           {item.done && item.done_by && <Avatar initial={by.initial} tone={by.tone} size="xs" />}
         </div>
@@ -345,16 +359,23 @@ function ItemRow({ item, fresh, bare, onEdit }: { item: ListItem; fresh: boolean
 function ItemForm({ item, onClose }: { item: ListItem; onClose(): void }) {
   const { update, remove } = useStore()
   const [text, setText] = useState(item.text)
+  const [reminder, setReminder] = useState<ReminderValue>({ remind_at: item.remind_at, remind_to: item.remind_to })
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        update('list_items', item.id, { text: text.trim() || item.text })
+        update('list_items', item.id, {
+          text: text.trim() || item.text,
+          remind_at: reminder.remind_at,
+          remind_to: reminder.remind_to,
+          ...(reminder.remind_at !== item.remind_at ? { reminded_at: null } : {}),
+        })
         onClose()
       }}
       className="space-y-5"
     >
       <Field label="Texte" value={text} onChange={(e) => setText(e.target.value)} />
+      <ReminderPicker value={reminder} onChange={setReminder} title={text.trim() || item.text} />
       <div className="flex gap-3">
         <Button
           type="button"

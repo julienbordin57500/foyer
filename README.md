@@ -16,7 +16,7 @@ Sans fichier `.env`, l'app tourne en **mode démo** : données d'exemple stocké
 ## Brancher Supabase
 
 1. Créez un projet sur supabase.com.
-2. Dans **SQL Editor**, exécutez `supabase/schema.sql`, puis `v2_…`, `v3_…` et `v4_…` dans l'ordre (tables, RLS, temps réel).
+2. Dans **SQL Editor**, exécutez `supabase/schema.sql`, puis `v2_…` à `v5_…` dans l'ordre (tables, RLS, temps réel).
 3. Copiez `.env.example` en `.env` et renseignez l'URL du projet et la clé publique (anon / publishable),
    disponibles dans **Project Settings → API**.
 4. Facultatif : dans **Authentication → Providers → Email**, désactivez « Confirm email »
@@ -27,7 +27,8 @@ Sans fichier `.env`, l'app tourne en **mode démo** : données d'exemple stocké
 ## Notifications
 
 La fonction `supabase/functions/foyer-push` envoie les notifications. Elle crée elle-même ses clés au premier appel
-et les garde côté serveur ; la base l'appelle à chaque nouveau mot, article, tâche ou réaction (`v4_…sql`).
+et les garde côté serveur ; la base l'appelle à chaque nouveau mot, article, tâche, réaction ou « je pars »,
+et chaque minute pour les rappels arrivés à échéance (`v4_…sql`, `v5_…sql`). Elle sert aussi le fichier calendrier (`?ics=1`).
 Déploiement : `supabase functions deploy foyer-push --no-verify-jwt` (elle vérifie elle-même un secret partagé).
 
 ## Installer sur le téléphone

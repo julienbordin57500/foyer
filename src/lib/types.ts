@@ -27,11 +27,21 @@ export interface GroceryItem {
   created_at: string
 }
 
-export interface Todo {
+export type Repeat = 'day' | 'week' | '2weeks' | 'month'
+
+/** Rappel à l'heure choisie (notification), sur une tâche ou un élément de liste. */
+export interface Remindable {
+  remind_at: string | null // ISO
+  remind_to: string | null // null = tous les deux
+  reminded_at: string | null
+}
+
+export interface Todo extends Remindable {
   id: string
   title: string
   assignee: string | null // null = tous les deux
   due_date: string | null // yyyy-mm-dd
+  repeat: Repeat | null
   added_by: string
   done_by: string | null
   done_at: string | null
@@ -70,13 +80,21 @@ export interface List {
   created_at: string
 }
 
-export interface ListItem {
+export interface ListItem extends Remindable {
   id: string
   list_id: string
   text: string
   done: boolean
   done_by: string | null
   added_by: string
+  created_at: string
+}
+
+export interface Ping {
+  id: string
+  author: string
+  kind: 'shopping'
+  place: 'store' | 'drive' | null
   created_at: string
 }
 
@@ -93,6 +111,7 @@ export interface Tables {
   lists: List
   list_items: ListItem
   note_reactions: NoteReaction
+  pings: Ping
 }
 
 export type TableName = keyof Tables

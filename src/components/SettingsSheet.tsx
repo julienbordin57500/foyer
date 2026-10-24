@@ -23,9 +23,7 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
   return (
     <Sheet open={open} title="Réglages" onClose={onClose}>
       {demo && (
-        <p className="mb-5 rounded-2xl bg-accent-soft px-4 py-3 text-sm text-accent">
-          Mode démo : les données restent dans ce navigateur.
-        </p>
+        <p className="mb-5 rounded-2xl bg-accent-soft px-4 py-3 text-sm text-accent">Mode démo : les données restent dans ce navigateur.</p>
       )}
 
       <p className="mb-2 px-1 text-[13px] font-medium text-muted">Apparence</p>
@@ -33,9 +31,30 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
         value={theme}
         onChange={setTheme}
         options={[
-          { value: 'light', label: <span className="inline-flex items-center gap-1.5"><Sun size={15} /> Jour</span> },
-          { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={15} /> Nuit</span> },
-          { value: 'auto', label: <span className="inline-flex items-center gap-1.5"><Monitor size={15} /> Auto</span> },
+          {
+            value: 'light',
+            label: (
+              <span className="inline-flex items-center gap-1.5">
+                <Sun size={15} /> Jour
+              </span>
+            ),
+          },
+          {
+            value: 'dark',
+            label: (
+              <span className="inline-flex items-center gap-1.5">
+                <Moon size={15} /> Nuit
+              </span>
+            ),
+          },
+          {
+            value: 'auto',
+            label: (
+              <span className="inline-flex items-center gap-1.5">
+                <Monitor size={15} /> Auto
+              </span>
+            ),
+          },
         ]}
       />
       <p className="mb-6 mt-1.5 px-1 text-xs text-muted">« Auto » suit le réglage du téléphone.</p>
@@ -76,7 +95,7 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
 }
 
 const PUSH_HINT: Record<PushState, string> = {
-  unsupported: "Ce téléphone ne permet pas les notifications web.",
+  unsupported: 'Ce téléphone ne permet pas les notifications web.',
   'needs-install': "Sur iPhone : installez d'abord l'app (Partager → Sur l'écran d'accueil), puis activez ici depuis l'app installée.",
   denied: 'Notifications refusées : réactivez-les dans Réglages → Notifications → Foyer.',
   off: 'Un petit mot, un article, une tâche pour vous : votre téléphone vous prévient.',

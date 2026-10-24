@@ -13,7 +13,16 @@ export default function Logo({ size = 56, className, animated }: { size?: number
         </linearGradient>
       </defs>
       <rect width="100" height="100" rx="23" fill={`url(#${id})`} />
-      <path className="logo-roof" d="M24 52 L50 30 L76 52" fill="none" stroke="#FFFCF8" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
+      <path
+        className="logo-roof"
+        d="M24 52 L50 30 L76 52"
+        fill="none"
+        stroke="#FFFCF8"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pathLength={1}
+      />
       <circle className="logo-dot-a" cx="40" cy="66" r="8" fill="#FFF3EC" />
       <circle className="logo-dot-b" cx="60" cy="66" r="8" fill="#7EE0B0" />
     </svg>

@@ -1,10 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { CalendarDays, Check, Trash2 } from 'lucide-react'
+import { CalendarDays, Check, Repeat as RepeatIcon, Trash2 } from 'lucide-react'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
-import { addDays, nextSaturday, toISODate, today } from '../lib/dates'
+import { addDays, nextOccurrence, nextSaturday, parseISODate, toISODate, today } from '../lib/dates'
 import { ago, capitalize, dueLabel } from '../lib/format'
-import type { Todo } from '../lib/types'
+import type { Repeat, Todo } from '../lib/types'
+import { ReminderBadge, ReminderPicker, type ReminderValue } from '../components/Reminder'
+import { SearchButton } from '../components/Search'
 import {
   Avatar,
   Button,
@@ -25,6 +27,21 @@ import {
 
 type When = 'none' | 'today' | 'tomorrow' | 'weekend' | 'custom'
 
+export const REPEAT_LABEL: Record<Repeat, string> = {
+  day: 'Chaque jour',
+  week: 'Chaque semaine',
+  '2weeks': 'Toutes les 2 semaines',
+  month: 'Chaque mois',
+}
+type RepeatChoice = Repeat | 'none'
+const REPEAT_OPTIONS: { value: RepeatChoice; label: string }[] = [
+  { value: 'none', label: 'Une fois' },
+  { value: 'day', label: 'Chaque jour' },
+  { value: 'week', label: 'Chaque semaine' },
+  { value: '2weeks', label: '2 semaines' },
+  { value: 'month', label: 'Chaque mois' },
+]
+
 const whenToDate = (w: When, custom: string) => {
   if (w === 'today') return toISODate(today())
   if (w === 'tomorrow') return toISODate(addDays(today(), 1))
@@ -41,6 +58,7 @@ export default function TodosPage() {
   const [assignee, setAssignee] = useState<string>('both')
   const [when, setWhen] = useState<When>('none')
   const [custom, setCustom] = useState('')
+  const [repeat, setRepeat] = useState<RepeatChoice>('none')
   const [editing, setEditing] = useState<Todo | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -64,13 +82,17 @@ export default function TodosPage() {
   const add = () => {
     const title = text.trim()
     if (!title) return
+    // Une tâche qui revient a besoin d'une première date : aujourd'hui par défaut.
+    const due = whenToDate(when, custom) ?? (repeat !== 'none' ? toISODate(today()) : null)
     insert('todos', {
       title: capitalize(title),
       assignee: assignee === 'both' ? null : assignee,
-      due_date: whenToDate(when, custom),
+      due_date: due,
+      repeat: repeat === 'none' ? null : repeat,
     })
     setText('')
     setWhen('none')
+    setRepeat('none')
     inputRef.current?.focus()
   }
 
@@ -89,6 +111,7 @@ export default function TodosPage() {
             : `${open.length} chose${open.length > 1 ? 's' : ''} à faire${lateCount ? ` · ${lateCount} en retard` : ''}`
         }
         title="À faire"
+        action={<SearchButton />}
       >
         <Composer
           value={text}
@@ -131,6 +154,7 @@ export default function TodosPage() {
                 aria-label="Date"
               />
             )}
+            <Chips<RepeatChoice> label="Revient ?" value={repeat} onChange={setRepeat} options={REPEAT_OPTIONS} />
           </div>
         </div>
       </div>
@@ -179,16 +203,32 @@ export default function TodosPage() {
 }
 
 function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit(): void }) {
-  const { update, removeWithUndo, me } = useStore()
+  const { update, insert, removeWithUndo, me } = useStore()
   const member = useMember()
   const [leaving, setLeaving] = useState(false)
   const due = todo.due_date ? dueLabel(todo.due_date) : null
+  const reminder = todo.remind_at && !todo.reminded_at ? todo.remind_at : null
   const who = todo.assignee ? member(todo.assignee) : null
   const by = member(todo.added_by)
 
   const complete = (delay = 560) => {
     setLeaving(true)
-    setTimeout(() => update('todos', todo.id, { done_at: new Date().toISOString(), done_by: me }), delay)
+    setTimeout(() => {
+      update('todos', todo.id, { done_at: new Date().toISOString(), done_by: me })
+      // Tâche qui revient : la suivante apparaît aussitôt, avec son rappel décalé d'autant.
+      if (todo.repeat && todo.due_date) {
+        const next = nextOccurrence(todo.due_date, todo.repeat)
+        const shift = parseISODate(next).getTime() - parseISODate(todo.due_date).getTime()
+        insert('todos', {
+          title: todo.title,
+          assignee: todo.assignee,
+          due_date: next,
+          repeat: todo.repeat,
+          remind_at: todo.remind_at ? new Date(new Date(todo.remind_at).getTime() + shift).toISOString() : null,
+          remind_to: todo.remind_to,
+        })
+      }
+    }, delay)
   }
 
   return (
@@ -209,7 +249,13 @@ function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit()
               {todo.title}
             </span>
             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
+              {reminder && <ReminderBadge iso={reminder} />}
               {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-sec' : '')}>{due.text}</span>}
+              {todo.repeat && (
+                <span className="inline-flex items-center gap-0.5 text-sec" title={REPEAT_LABEL[todo.repeat]}>
+                  <RepeatIcon size={12} strokeWidth={2.4} />
+                </span>
+              )}
               {due && <span className="text-faint">·</span>}
               {who ? (
                 <span className="inline-flex items-center gap-1">
@@ -278,10 +324,22 @@ function TodoForm({ todo, onClose }: { todo: Todo; onClose(): void }) {
   const [title, setTitle] = useState(todo.title)
   const [assignee, setAssignee] = useState(todo.assignee ?? 'both')
   const [due, setDue] = useState(todo.due_date ?? '')
+  const [repeat, setRepeat] = useState<RepeatChoice>(todo.repeat ?? 'none')
+  const [reminder, setReminder] = useState<ReminderValue>({ remind_at: todo.remind_at, remind_to: todo.remind_to })
 
   const save = (e: FormEvent) => {
     e.preventDefault()
-    update('todos', todo.id, { title: title.trim() || todo.title, assignee: assignee === 'both' ? null : assignee, due_date: due || null })
+    const reminderChanged = reminder.remind_at !== todo.remind_at
+    update('todos', todo.id, {
+      title: title.trim() || todo.title,
+      assignee: assignee === 'both' ? null : assignee,
+      due_date: due || (repeat !== 'none' ? toISODate(today()) : null),
+      repeat: repeat === 'none' ? null : repeat,
+      remind_at: reminder.remind_at,
+      remind_to: reminder.remind_to,
+      // Nouvelle heure : le rappel repart.
+      ...(reminderChanged ? { reminded_at: null } : {}),
+    })
     onClose()
   }
 
@@ -306,6 +364,8 @@ function TodoForm({ todo, onClose }: { todo: Todo; onClose(): void }) {
           </button>
         )}
       </div>
+      <Chips<RepeatChoice> label="Revient ?" value={repeat} onChange={setRepeat} options={REPEAT_OPTIONS} />
+      <ReminderPicker value={reminder} onChange={setReminder} title={title.trim() || todo.title} />
       <p className="flex items-center gap-2 px-1 text-[13px] text-muted">
         <Avatar initial={by.initial} tone={by.tone} size="xs" />
         Notée par {by.isMe ? 'vous' : by.name} · {ago(todo.created_at)}

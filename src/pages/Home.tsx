@@ -7,6 +7,7 @@ import { ago, dueLabel, greeting, longDate } from '../lib/format'
 import { REACTIONS, type Note, type Reaction } from '../lib/types'
 import { Avatar, Card, Composer, Hero, HeroButton, SectionTitle, cx, useArrivals } from '../components/ui'
 import SettingsSheet from '../components/SettingsSheet'
+import { SearchButton } from '../components/Search'
 
 export default function HomePage({ go }: { go(t: Tab): void }) {
   const { me } = useSession()
@@ -33,9 +34,12 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
         eyebrow={longDate(new Date())}
         title={`${greeting()} ${me.display_name}`}
         action={
-          <HeroButton label="Réglages" onClick={() => setSettings(true)}>
-            <Settings size={19} />
-          </HeroButton>
+          <div className="flex gap-2">
+            <SearchButton />
+            <HeroButton label="Réglages" onClick={() => setSettings(true)}>
+              <Settings size={19} />
+            </HeroButton>
+          </div>
         }
       >
         <LatestNote notes={data.notes} />
