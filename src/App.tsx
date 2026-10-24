@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, ClipboardList, House, ListChecks, ShoppingBasket, X } from 'lucide-react'
+import { AlertCircle, ClipboardList, House, ListChecks, ShoppingCart, X } from 'lucide-react'
 import { useStore } from './data/store'
 import { cx } from './components/ui'
 import { toISODate, today } from './lib/dates'
@@ -14,7 +14,7 @@ export type Tab = 'accueil' | 'courses' | 'afaire' | 'listes'
 
 const TABS: { id: Tab; label: string; icon: typeof House }[] = [
   { id: 'accueil', label: 'Accueil', icon: House },
-  { id: 'courses', label: 'Courses', icon: ShoppingBasket },
+  { id: 'courses', label: 'Courses', icon: ShoppingCart },
   { id: 'afaire', label: 'À faire', icon: ListChecks },
   { id: 'listes', label: 'Listes', icon: ClipboardList },
 ]
@@ -28,6 +28,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>(readHash)
   const { data, loading, error, dismissError, toast } = useStore()
   const index = TABS.findIndex((t) => t.id === tab)
+  const toBuy = data.grocery_items.filter((i) => i.status !== 'bought').length
   const lateCount = data.todos.filter((t) => !t.done_at && t.due_date && t.due_date < toISODate(today())).length
 
   useEffect(() => {
@@ -45,7 +46,8 @@ export default function App() {
   const go = (t: Tab) => {
     if (t !== tab) history.pushState(null, '', `#${t}`)
     setTab(t)
-    window.scrollTo({ top: 0 })
+    // Re-toucher l'onglet actif remonte en douceur en haut de la page.
+    window.scrollTo({ top: 0, behavior: t === tab ? 'smooth' : 'instant' })
   }
 
   useEffect(() => {
@@ -140,6 +142,11 @@ export default function App() {
                       tab === id ? 'scale-100 opacity-100' : 'scale-0 opacity-0',
                     )}
                   />
+                  {id === 'courses' && toBuy > 0 && (
+                    <span className="num absolute right-[calc(50%-22px)] top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-sec px-1 text-[10px] font-bold text-[#0e0e10]">
+                      {toBuy}
+                    </span>
+                  )}
                   {id === 'afaire' && lateCount > 0 && (
                     <span className="num absolute right-[calc(50%-20px)] top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-late px-1 text-[10px] font-bold text-white">
                       {lateCount}

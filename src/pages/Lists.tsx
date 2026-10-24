@@ -102,7 +102,7 @@ function ListCard({ list, items, index, onOpen }: { list: List; items: ListItem[
     <div className="animate-pop relative" style={{ animationDelay: `${index * 40}ms` }}>
       <button
         onClick={onOpen}
-        className="flex min-h-[156px] w-full flex-col rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent p-4 text-left shadow-soft ring-1 ring-line/60 transition duration-300 ease-smooth active:scale-[0.97]"
+        className="card-glow flex min-h-[156px] w-full flex-col rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent p-4 text-left transition duration-300 ease-smooth active:scale-[0.97]"
       >
         <span className="grid size-11 place-items-center rounded-2xl bg-sec/15 text-[22px]">{list.emoji}</span>
         <span className="mt-auto block pt-4 font-serif text-[20px] font-medium leading-tight">{list.title}</span>
@@ -405,7 +405,7 @@ function ItemForm({ item, onClose }: { item: ListItem; onClose(): void }) {
 }
 
 function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: boolean; onClose(): void; onDeleted(): void }) {
-  const { data, update, remove } = useStore()
+  const { data, update, remove, removeWithUndo } = useStore()
   const [title, setTitle] = useState(list.title)
   const [emoji, setEmoji] = useState(list.emoji)
 
@@ -452,8 +452,7 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
         type="button"
         className="h-11 text-[14px] font-semibold text-late active:opacity-60"
         onClick={() => {
-          if (!confirm(`Supprimer la liste « ${list.title} » ?`)) return
-          remove('lists', list.id)
+          removeWithUndo('lists', list.id, list.title)
           onClose()
           onDeleted()
         }}

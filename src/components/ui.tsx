@@ -3,17 +3,20 @@ import { ArrowUp, Check, ChevronDown, X } from 'lucide-react'
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
 
+/** Petite vibration de confirmation (Android ; sans effet sur iPhone). */
+export const tick = () => {
+  try {
+    navigator.vibrate?.(8)
+  } catch {
+    /* non disponible */
+  }
+}
+
 /* Alignement : tout le contenu intérieur des cartes (et les titres de section) démarre à 16 px du bord. */
 
 export function Card({ className, children, ...rest }: { className?: string; children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cx(
-        'rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent shadow-soft ring-1 ring-line/60',
-        className,
-      )}
-      {...rest}
-    >
+    <div className={cx('card-glow rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent', className)} {...rest}>
       {children}
     </div>
   )
@@ -414,6 +417,8 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
   const last = useRef<ReactNode>(children)
+  const panel = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ y: number; dy: number } | null>(null)
   if (open) last.current = children
 
   useEffect(() => {
@@ -438,6 +443,27 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
     }
   }, [open, onClose])
 
+  // Glisser la poignée (ou le titre) vers le bas pour fermer, comme sur iPhone.
+  const onDown = (e: React.PointerEvent) => {
+    drag.current = { y: e.clientY, dy: 0 }
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  }
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag.current || !panel.current) return
+    const dy = Math.max(0, e.clientY - drag.current.y)
+    drag.current.dy = dy
+    panel.current.style.transition = 'none'
+    panel.current.style.transform = `translateY(${dy}px)`
+  }
+  const onUp = () => {
+    if (!drag.current || !panel.current) return
+    const { dy } = drag.current
+    drag.current = null
+    panel.current.style.transition = ''
+    panel.current.style.transform = ''
+    if (dy > 90) onClose()
+  }
+
   if (!mounted) return null
   return (
     <div
@@ -447,17 +473,30 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
       aria-label={title}
     >
       <div className="sheet-backdrop absolute inset-0 backdrop-blur-[2px]" style={{ background: 'var(--backdrop)' }} onClick={onClose} />
-      <div className="sheet-panel pb-safe relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[30px] bg-surface px-5 pt-3 shadow-2xl">
-        <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-line" />
-        <div className="relative mb-6 flex items-center justify-center">
-          <h2 className="font-serif text-[26px] font-medium leading-none">{title}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Fermer"
-            className="absolute right-0 grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition active:scale-90"
-          >
-            <X size={18} />
-          </button>
+      <div
+        ref={panel}
+        className="sheet-panel pb-safe relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[30px] bg-surface px-5 shadow-2xl"
+      >
+        <div
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
+          className="cursor-grab pt-3"
+          style={{ touchAction: 'none' }}
+        >
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
+          <div className="relative mb-6 flex items-center justify-center">
+            <h2 className="font-serif text-[26px] font-medium leading-none">{title}</h2>
+            <button
+              onClick={onClose}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label="Fermer"
+              className="absolute right-0 grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition active:scale-90"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
         <div className="pb-4">{open ? children : last.current}</div>
       </div>
@@ -509,7 +548,10 @@ export function CheckCircle({
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        tick()
+        onClick()
+      }}
       aria-label={label}
       aria-pressed={checked}
       className={cx(
@@ -626,6 +668,7 @@ export function SwipeRow({
     s.active = false
     const action = s.dx > 0 ? right : left
     if (action && Math.abs(s.dx) >= s.width * 0.35) {
+      tick()
       setX(Math.sign(s.dx) * s.width, true)
       setTimeout(() => {
         action.run()

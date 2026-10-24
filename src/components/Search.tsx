@@ -74,7 +74,7 @@ export function SearchOverlay({ open, onClose, go }: { open: boolean; onClose():
         .map((i) => ({
           id: i.id,
           tab: 'courses' as Tab,
-          icon: '🧺',
+          icon: '🛒',
           text: i.name,
           where: i.status === 'bought' ? 'Courses · déjà acheté' : 'Courses',
           done: i.status === 'bought',

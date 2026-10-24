@@ -51,7 +51,7 @@ function PlaceIcon({ place, size = 14 }: { place: Place; size?: number }) {
 }
 
 export default function GroceriesPage() {
-  const { data, insert, update } = useStore()
+  const { data, insert, update, showToast } = useStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [text, setText] = useState('')
   const [place, setPlace] = useState<Place>('store')
@@ -187,7 +187,7 @@ export default function GroceriesPage() {
       )}
 
       {open.length === 0 && (
-        <Empty emoji="🧺" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />
+        <Empty emoji="🛒" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />
       )}
       {open.length > 0 && groups.length === 0 && (
         <p className="animate-fade py-12 text-center text-[15px] text-muted">
@@ -212,6 +212,23 @@ export default function GroceriesPage() {
           </section>
         ))}
       </div>
+
+      {shown.length >= 2 && (
+        <button
+          onClick={() => {
+            // Fin des courses : tout ce qui est affiché passe en « acheté », avec « Annuler » au cas où.
+            const before = shown.map((i) => ({ id: i.id, status: i.status }))
+            const now = new Date().toISOString()
+            before.forEach((b) => update('grocery_items', b.id, { status: 'bought', bought_at: now }))
+            showToast(`${before.length} articles achetés`, () =>
+              before.forEach((b) => update('grocery_items', b.id, { status: b.status, bought_at: null })),
+            )
+          }}
+          className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold text-sec ring-1 ring-sec/30 transition active:scale-[0.98] active:bg-sec/10"
+        >
+          <Check size={18} strokeWidth={2.6} /> J'ai tout pris
+        </button>
+      )}
 
       {bought.length > 0 && (
         <section>

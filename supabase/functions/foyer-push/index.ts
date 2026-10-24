@@ -42,7 +42,7 @@ async function buildMessage(table: string, r: Record<string, any>): Promise<Mess
   if (table === 'grocery_items') {
     return {
       recipients: others(r.added_by),
-      title: '🧺 Courses',
+      title: '🛒 Courses',
       body: `${name(r.added_by)} a ajouté ${r.name}${r.quantity ? ` (× ${r.quantity})` : ''}`,
       tab: 'courses',
       throttle: 'courses', // une notification toutes les 10 minutes au plus

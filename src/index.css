@@ -462,3 +462,11 @@ nav {
     animation: none;
   }
 }
+
+/* Cartes du milieu de page : liseré et halo très légers, dans la couleur de l'onglet. */
+.card-glow {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--sec) 16%, transparent),
+    0 12px 32px -22px color-mix(in srgb, var(--sec) 75%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}

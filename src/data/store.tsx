@@ -14,6 +14,8 @@ interface Store {
   /** Supprime après quelques secondes, avec un bouton « Annuler » entre-temps. */
   removeWithUndo(table: TableName, id: string, label: string): void
   toast: { message: string; undo(): void } | null
+  /** Bandeau « … · Annuler » pendant 5 secondes. */
+  showToast(message: string, undo: () => void): void
   /** Crée une liste et ses premiers éléments (modèle), dans cet ordre. */
   createList(list: NewRow<'lists'>, items: string[]): string
 }
@@ -133,6 +135,17 @@ export function DataProvider({ backend, children }: { backend: Backend; children
         return id
       },
       toast,
+      showToast: (message, undo) => {
+        if (toastTimer.current) clearTimeout(toastTimer.current)
+        toastTimer.current = setTimeout(() => setToast(null), 5000)
+        setToast({
+          message,
+          undo: () => {
+            undo()
+            setToast(null)
+          },
+        })
+      },
       removeWithUndo: (table, id, label) => {
         // Masqué tout de suite, supprimé pour de bon 5 s plus tard sauf « Annuler ».
         setData((d) => ({ ...d, [table]: (d[table] as { id: string }[]).filter((r) => r.id !== id) }))

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BellRing, ChevronRight, ListChecks, Settings, ShoppingBasket, SmilePlus, Sparkles, X } from 'lucide-react'
+import { BellRing, ChevronRight, ListChecks, Settings, ShoppingCart, SmilePlus, Sparkles, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
@@ -52,7 +52,7 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
       <div className="grid grid-cols-2 gap-3">
         <Tile
           section="courses"
-          emoji="🧺"
+          emoji="🛒"
           value={groceries.length}
           label={groceries.length > 1 ? 'articles à prendre' : 'article à prendre'}
           detail={toOrder ? `${toOrder} à commander au drive` : undefined}
@@ -124,7 +124,7 @@ function Tile({
     <button
       data-section={section}
       onClick={onClick}
-      className="flex min-h-[150px] flex-col rounded-[24px] bg-surface p-4 text-left shadow-soft ring-1 ring-line/60 transition duration-300 ease-smooth active:scale-[0.97]"
+      className="card-glow flex min-h-[150px] flex-col rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent p-4 text-left transition duration-300 ease-smooth active:scale-[0.97]"
     >
       <span className="flex items-center justify-between">
         <span className="grid size-9 place-items-center rounded-xl bg-sec/15 text-[18px]">{emoji}</span>
@@ -366,7 +366,7 @@ function DaySummary({ go }: { go(t: Tab): void }) {
     lines.push({
       key: 'courses',
       section: 'courses',
-      icon: <ShoppingBasket size={17} />,
+      icon: <ShoppingCart size={17} />,
       title: `${groceries.length} article${groceries.length > 1 ? 's' : ''} à prendre`,
       items: who
         ? [
