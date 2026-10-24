@@ -3,6 +3,14 @@
 ## À faire
 _(rien pour l'instant — ajoutez ici les prochaines idées)_
 
+## v5.2 (24/10)
+- 12 listes toutes prêtes, rangées par thème :
+  - Noah : Sortie avec Noah, Sac de crèche, Rendez-vous médecin
+  - Sorties : Valise, Plage ou piscine, Pique-nique
+  - Maison : Avant de partir, Ménage du week-end, On reçoit, Ikea, Bricolage
+  - Travail : Affaires resto
+- Choix du modèle en grille, plus d'icônes de liste
+
 ## v5.1 (24/10)
 - En-tête retravaillé : carte arrondie de tous les côtés, posée sous la barre d'état, avec une lueur colorée qui se fond dans le fond (plus de bord coupé net en haut)
 

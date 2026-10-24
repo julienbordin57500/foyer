@@ -4,12 +4,12 @@ import { useMember } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { capitalize } from '../lib/format'
 import type { List, ListItem } from '../lib/types'
+import { TEMPLATES, TEMPLATE_GROUPS } from '../lib/templates'
 import {
   Avatar,
   Button,
   Card,
   CheckCircle,
-  Chips,
   Composer,
   Empty,
   Field,
@@ -22,44 +22,7 @@ import {
   useArrivals,
 } from '../components/ui'
 
-const EMOJIS = ['📋', '🧳', '🛋️', '🔨', '🎒', '🎁', '🏕️', '🎄', '🍼', '🌱', '🎉', '🚗']
-
-const TEMPLATES: { id: string; title: string; emoji: string; items: string[] }[] = [
-  {
-    id: 'valise',
-    title: 'Valise',
-    emoji: '🧳',
-    items: [
-      'Brosses à dents',
-      'Dentifrice',
-      'Gel douche et shampoing',
-      'Chargeurs',
-      'Pyjamas',
-      'Sous-vêtements',
-      'Tenues',
-      'Chaussures',
-      'Maillots de bain',
-      'Médicaments',
-      "Papiers d'identité",
-      'Doudou de Noah',
-      'Couches et lingettes',
-      'Biberons',
-    ],
-  },
-  { id: 'ikea', title: 'Ikea', emoji: '🛋️', items: ['Prendre les mesures', 'Sacs de courses'] },
-  {
-    id: 'brico',
-    title: 'Bricolage',
-    emoji: '🔨',
-    items: ['Vis et chevilles', 'Ampoules', 'Peinture', 'Rouleaux et pinceaux', 'Scotch de masquage'],
-  },
-  {
-    id: 'creche',
-    title: 'Sac de crèche',
-    emoji: '🎒',
-    items: ['Tenue de rechange', 'Couches', 'Lingettes', 'Doudou', 'Tétine', 'Crème pour le change'],
-  },
-]
+const EMOJIS = ['📋', '👶', '🎒', '🩺', '🧳', '🏖️', '🧺', '👨‍🍳', '🏠', '🧹', '🥂', '🛋️', '🔨', '🎁', '🎄', '🌱', '🎉', '🚗']
 
 export default function ListsPage() {
   const { data } = useStore()
@@ -163,10 +126,8 @@ function CreateForm({ onDone }: { onDone(id: string | null): void }) {
   const pick = (id: string) => {
     setTemplate(id)
     const t = TEMPLATES.find((x) => x.id === id)
-    if (t) {
-      setTitle(t.title)
-      setEmoji(t.emoji)
-    }
+    setTitle(t ? t.title : '')
+    setEmoji(t ? t.emoji : '📋')
   }
 
   const submit = (e: FormEvent) => {
@@ -178,16 +139,38 @@ function CreateForm({ onDone }: { onDone(id: string | null): void }) {
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <Chips
-        label="Partir de"
-        value={template}
-        onChange={pick}
-        options={[{ value: 'none', label: 'Zéro' }, ...TEMPLATES.map((t) => ({ value: t.id, label: `${t.emoji} ${t.title}` }))]}
-      />
+      <div>
+        <span className="mb-2 block px-1 text-[13px] font-medium text-muted">Partir d'une liste toute prête</span>
+        <div className="-mx-1 max-h-[38dvh] space-y-4 overflow-y-auto px-1 pb-1">
+          {TEMPLATE_GROUPS.map((g) => (
+            <div key={g}>
+              <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">{g}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {TEMPLATES.filter((t) => t.group === g).map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => pick(template === t.id ? 'none' : t.id)}
+                    aria-pressed={template === t.id}
+                    className={cx(
+                      'flex min-h-[92px] flex-col items-start rounded-2xl p-2.5 text-left transition duration-200 ease-smooth active:scale-95',
+                      template === t.id ? 'bg-sec/18 ring-2 ring-sec/70' : 'bg-surface-2',
+                    )}
+                  >
+                    <span className="text-[22px] leading-none">{t.emoji}</span>
+                    <span className="mt-auto pt-2 text-[13px] font-semibold leading-tight">{t.title}</span>
+                    <span className="text-[11px] text-muted">{t.items.length} éléments</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
       <Field label="Nom" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Week-end à la mer" maxLength={60} />
       <div>
         <span className="mb-2 block px-1 text-[13px] font-medium text-muted">Icône</span>
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-9 gap-1.5">
           {EMOJIS.map((em) => (
             <button
               key={em}
@@ -195,7 +178,7 @@ function CreateForm({ onDone }: { onDone(id: string | null): void }) {
               onClick={() => setEmoji(em)}
               aria-pressed={emoji === em}
               className={cx(
-                'grid aspect-square place-items-center rounded-2xl text-[22px] transition duration-200 ease-smooth active:scale-90',
+                'grid aspect-square place-items-center rounded-xl text-[18px] transition duration-200 ease-smooth active:scale-90',
                 emoji === em ? 'bg-sec/18 ring-2 ring-sec/60' : 'bg-surface-2',
               )}
             >
@@ -206,7 +189,7 @@ function CreateForm({ onDone }: { onDone(id: string | null): void }) {
       </div>
       {template !== 'none' && (
         <p className="px-1 text-[13px] text-muted">
-          {TEMPLATES.find((t) => t.id === template)!.items.length} éléments déjà prêts, à compléter ensuite.
+          {TEMPLATES.find((t) => t.id === template)!.items.length} éléments déjà prêts : vous pourrez en ajouter ou en retirer.
         </p>
       )}
       <Button className="w-full" disabled={!title.trim()}>
@@ -406,7 +389,7 @@ function ListMenu({ list, hasDone, onClose, onDeleted }: { list: List; hasDone: 
       className="space-y-5"
     >
       <Field label="Nom" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} />
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-9 gap-1.5">
         {EMOJIS.map((em) => (
           <button
             key={em}

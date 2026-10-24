@@ -1,0 +1,146 @@
+/** Listes toutes prêtes : on part de là, puis on complète ou on retire. */
+export interface ListTemplate {
+  id: string
+  title: string
+  emoji: string
+  group: 'Noah' | 'Sorties' | 'Maison' | 'Travail'
+  items: string[]
+}
+
+export const TEMPLATES: ListTemplate[] = [
+  {
+    id: 'sortie-noah',
+    title: 'Sortie avec Noah',
+    emoji: '👶',
+    group: 'Noah',
+    items: [
+      'Sac à langer',
+      'Biberon',
+      'Lait en poudre',
+      'Doseur de lait',
+      "Bouteille d'eau",
+      'Couches',
+      'Lingettes',
+      'Coton',
+      'Crème pour le change',
+      'Tapis à langer',
+      'Sac pour couches sales',
+      'Habits de rechange',
+      'Body de rechange',
+      'Sucette',
+      'Doudou',
+      'Bavoir',
+      'Gilet et bonnet',
+      'Petit jouet',
+    ],
+  },
+  {
+    id: 'creche',
+    title: 'Sac de crèche',
+    emoji: '🎒',
+    group: 'Noah',
+    items: ['Tenue de rechange', 'Couches', 'Lingettes', 'Doudou', 'Sucette', 'Crème pour le change', 'Biberon', 'Carnet de liaison'],
+  },
+  {
+    id: 'medecin',
+    title: 'Rendez-vous médecin',
+    emoji: '🩺',
+    group: 'Noah',
+    items: ['Carnet de santé', 'Carte Vitale', 'Carte mutuelle', 'Ordonnance en cours', 'Questions à poser', 'Doudou', 'Couche de rechange', 'Biberon'],
+  },
+  {
+    id: 'valise',
+    title: 'Valise',
+    emoji: '🧳',
+    group: 'Sorties',
+    items: [
+      'Brosses à dents',
+      'Dentifrice',
+      'Gel douche et shampoing',
+      'Chargeurs',
+      'Pyjamas',
+      'Sous-vêtements',
+      'Tenues',
+      'Chaussures',
+      'Maillots de bain',
+      'Médicaments',
+      "Papiers d'identité",
+      'Doudou de Noah',
+      'Couches et lingettes',
+      'Biberons et lait',
+    ],
+  },
+  {
+    id: 'plage',
+    title: 'Plage ou piscine',
+    emoji: '🏖️',
+    group: 'Sorties',
+    items: ['Maillots de bain', 'Couches de bain', 'Serviettes', 'Crème solaire', 'Chapeaux', 'Lunettes de soleil', 'Parasol', 'Eau', 'Goûter', 'Jouets de plage'],
+  },
+  {
+    id: 'pique-nique',
+    title: 'Pique-nique',
+    emoji: '🧺',
+    group: 'Sorties',
+    items: ['Plaid', 'Sandwichs', 'Fruits', 'Eau', 'Gobelets', 'Serviettes', 'Sac poubelle', 'Glacière'],
+  },
+  {
+    id: 'resto',
+    title: 'Affaires resto',
+    emoji: '👨‍🍳',
+    group: 'Travail',
+    items: [
+      'Tenue de cuisine',
+      'Tablier',
+      'Chaussures de sécurité',
+      'Torchons',
+      'Couteaux',
+      'La caisse',
+      'Fond de caisse',
+      'Clés du resto',
+      'Téléphone chargé',
+      'Petit-déj',
+      "Bouteille d'eau",
+    ],
+  },
+  {
+    id: 'avant-partir',
+    title: 'Avant de partir',
+    emoji: '🏠',
+    group: 'Maison',
+    items: [
+      'Fermer les fenêtres',
+      'Baisser le chauffage',
+      'Éteindre les lumières',
+      'Sortir les poubelles',
+      'Vider le frigo',
+      'Arroser les plantes',
+      'Débrancher les appareils',
+      'Fermer à clé',
+    ],
+  },
+  {
+    id: 'menage',
+    title: 'Ménage du week-end',
+    emoji: '🧹',
+    group: 'Maison',
+    items: ['Aspirateur', 'Serpillière', 'Salle de bain', 'Toilettes', 'Cuisine', 'Poussière', 'Changer les draps', 'Lessive', 'Vider les poubelles'],
+  },
+  {
+    id: 'on-recoit',
+    title: 'On reçoit',
+    emoji: '🥂',
+    group: 'Maison',
+    items: ['Apéro', 'Boissons', 'Glaçons', 'Dessert', 'Ranger le salon', 'Mettre la table', 'Bougies', 'Musique'],
+  },
+  { id: 'ikea', title: 'Ikea', emoji: '🛋️', group: 'Maison', items: ['Prendre les mesures', 'Sacs de courses'] },
+  {
+    id: 'brico',
+    title: 'Bricolage',
+    emoji: '🔨',
+    group: 'Maison',
+    items: ['Vis et chevilles', 'Ampoules', 'Peinture', 'Rouleaux et pinceaux', 'Scotch de masquage'],
+  },
+]
+
+export const TEMPLATE_GROUPS = ['Noah', 'Sorties', 'Maison', 'Travail'] as const
