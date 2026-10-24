@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BellRing, ChevronRight, ListChecks, Settings, ShoppingCart, SmilePlus, Sparkles, X } from 'lucide-react'
+import { BellRing, ChevronRight, CircleCheckBig, Settings, ShoppingCart, SmilePlus, Sparkles, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
@@ -355,7 +355,7 @@ function DaySummary({ go }: { go(t: Tab): void }) {
     lines.push({
       key: 'taches',
       section: 'afaire',
-      icon: <ListChecks size={17} />,
+      icon: <CircleCheckBig size={17} />,
       title: `${tasks.length} chose${tasks.length > 1 ? 's' : ''} à faire${late.length ? ` · ${late.length} en retard` : ''}`,
       items: tasks
         .slice(0, 3)

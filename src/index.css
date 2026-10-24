@@ -490,3 +490,15 @@ nav {
 @media (prefers-reduced-motion: reduce) {
   .toast-in, .toast-out { animation-duration: 0.01s; }
 }
+
+/* Coche de fin des courses : apparaît, reste un instant, puis s'efface en douceur. */
+@keyframes done-overlay {
+  0% { opacity: 0; }
+  12%, 75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.done-overlay {
+  background: color-mix(in srgb, var(--bg) 45%, transparent);
+  backdrop-filter: blur(3px);
+  animation: done-overlay 1.4s ease forwards;
+}

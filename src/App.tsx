@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, ClipboardList, House, ListChecks, ShoppingCart, X } from 'lucide-react'
+import { AlertCircle, CircleCheckBig, House, LayoutGrid, ShoppingCart, X } from 'lucide-react'
 import { TOAST_MS, useStore } from './data/store'
 import { cx } from './components/ui'
 import { toISODate, today } from './lib/dates'
@@ -15,8 +15,8 @@ export type Tab = 'accueil' | 'courses' | 'afaire' | 'listes'
 const TABS: { id: Tab; label: string; icon: typeof House }[] = [
   { id: 'accueil', label: 'Accueil', icon: House },
   { id: 'courses', label: 'Courses', icon: ShoppingCart },
-  { id: 'afaire', label: 'À faire', icon: ListChecks },
-  { id: 'listes', label: 'Listes', icon: ClipboardList },
+  { id: 'afaire', label: 'À faire', icon: CircleCheckBig },
+  { id: 'listes', label: 'Listes', icon: LayoutGrid },
 ]
 
 const readHash = (): Tab => {

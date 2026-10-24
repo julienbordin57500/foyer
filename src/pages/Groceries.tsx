@@ -58,7 +58,7 @@ export default function GroceriesPage() {
   const [editing, setEditing] = useState<GroceryItem | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [leaving, setLeaving] = useState(false)
-  const [flying, setFlying] = useState<FlyItem[] | null>(null)
+  const [allDone, setAllDone] = useState(0)
 
   const open = data.grocery_items.filter((i) => i.status !== 'bought')
   const bought = data.grocery_items
@@ -221,13 +221,7 @@ export default function GroceriesPage() {
             const before = shown.map((i) => ({ id: i.id, status: i.status }))
             const now = new Date().toISOString()
             before.forEach((b) => update('grocery_items', b.id, { status: 'bought', bought_at: now }))
-            // Photo de la position de chaque ligne avant qu'elles ne disparaissent : ce sont elles qui volent vers le caddie.
-            const rows = shown.flatMap((i) => {
-              const el = document.querySelector<HTMLElement>(`[data-grocery-row="${i.id}"]`)
-              const r = el?.getBoundingClientRect()
-              return r && r.bottom > 0 && r.top < innerHeight ? [{ id: i.id, name: i.name, rect: r }] : []
-            })
-            setFlying(rows.slice(0, 24))
+            setAllDone(Date.now())
             showToast(`${before.length} articles achetés`, () =>
               before.forEach((b) => update('grocery_items', b.id, { status: b.status, bought_at: null })),
             )
@@ -258,7 +252,7 @@ export default function GroceriesPage() {
         </section>
       )}
 
-      {flying && <CartFly items={flying} onDone={() => setFlying(null)} />}
+      {allDone > 0 && <DoneOverlay key={allDone} onDone={() => setAllDone(0)} />}
 
       <Sheet open={leaving} title="Je pars faire les courses" onClose={() => setLeaving(false)}>
         {leaving && <LeavingForm onDone={() => setLeaving(false)} />}
@@ -298,7 +292,7 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
           run: () => removeWithUndo('grocery_items', item.id, item.name),
         }}
       >
-        <div data-grocery-row={item.id} className="flex min-h-14 items-center gap-3 px-4 py-2">
+        <div className="flex min-h-14 items-center gap-3 px-4 py-2">
           <CheckCircle
             checked={leaving}
             tone={ordered ? 'drive' : 'default'}
@@ -471,102 +465,15 @@ function LeavingForm({ onDone }: { onDone(): void }) {
   )
 }
 
-type FlyItem = { id: string; name: string; rect: DOMRect }
-
-/**
- * Fin des courses : un caddie apparaît en bas de l'écran, chaque ligne de la liste y plonge
- * l'une après l'autre (il rebondit à chaque arrivée), puis il s'en va vers la droite.
- */
-function CartFly({ items, onDone }: { items: FlyItem[]; onDone(): void }) {
-  const cart = useRef<HTMLDivElement>(null)
-  const ghosts = useRef<(HTMLDivElement | null)[]>([])
-
+/** Fin des courses : une grande coche qui se dessine au centre, puis s'efface. */
+function DoneOverlay({ onDone }: { onDone(): void }) {
   useEffect(() => {
-    const c = cart.current!
-    const box = c.getBoundingClientRect()
-    const cx = box.left + box.width / 2
-    const cy = box.top + box.height * 0.45
-    const smooth = 'cubic-bezier(0.22, 1, 0.36, 1)'
-    const timers: ReturnType<typeof setTimeout>[] = []
-
-    c.animate(
-      [
-        { transform: 'translateY(160%) scale(0.5)', opacity: 0 },
-        { transform: 'none', opacity: 1 },
-      ],
-      { duration: 420, easing: smooth, fill: 'both' },
-    )
-
-    let end = 500
-    items.forEach((it, i) => {
-      const g = ghosts.current[i]
-      if (!g) return
-      const dx = cx - (it.rect.left + it.rect.width / 2)
-      const dy = cy - (it.rect.top + it.rect.height / 2)
-      const delay = 300 + i * 60
-      // Trajectoire en cloche : la ligne monte un peu avant de plonger dans le caddie.
-      g.animate(
-        [
-          { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-          { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 60}px) scale(0.6)`, opacity: 1, offset: 0.5 },
-          { transform: `translate(${dx}px, ${dy}px) scale(0.08)`, opacity: 0.2 },
-        ],
-        { duration: 620, delay, easing: 'cubic-bezier(0.5, 0, 0.4, 1)', fill: 'both' },
-      )
-      end = delay + 620
-      timers.push(
-        setTimeout(
-          () =>
-            c.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.14) translateY(3px)' }, { transform: 'scale(1)' }], {
-              duration: 220,
-              easing: 'ease-out',
-            }),
-          end - 40,
-        ),
-      )
-    })
-
-    timers.push(
-      setTimeout(
-        () =>
-          c.animate(
-            [
-              { transform: 'none' },
-              { transform: 'translateX(-14px) rotate(4deg)', offset: 0.18 },
-              { transform: 'translateX(75vw) rotate(-5deg)', opacity: 1 },
-            ],
-            { duration: 750, easing: 'cubic-bezier(0.5, 0, 0.2, 1)', fill: 'forwards' },
-          ),
-        end + 180,
-      ),
-      setTimeout(onDone, end + 950),
-    )
-    return () => timers.forEach(clearTimeout)
-  }, [items, onDone])
-
+    const t = setTimeout(onDone, 1400)
+    return () => clearTimeout(t)
+  }, [onDone])
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-40">
-      {items.map((it, i) => (
-        <div
-          key={it.id}
-          ref={(el) => {
-            ghosts.current[i] = el
-          }}
-          className="fixed flex items-center truncate rounded-2xl bg-surface px-4 text-[16px] shadow-[0_8px_24px_-10px_rgba(0,0,0,0.6)] ring-1 ring-sec/40"
-          style={{ left: it.rect.left, top: it.rect.top, width: it.rect.width, height: it.rect.height, willChange: 'transform' }}
-        >
-          {it.name}
-        </div>
-      ))}
-      <div className="fixed left-1/2 -ml-11 w-22" style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 12px) + 96px)' }}>
-        <div
-          ref={cart}
-          className="grid size-22 place-items-center rounded-full bg-sec/20 ring-1 ring-sec/40 backdrop-blur-md"
-          style={{ willChange: 'transform' }}
-        >
-          <span className="text-[46px] leading-none">🛒</span>
-        </div>
-      </div>
+    <div aria-hidden className="done-overlay pointer-events-none fixed inset-0 z-40 grid place-items-center">
+      <SuccessCheck />
     </div>
   )
 }
