@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Settings, SmilePlus, X } from 'lucide-react'
+import { BellRing, ChevronRight, ListChecks, Settings, ShoppingBasket, SmilePlus, Sparkles, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
@@ -8,6 +8,7 @@ import { REACTIONS, type Note, type Reaction } from '../lib/types'
 import { Avatar, Card, Composer, Hero, HeroButton, SectionTitle, cx, useArrivals } from '../components/ui'
 import SettingsSheet from '../components/SettingsSheet'
 import { SearchButton } from '../components/Search'
+import { today } from '../lib/dates'
 
 export default function HomePage({ go }: { go(t: Tab): void }) {
   const { me } = useSession()
@@ -44,6 +45,8 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
       >
         <LatestNote notes={data.notes} />
       </Hero>
+
+      <DaySummary go={go} />
 
       <SectionTitle>En ce moment</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
@@ -292,5 +295,140 @@ function Reactions({ note, glass }: { note: Note; glass?: boolean }) {
         </button>
       )}
     </div>
+  )
+}
+
+type SummaryLine = {
+  key: string
+  section: Tab
+  icon: React.ReactNode
+  title: string
+  items: { text: string; meta?: string; urgent?: boolean }[]
+}
+
+const hhmm = (iso: string) => {
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+/** Le résumé du jour : rappels, tâches du jour, courses, et l'autre parti(e) aux courses. */
+function DaySummary({ go }: { go(t: Tab): void }) {
+  const { data, me } = useStore()
+  const member = useMember()
+  const start = today()
+  const end = new Date(start.getTime() + 86_400_000)
+  const isToday = (iso: string) => {
+    const t = new Date(iso).getTime()
+    return t >= start.getTime() && t < end.getTime()
+  }
+  const forMe = (to: string | null) => to === null || to === me
+
+  // Rappels encore à venir aujourd'hui (tâches et éléments de liste), du plus proche au plus lointain.
+  const reminders = [
+    ...data.todos
+      .filter((t) => !t.done_at && t.remind_at && !t.reminded_at && isToday(t.remind_at) && forMe(t.remind_to))
+      .map((t) => ({ at: t.remind_at!, text: t.title })),
+    ...data.list_items
+      .filter((i) => !i.done && i.remind_at && !i.reminded_at && isToday(i.remind_at) && forMe(i.remind_to))
+      .map((i) => ({ at: i.remind_at!, text: i.text })),
+  ].sort((a, b) => a.at.localeCompare(b.at))
+
+  const tasks = data.todos.filter(
+    (t) => !t.done_at && t.due_date && dueLabel(t.due_date).days <= 0 && (t.assignee === null || t.assignee === me),
+  )
+  const late = tasks.filter((t) => dueLabel(t.due_date!).late)
+  const groceries = data.grocery_items.filter((i) => i.status !== 'bought')
+  const ping = data.pings.find((p) => p.author !== me && Date.now() - new Date(p.created_at).getTime() < 2 * 3_600_000)
+
+  const lines: SummaryLine[] = []
+  if (reminders.length)
+    lines.push({
+      key: 'rappels',
+      section: 'afaire',
+      icon: <BellRing size={17} />,
+      title: `${reminders.length} rappel${reminders.length > 1 ? 's' : ''}`,
+      items: reminders
+        .slice(0, 3)
+        .map((r) => ({ text: r.text, meta: hhmm(r.at), urgent: new Date(r.at).getTime() - Date.now() < 3_600_000 })),
+    })
+  if (tasks.length)
+    lines.push({
+      key: 'taches',
+      section: 'afaire',
+      icon: <ListChecks size={17} />,
+      title: `${tasks.length} chose${tasks.length > 1 ? 's' : ''} à faire${late.length ? ` · ${late.length} en retard` : ''}`,
+      items: tasks
+        .slice(0, 3)
+        .map((t) => ({ text: t.title, meta: dueLabel(t.due_date!).late ? 'en retard' : undefined, urgent: dueLabel(t.due_date!).late })),
+    })
+  if (groceries.length || ping) {
+    const who = ping ? member(ping.author) : null
+    lines.push({
+      key: 'courses',
+      section: 'courses',
+      icon: <ShoppingBasket size={17} />,
+      title: `${groceries.length} article${groceries.length > 1 ? 's' : ''} à prendre`,
+      items: who
+        ? [
+            {
+              text: `${who.name} est parti${who.pronoun === 'elle' ? 'e' : ''} faire les courses`,
+              meta: ago(ping!.created_at),
+              urgent: true,
+            },
+          ]
+        : [],
+    })
+  }
+
+  return (
+    <>
+      <SectionTitle>Aujourd'hui</SectionTitle>
+      <Card className="overflow-hidden">
+        {lines.length === 0 ? (
+          <div className="flex items-center gap-3 px-4 py-4">
+            <span className="grid size-10 place-items-center rounded-2xl bg-sec/15 text-sec">
+              <Sparkles size={19} />
+            </span>
+            <span>
+              <span className="block font-serif text-[19px] font-medium">Journée tranquille</span>
+              <span className="block text-[13px] text-muted">Rien de prévu pour vous aujourd'hui.</span>
+            </span>
+          </div>
+        ) : (
+          <ul>
+            {lines.map((l) => (
+              <li key={l.key} data-section={l.section} className="border-b border-line/60 last:border-0">
+                <button
+                  onClick={() => go(l.section)}
+                  className="flex w-full gap-3 px-4 py-3.5 text-left transition-colors active:bg-surface-2"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sec/15 text-sec">{l.icon}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-[15px] font-semibold">{l.title}</span>
+                      <ChevronRight size={16} className="text-faint" />
+                    </span>
+                    {l.items.length > 0 && (
+                      <span className="mt-1.5 block space-y-1">
+                        {l.items.map((it, i) => (
+                          <span key={i} className="flex items-baseline gap-2 text-[14px]">
+                            {it.meta && (
+                              <span className={cx('num shrink-0 text-[12.5px] font-semibold', it.urgent ? 'text-late' : 'text-sec')}>
+                                {it.meta}
+                              </span>
+                            )}
+                            <span className="truncate text-muted">{it.text}</span>
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
   )
 }
