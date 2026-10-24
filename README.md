@@ -1,6 +1,6 @@
 # Foyer
 
-PWA de gestion du foyer à deux : courses avec stock, abonnements, charges et tableau de bord.
+PWA du foyer, à deux : liste de courses partagée (rayons automatiques, drive), choses à faire et petits mots.
 React + Vite + TypeScript + Tailwind, Supabase (auth, base, temps réel).
 
 ## Démarrer en local
@@ -16,7 +16,7 @@ Sans fichier `.env`, l'app tourne en **mode démo** : données d'exemple stocké
 ## Brancher Supabase
 
 1. Créez un projet sur supabase.com.
-2. Dans **SQL Editor**, exécutez `supabase/schema.sql` (tables, RLS, fonctions, temps réel).
+2. Dans **SQL Editor**, exécutez `supabase/schema.sql` puis `supabase/v2_courses_todos_mots.sql` (tables, RLS, temps réel).
 3. Copiez `.env.example` en `.env` et renseignez l'URL du projet et la clé publique (anon / publishable),
    disponibles dans **Project Settings → API**.
 4. Facultatif : dans **Authentication → Providers → Email**, désactivez « Confirm email »
@@ -26,13 +26,15 @@ Sans fichier `.env`, l'app tourne en **mode démo** : données d'exemple stocké
 
 ## Installer sur le téléphone
 
-`npm run build` puis déployez le dossier `dist/` (Vercel, Netlify, Cloudflare Pages…) en HTTPS.
+Chaque push sur `main` publie l'app sur https://julienbordin57500.github.io/foyer/ (GitHub Actions).
 - iPhone : Safari → Partager → « Sur l'écran d'accueil ».
 - Android : Chrome → menu → « Installer l'application ».
 
 ## Structure
 
-- `supabase/schema.sql` — schéma, RLS par foyer, `adjust_stock` atomique (deux appuis simultanés ne s'écrasent pas)
+- `supabase/` — foyers et membres (`schema.sql`), courses, tâches et petits mots (`v2_…sql`), RLS par foyer
 - `src/data/` — accès aux données (Supabase ou démo) et store React avec mises à jour optimistes
-- `src/lib/finance.ts` — reste à vivre, prélèvements à venir, échéances, tri du stock
-- `src/pages/` — Accueil, Courses, Abonnements, Budget
+- `src/lib/categorize.ts` — rangement automatique des articles par rayon
+- `src/pages/` — Accueil (petits mots), Courses, À faire
+
+Les tables `products`, `subscriptions`, `charges` et `incomes` de la v1 ne sont plus utilisées.

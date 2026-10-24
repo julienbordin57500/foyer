@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Check, Copy, LogOut } from 'lucide-react'
 import { useSession } from '../auth/AuthGate'
-import { Badge, Button, Sheet } from './ui'
+import { Avatar, Button, Sheet } from './ui'
 
 export default function SettingsSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { household, members, me, demo, signOut } = useSession()
@@ -20,20 +20,18 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
   return (
     <Sheet open={open} title={household.name} onClose={onClose}>
       {demo && (
-        <p className="mb-4 rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+        <p className="mb-4 rounded-2xl bg-accent-soft px-4 py-3 text-sm text-accent">
           Mode démo : les données restent dans ce navigateur. Configurez Supabase pour partager le foyer entre deux téléphones.
         </p>
       )}
 
       <p className="mb-2 px-1 text-sm font-medium text-muted">Membres</p>
       <ul className="mb-5 divide-y divide-line rounded-2xl bg-surface-2 px-4">
-        {members.map((m) => (
+        {members.map((m, i) => (
           <li key={m.user_id} className="flex items-center gap-3 py-3">
-            <span className="grid size-9 place-items-center rounded-full bg-accent-soft font-semibold text-accent">
-              {m.display_name.slice(0, 1).toUpperCase()}
-            </span>
+            <Avatar initial={m.display_name.slice(0, 1).toUpperCase()} tone={i === 1 ? 'b' : 'a'} size="md" />
             <span className="flex-1 font-medium">{m.display_name}</span>
-            {m.user_id === me.user_id && <Badge tone="accent">Vous</Badge>}
+            {m.user_id === me.user_id && <span className="text-[13px] text-muted">vous</span>}
           </li>
         ))}
       </ul>

@@ -16,13 +16,11 @@ export const toISODate = (d: Date) =>
 
 export const daysBetween = (from: Date, to: Date) => Math.round((to.getTime() - from.getTime()) / DAY)
 
-const daysInMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate()
-
-/** Prochaine date de prélèvement pour un jour du mois donné (le 31 tombe le dernier jour des mois courts). */
-export const nextDebitDate = (day: number, from = today()) => {
-  const y = from.getFullYear()
-  const m = from.getMonth()
-  const thisMonth = new Date(y, m, Math.min(day, daysInMonth(y, m)))
-  if (thisMonth >= from) return thisMonth
-  return new Date(y, m + 1, Math.min(day, daysInMonth(y, m + 1)))
+export const addDays = (d: Date, n: number) => {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
 }
+
+/** Samedi qui vient (aujourd'hui si on est samedi). */
+export const nextSaturday = (from = today()) => addDays(from, (6 - from.getDay() + 7) % 7)

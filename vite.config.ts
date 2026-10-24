@@ -15,14 +15,14 @@ export default defineConfig({
       manifest: {
         name: 'Foyer',
         short_name: 'Foyer',
-        description: 'Courses, abonnements et budget du foyer, à deux.',
+        description: 'Courses, choses à faire et petits mots, à deux.',
         lang: 'fr',
         start_url: './',
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#f5f4f0',
-        theme_color: '#4f46e5',
+        background_color: '#f6f1ea',
+        theme_color: '#f6f1ea',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

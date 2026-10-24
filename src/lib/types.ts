@@ -1,43 +1,46 @@
 export const CATEGORIES = [
-  'Logement',
-  'Énergie',
-  'Assurance',
-  'Transport',
-  'Alimentation',
-  'Loisirs',
-  'Santé',
-  'Autre',
+  { id: 'Fruits & légumes', emoji: '🥕' },
+  { id: 'Frais', emoji: '🧀' },
+  { id: 'Épicerie', emoji: '🍝' },
+  { id: 'Surgelés', emoji: '🧊' },
+  { id: 'Boissons', emoji: '🥤' },
+  { id: 'Maison & hygiène', emoji: '🧴' },
+  { id: 'Bébé', emoji: '🍼' },
+  { id: 'Autre', emoji: '🛒' },
 ] as const
 
-export type Category = (typeof CATEGORIES)[number]
+export type Category = (typeof CATEGORIES)[number]['id']
 
-export interface Product {
+export type GroceryStatus = 'todo' | 'ordered' | 'bought'
+
+export interface GroceryItem {
   id: string
   name: string
-  stock: number
-  threshold: number
-}
-
-export interface Subscription {
-  id: string
-  name: string
-  amount: number
-  debit_day: number
-  cancel_deadline: string | null // ISO yyyy-mm-dd
-}
-
-export interface Charge {
-  id: string
-  label: string
+  quantity: string | null
   category: Category
-  amount: number
-  debit_day: number | null
+  drive: boolean
+  status: GroceryStatus
+  added_by: string
+  bought_at: string | null
+  created_at: string
 }
 
-export interface Income {
+export interface Todo {
   id: string
-  label: string
-  amount: number
+  title: string
+  assignee: string | null // null = tous les deux
+  due_date: string | null // yyyy-mm-dd
+  added_by: string
+  done_by: string | null
+  done_at: string | null
+  created_at: string
+}
+
+export interface Note {
+  id: string
+  body: string
+  author: string
+  created_at: string
 }
 
 export interface Member {
@@ -52,10 +55,9 @@ export interface Household {
 }
 
 export interface Tables {
-  products: Product
-  subscriptions: Subscription
-  charges: Charge
-  incomes: Income
+  grocery_items: GroceryItem
+  todos: Todo
+  notes: Note
 }
 
 export type TableName = keyof Tables

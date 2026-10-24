@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { Home, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Household, Member } from '../lib/types'
-import { demoBackend, supabaseBackend, type Backend } from '../data/backends'
+import { DEMO_ME, DEMO_OTHER, demoBackend, supabaseBackend, type Backend } from '../data/backends'
 import { DataProvider } from '../data/store'
 import { Button, Field, cx } from '../components/ui'
 
@@ -23,13 +23,34 @@ export const useSession = () => {
 }
 
 const DEMO: Omit<Session_, 'signOut'> = {
-  me: { user_id: 'demo', display_name: 'Vous' },
+  me: { user_id: DEMO_ME, display_name: 'Julien' },
   household: { id: 'demo', name: 'Foyer démo', invite_code: 'DEMO42' },
   members: [
-    { user_id: 'demo', display_name: 'Vous' },
-    { user_id: 'demo-2', display_name: 'Votre moitié' },
+    { user_id: DEMO_ME, display_name: 'Julien' },
+    { user_id: DEMO_OTHER, display_name: 'Claire' },
   ],
   demo: true,
+}
+
+/** Chaque membre garde sa couleur (ordre d'arrivée dans le foyer). */
+export function useMember() {
+  const { members, me } = useSession()
+  return (id: string | null | undefined) => {
+    const i = members.findIndex((m) => m.user_id === id)
+    const m = members[i]
+    return {
+      name: m?.display_name ?? '?',
+      initial: (m?.display_name ?? '?').slice(0, 1).toUpperCase(),
+      tone: (i === 1 ? 'b' : 'a') as 'a' | 'b',
+      isMe: id === me.user_id,
+    }
+  }
+}
+
+/** Le conjoint (pour « Laisser un mot à Claire »). */
+export function usePartner() {
+  const { members, me } = useSession()
+  return members.find((m) => m.user_id !== me.user_id) ?? null
 }
 
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -43,7 +64,7 @@ function DemoGate({ children }: { children: ReactNode }) {
     () => ({
       ...DEMO,
       signOut: () => {
-        localStorage.removeItem('foyer-demo-v1')
+        localStorage.removeItem('foyer-demo-v2')
         location.reload()
       },
     }),
@@ -82,7 +103,7 @@ function SupabaseGate({ children }: { children: ReactNode }) {
     loadProfile()
   }, [loadProfile])
 
-  const backend = useMemo<Backend | null>(() => (profile ? supabaseBackend(sb, profile.household.id) : null), [sb, profile])
+  const backend = useMemo<Backend | null>(() => (profile ? supabaseBackend(sb, profile.household.id, profile.me.user_id) : null), [sb, profile])
 
   if (session === undefined || (session && profile === undefined)) return <Splash />
   if (!session) return <Login />
@@ -107,10 +128,10 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle: str
   return (
     <div className="pt-safe mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-10">
       <div className="mb-8">
-        <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-accent text-accent-ink shadow-lg shadow-accent/30">
+        <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-accent text-accent-ink shadow-soft">
           <Home size={26} />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+        <h1 className="font-serif text-4xl font-medium tracking-tight">{title}</h1>
         <p className="mt-2 text-muted">{subtitle}</p>
       </div>
       {children}
@@ -119,7 +140,7 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle: str
 }
 
 const Message = ({ tone, children }: { tone: 'error' | 'info'; children: ReactNode }) => (
-  <p className={cx('rounded-2xl px-4 py-3 text-sm', tone === 'error' ? 'bg-danger-soft text-danger' : 'bg-accent-soft text-accent')}>{children}</p>
+  <p className={cx('rounded-2xl px-4 py-3 text-sm', tone === 'error' ? 'bg-late-soft text-late' : 'bg-accent-soft text-accent')}>{children}</p>
 )
 
 const translateAuthError = (msg: string) => {
@@ -153,7 +174,7 @@ function Login() {
   }
 
   return (
-    <AuthShell title="Foyer" subtitle="Courses, abonnements et budget, à deux.">
+    <AuthShell title="Foyer" subtitle="Courses, choses à faire et petits mots, à deux.">
       <form onSubmit={submit} className="space-y-4">
         <Field label="E-mail" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <Field
