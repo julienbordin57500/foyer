@@ -26,26 +26,41 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
 }
 
 /**
- * En-tête de page en dégradé, aux couleurs de la rubrique (voir [data-section] dans index.css).
- * Il déborde jusqu'aux bords et passe sous la barre d'état du téléphone.
+ * En-tête de page : une carte en dégradé aux couleurs de la rubrique (voir [data-section] dans index.css),
+ * posée sous la barre d'état, avec une lueur douce qui se fond dans le fond au lieu d'un bord coupé net.
  */
-export function Hero({ eyebrow, title, action, children }: { eyebrow?: ReactNode; title: ReactNode; action?: ReactNode; children?: ReactNode }) {
+export function Hero({ eyebrow, title, action, children }: { eyebrow?: ReactNode; title?: ReactNode; action?: ReactNode; children?: ReactNode }) {
   return (
-    <header
-      className="animate-hero relative -mx-4 mb-6 overflow-hidden rounded-b-[34px] px-5 pb-6 text-hero-ink"
-      style={{ background: 'linear-gradient(140deg, var(--hero-from), var(--hero-to))' }}
-    >
-      <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-white/12" />
-      <span aria-hidden className="pointer-events-none absolute -bottom-28 -left-16 size-64 rounded-full bg-black/6" />
-      <div className="pt-safe relative flex min-h-[72px] items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="mb-1.5 h-[18px] text-[13px] font-medium opacity-75 first-letter:uppercase">{eyebrow}</p>
-          <h1 className="truncate font-serif text-[38px] font-medium leading-[1.02] tracking-[-0.01em]">{title}</h1>
-        </div>
-        {action}
-      </div>
-      {children && <div className="relative mt-5">{children}</div>}
-    </header>
+    <div className="pt-safe relative mb-6">
+      <div
+        aria-hidden
+        className="animate-fade pointer-events-none absolute -inset-x-4 top-0 h-[420px]"
+        style={{
+          background:
+            'radial-gradient(130% 75% at 50% 0%, color-mix(in srgb, var(--hero-from) 42%, transparent) 0%, color-mix(in srgb, var(--hero-to) 18%, transparent) 50%, transparent 78%)',
+        }}
+      />
+      <header
+        className="animate-hero relative mt-2 overflow-hidden rounded-[32px] p-5 text-hero-ink"
+        style={{
+          background: 'linear-gradient(140deg, var(--hero-from), var(--hero-to))',
+          boxShadow: '0 26px 60px -30px var(--hero-to), inset 0 1px 0 rgba(255,255,255,0.25)',
+        }}
+      >
+        <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-white/12" />
+        <span aria-hidden className="pointer-events-none absolute -bottom-28 -left-16 size-64 rounded-full bg-black/6" />
+        {(title || eyebrow || action) && (
+          <div className="relative flex min-h-[64px] items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="mb-1.5 h-[18px] text-[13px] font-medium opacity-75 first-letter:uppercase">{eyebrow}</p>
+              <h1 className="truncate font-serif text-[36px] font-medium leading-[1.02] tracking-[-0.01em]">{title}</h1>
+            </div>
+            {action}
+          </div>
+        )}
+        {children && <div className={cx('relative', !!(title || eyebrow || action) && 'mt-5')}>{children}</div>}
+      </header>
+    </div>
   )
 }
 
@@ -54,7 +69,7 @@ export function HeroButton({ label, children, ...rest }: ButtonHTMLAttributes<HT
   return (
     <button
       aria-label={label}
-      className="mb-1 grid size-11 shrink-0 place-items-center rounded-full bg-white/18 ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-90"
+      className="grid size-11 shrink-0 place-items-center rounded-full bg-white/18 ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-90"
       {...rest}
     >
       {children}

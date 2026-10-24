@@ -3,6 +3,9 @@
 ## À faire
 _(rien pour l'instant — ajoutez ici les prochaines idées)_
 
+## v5.1 (24/10)
+- En-tête retravaillé : carte arrondie de tous les côtés, posée sous la barre d'état, avec une lueur colorée qui se fond dans le fond (plus de bord coupé net en haut)
+
 ## v5 (24/10)
 - Refonte « nuit vibrante » : fond profond, mode Nuit par défaut (Jour et Auto restent dans les réglages)
 - En-têtes en dégradé, une couleur par rubrique : Accueil corail-rose, Courses menthe, À faire ambre, Listes violet

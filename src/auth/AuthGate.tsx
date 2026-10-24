@@ -138,8 +138,8 @@ export function Splash() {
 function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
     <div data-section="accueil" className="mx-auto min-h-dvh max-w-lg px-4 pb-10">
-      <Hero eyebrow="" title="">
-        <div className="-mt-16 flex flex-col items-start pb-2">
+      <Hero>
+        <div className="flex flex-col items-start py-2">
           <div className="mb-6 rounded-[24px] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)] ring-2 ring-white/40">
             <Logo size={72} animated />
           </div>
