@@ -234,7 +234,7 @@ const KEYWORDS: Record<Exclude<Category, 'Autre'>, string[]> = {
   ],
 }
 
-const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').trim()
+const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/œ/g, 'oe').trim()
 
 // Ordre de test : les rayons les plus spécifiques d'abord (« lait bébé » avant « lait »).
 const ORDER: Exclude<Category, 'Autre'>[] = ['Bébé', 'Surgelés', 'Boissons', 'Maison & hygiène', 'Fruits & légumes', 'Frais', 'Épicerie']

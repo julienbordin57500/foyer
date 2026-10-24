@@ -55,4 +55,4 @@ export function splitQuantity(input: string): { name: string; quantity: string |
 
 export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-export const normalizeName = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+export const normalizeName = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
