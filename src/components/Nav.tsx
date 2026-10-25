@@ -14,6 +14,7 @@ export function TasksSwitch({ current }: { current: 'afaire' | 'listes' }) {
       <Segmented<'afaire' | 'listes'>
         value={current}
         onChange={go}
+        transitionName="tasks-switch"
         options={[
           { value: 'afaire', label: '✓  Tâches' },
           { value: 'listes', label: '▦  Listes' },

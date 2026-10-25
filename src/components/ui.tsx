@@ -63,6 +63,7 @@ export function Hero({
       <header
         className="animate-hero relative mt-2 overflow-hidden rounded-[32px] p-5 text-hero-ink ring-1 ring-white/15"
         style={{
+          viewTransitionName: 'hero',
           background: 'linear-gradient(140deg, var(--hero-from), var(--hero-to))',
           // Ombre courte et nette + liseré clair en haut : des bords francs.
           boxShadow: '0 14px 32px -20px var(--hero-to), inset 0 1px 0 rgba(255,255,255,0.3)',
@@ -378,10 +379,13 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  transitionName,
 }: {
   value: T
   options: { value: T; label: ReactNode }[]
   onChange(v: T): void
+  /** Nom de transition : la pastille glisse d'une page à l'autre. */
+  transitionName?: string
 }) {
   const i = Math.max(
     0,
@@ -395,7 +399,11 @@ export function Segmented<T extends string>({
       <span
         aria-hidden
         className="absolute inset-y-1 left-1 rounded-xl bg-surface shadow-soft transition-transform duration-[420ms] ease-smooth"
-        style={{ width: `calc((100% - 8px) / ${options.length})`, transform: `translateX(${i * 100}%)` }}
+        style={{
+          width: `calc((100% - 8px) / ${options.length})`,
+          transform: `translateX(${i * 100}%)`,
+          viewTransitionName: transitionName,
+        }}
       />
       {options.map((o) => (
         <button

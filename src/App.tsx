@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AlertCircle, CircleCheckBig, House, Receipt, ShoppingCart, X } from 'lucide-react'
 import { TOAST_MS, useStore } from './data/store'
 import { cx } from './components/ui'
@@ -48,8 +49,24 @@ export default function App() {
   const openSearch = useCallback(() => setSearching(true), [])
   const closeSearch = useCallback(() => setSearching(false), [])
 
+  // Tâches ↔ Listes : même onglet, on passe de l'un à l'autre en fondu, sans rejouer les animations d'arrivée.
+  const [swapping, setSwapping] = useState(false)
+
   const go = (t: Tab) => {
     if (t !== tab) history.pushState(null, '', `#${t}`)
+    const sibling = (t === 'afaire' && tab === 'listes') || (t === 'listes' && tab === 'afaire')
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
+    if (sibling) {
+      const apply = () =>
+        flushSync(() => {
+          setSwapping(true)
+          setTab(t)
+        })
+      if (doc.startViewTransition) doc.startViewTransition(apply)
+      else apply()
+      return
+    }
+    setSwapping(false)
     setTab(t)
     // Re-toucher l'onglet actif remonte en douceur en haut de la page.
     window.scrollTo({ top: 0, behavior: t === tab ? 'smooth' : 'instant' })
@@ -65,7 +82,7 @@ export default function App() {
   return (
     <NavContext.Provider value={go}>
       <SearchContext.Provider value={openSearch}>
-        <div data-section={tab} className="mx-auto min-h-dvh max-w-lg px-4 pb-36">
+        <div data-section={tab} className={cx('mx-auto min-h-dvh max-w-lg px-4 pb-36', swapping && 'no-enter')}>
           {tab === 'accueil' && <HomePage key={visit} go={go} />}
           {tab === 'courses' && <GroceriesPage key={visit} />}
           {tab === 'afaire' && <TodosPage key={visit} />}

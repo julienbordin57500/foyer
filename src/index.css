@@ -543,3 +543,20 @@ nav {
   backdrop-filter: blur(3px);
   animation: done-overlay 1.4s ease forwards;
 }
+
+/* Tâches ↔ Listes : fondu enchaîné de la page (View Transitions), la barre d'onglets ne bouge pas. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.32s;
+  animation-timing-function: var(--ease-smooth);
+}
+nav {
+  view-transition-name: tabbar;
+}
+.no-enter .animate-page,
+.no-enter .animate-hero,
+.no-enter .animate-pop,
+.no-enter .animate-fade,
+.no-enter .animate-slide {
+  animation: none;
+}
