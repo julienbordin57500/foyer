@@ -62,6 +62,16 @@ async function buildMessage(table: string, r: Record<string, any>): Promise<Mess
       throttle: 'ping',
     }
   }
+  if (table === 'bills') {
+    // Les prélèvements qui se renouvellent tout seuls ne valent pas une notification.
+    if (r.auto_debit) return null
+    return {
+      recipients: others(r.added_by),
+      title: `💶 ${name(r.added_by)} a ajouté une facture`,
+      body: `${r.title} · ${euros(r.amount)} avant le ${ddmm(r.due_date)}`,
+      tab: 'factures',
+    }
+  }
   if (table === 'note_reactions') {
     const { data: note } = await sb.from('notes').select('author, body').eq('id', r.note_id).single()
     if (!note || note.author === r.user_id) return null
@@ -76,6 +86,88 @@ async function allowed(user: string, kind: string) {
   if (data) return false
   await sb.from('foyer_push_log').upsert({ user_id: user, kind, sent_at: new Date().toISOString() })
   return true
+}
+
+const euros = (n: number | string) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(n))
+const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+const parisNow = () => {
+  const parts = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false })
+    .formatToParts(new Date())
+    .reduce<Record<string, string>>((a, p) => ((a[p.type] = p.value), a), {})
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) }
+}
+const addDaysISO = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+const addMonthsISO = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00Z`)
+  const day = d.getUTCDate()
+  d.setUTCDate(1)
+  d.setUTCMonth(d.getUTCMonth() + n)
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()
+  d.setUTCDate(Math.min(day, last))
+  return d.toISOString().slice(0, 10)
+}
+const nextBillDate = (iso: string, repeat: string) => addMonthsISO(iso, repeat === 'year' ? 12 : repeat === 'quarter' ? 3 : 1)
+
+/** Factures : rappel 3 jours avant, puis le jour même ; les prélèvements se cochent seuls le jour J. */
+async function billReminders(recipientsOf: (h: string, to: string | null) => Promise<string[]>) {
+  const { day, hour } = parisNow()
+  if (hour < 9 || hour > 20) return 0
+  let sent = 0
+  const cols = 'id, household_id, title, amount, due_date, assignee, repeat, auto_debit, shared, added_by'
+
+  const { data: due } = await sb
+    .from('bills')
+    .update({ reminded_due: true, reminded_soon: true })
+    .is('paid_at', null)
+    .eq('auto_debit', false)
+    .eq('reminded_due', false)
+    .lte('due_date', day)
+    .select(cols)
+  for (const b of due ?? [])
+    sent += await send(
+      await recipientsOf(b.household_id, b.assignee),
+      b.due_date < day ? '💶 Facture en retard' : "💶 À payer aujourd'hui",
+      `${b.title} · ${euros(b.amount)}`,
+      'factures',
+    )
+
+  const { data: soon } = await sb
+    .from('bills')
+    .update({ reminded_soon: true })
+    .is('paid_at', null)
+    .eq('auto_debit', false)
+    .eq('reminded_soon', false)
+    .lte('due_date', addDaysISO(day, 3))
+    .select(cols)
+  for (const b of soon ?? [])
+    sent += await send(await recipientsOf(b.household_id, b.assignee), '💶 Facture à payer bientôt', `${b.title} · ${euros(b.amount)} avant le ${ddmm(b.due_date)}`, 'factures')
+
+  // Prélèvements : payés tout seuls le jour J, et la prochaine échéance se crée.
+  const { data: auto } = await sb
+    .from('bills')
+    .update({ paid_at: new Date().toISOString() })
+    .is('paid_at', null)
+    .eq('auto_debit', true)
+    .lte('due_date', day)
+    .select(cols)
+  for (const b of auto ?? [])
+    if (b.repeat)
+      await sb.from('bills').insert({
+        household_id: b.household_id,
+        title: b.title,
+        amount: b.amount,
+        due_date: nextBillDate(b.due_date, b.repeat),
+        assignee: b.assignee,
+        repeat: b.repeat,
+        auto_debit: true,
+        shared: b.shared,
+        added_by: b.added_by,
+      })
+  return sent
 }
 
 // ─── Calendrier ────────────────────────────────────────────────────────────
@@ -163,6 +255,7 @@ async function sendReminders() {
     const { data: list } = await sb.from('lists').select('title, emoji').eq('id', i.list_id).maybeSingle()
     sent += await send(await recipientsOf(i.household_id, i.remind_to), `🔔 ${list ? `${list.emoji} ${list.title}` : 'Rappel'}`, i.text, 'listes')
   }
+  sent += await billReminders(recipientsOf)
   return sent
 }
 

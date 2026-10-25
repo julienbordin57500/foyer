@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { CalendarDays, Check, Repeat as RepeatIcon, Trash2, Users } from 'lucide-react'
+import { CalendarDays, Check, Plus, Repeat as RepeatIcon, Trash2, Users } from 'lucide-react'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { addDays, nextOccurrence, nextSaturday, parseISODate, toISODate, today } from '../lib/dates'
@@ -7,6 +7,9 @@ import { ago, capitalize, dueLabel } from '../lib/format'
 import type { Repeat, Todo } from '../lib/types'
 import { ReminderBadge, ReminderPicker, type ReminderValue } from '../components/Reminder'
 import { SearchButton } from '../components/Search'
+import { TasksSwitch } from '../components/Nav'
+import { calendarUrl } from '../lib/reminders'
+import { isDemo } from '../lib/supabase'
 import {
   Avatar,
   Card,
@@ -42,6 +45,19 @@ const REPEAT_OPTIONS: { value: RepeatChoice; label: string }[] = [
   { value: '2weeks', label: 'Toutes les 2 semaines' },
   { value: 'month', label: 'Chaque mois' },
 ]
+
+/** Heure proposée au calendrier : celle du rappel, sinon la date de la tâche à 9 h, sinon dans une heure. */
+const calendarTime = (t: Todo) => {
+  if (t.remind_at) return t.remind_at
+  if (t.due_date) {
+    const d = parseISODate(t.due_date)
+    d.setHours(9, 0, 0, 0)
+    if (d.getTime() > Date.now()) return d.toISOString()
+  }
+  const d = new Date(Date.now() + 3_600_000)
+  d.setMinutes(0, 0, 0)
+  return d.toISOString()
+}
 
 const whenToDate = (w: When, custom: string) => {
   if (w === 'today') return toISODate(today())
@@ -124,6 +140,7 @@ export default function TodosPage() {
           onHero
         />
       </Hero>
+      <TasksSwitch current="afaire" />
       <div
         className={cx(
           'grid transition-[grid-template-rows,opacity] duration-500 ease-smooth',
@@ -268,6 +285,19 @@ function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit()
               <span>notée par {by.isMe ? 'moi' : by.name}</span>
             </span>
           </button>
+          {!isDemo && (
+            <a
+              href={calendarUrl(todo.title, calendarTime(todo))}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Ajouter « ${todo.title} » au calendrier`}
+              title="Ajouter au calendrier"
+              className="mt-0.5 flex h-7 shrink-0 items-center gap-0.5 self-end rounded-full bg-sec/12 px-2 text-sec ring-1 ring-sec/25 transition active:scale-90"
+            >
+              <Plus size={11} strokeWidth={3} />
+              <CalendarDays size={14} />
+            </a>
+          )}
         </div>
       </SwipeRow>
     </Collapsible>

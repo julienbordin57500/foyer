@@ -11,6 +11,7 @@ export type NewRow<T extends TableName> = {
   list_items: Pick<Tables['list_items'], 'list_id' | 'text'>
   note_reactions: Pick<Tables['note_reactions'], 'note_id' | 'emoji'>
   pings: Pick<Tables['pings'], 'kind' | 'place'>
+  bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
 
@@ -27,7 +28,7 @@ export interface Backend {
   subscribe(onChange: (table: TableName) => void): () => void
 }
 
-export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes', 'lists', 'list_items', 'note_reactions', 'pings']
+export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes', 'lists', 'list_items', 'note_reactions', 'pings', 'bills']
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
   const check = ({ error }: { error: { message: string } | null }) => {
@@ -43,6 +44,8 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
     // Les petits mots s'accumulent : seuls les plus récents servent.
     if (table === 'notes') q = q.limit(30)
     // « Je pars faire les courses » : seuls les derniers comptent.
+    // Factures payées : 90 derniers jours (historique et « qui doit quoi » non réglé).
+    if (table === 'bills') q = q.or(`paid_at.is.null,paid_at.gte.${new Date(Date.now() - 90 * 86_400_000).toISOString()},settled.eq.false`)
     if (table === 'pings') q = q.gte('created_at', new Date(Date.now() - 86_400_000).toISOString()).limit(5)
     // Tâches faites : on ne garde que les 30 derniers jours.
     if (table === 'todos') q = q.or(`done_at.is.null,done_at.gte.${new Date(Date.now() - 30 * 86_400_000).toISOString()}`)
@@ -55,8 +58,8 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
     me,
     reload,
     async load() {
-      const [grocery_items, todos, notes, lists, list_items, note_reactions, pings] = await Promise.all(TABLES.map(reload))
-      return { grocery_items, todos, notes, lists, list_items, note_reactions, pings } as Data
+      const [grocery_items, todos, notes, lists, list_items, note_reactions, pings, bills] = await Promise.all(TABLES.map(reload))
+      return { grocery_items, todos, notes, lists, list_items, note_reactions, pings, bills } as Data
     },
     async insert(table, row) {
       check(await sb.from(table).insert({ ...row, household_id: householdId } as never))
@@ -90,7 +93,7 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
 
 // ─── Mode démo : localStorage, synchronisé entre onglets ───────────────────
 
-const KEY = 'foyer-demo-v5'
+const KEY = 'foyer-demo-v6'
 const uid = () => crypto.randomUUID()
 export const DEMO_ME = 'demo-1'
 export const DEMO_OTHER = 'demo-2'
@@ -231,6 +234,83 @@ const seed = (): Data => {
         ...noReminder,
       })),
     ],
+    bills: [
+      {
+        id: uid(),
+        title: 'EDF',
+        amount: 84.5,
+        due_date: inDays(2),
+        assignee: DEMO_ME,
+        repeat: 'month',
+        auto_debit: false,
+        shared: true,
+        paid_at: null,
+        paid_by: null,
+        settled: false,
+        added_by: DEMO_ME,
+        created_at: ago(3000),
+      },
+      {
+        id: uid(),
+        title: 'Crèche de Noah',
+        amount: 320,
+        due_date: inDays(9),
+        assignee: null,
+        repeat: 'month',
+        auto_debit: false,
+        shared: true,
+        paid_at: null,
+        paid_by: null,
+        settled: false,
+        added_by: DEMO_OTHER,
+        created_at: ago(2500),
+      },
+      {
+        id: uid(),
+        title: 'Assurance auto',
+        amount: 46.9,
+        due_date: inDays(-1),
+        assignee: DEMO_OTHER,
+        repeat: 'month',
+        auto_debit: false,
+        shared: false,
+        paid_at: null,
+        paid_by: null,
+        settled: false,
+        added_by: DEMO_OTHER,
+        created_at: ago(4000),
+      },
+      {
+        id: uid(),
+        title: 'Box internet',
+        amount: 34.99,
+        due_date: inDays(14),
+        assignee: null,
+        repeat: 'month',
+        auto_debit: true,
+        shared: true,
+        paid_at: null,
+        paid_by: null,
+        settled: false,
+        added_by: DEMO_ME,
+        created_at: ago(5000),
+      },
+      {
+        id: uid(),
+        title: 'Taxe foncière',
+        amount: 612,
+        due_date: inDays(-20),
+        assignee: null,
+        repeat: 'year',
+        auto_debit: false,
+        shared: true,
+        paid_at: ago(1440 * 18),
+        paid_by: DEMO_OTHER,
+        settled: false,
+        added_by: DEMO_ME,
+        created_at: ago(1440 * 40),
+      },
+    ],
     pings: [{ id: uid(), author: DEMO_OTHER, kind: 'shopping', place: 'store', created_at: ago(8) }],
     note_reactions: [{ id: uid(), note_id: 'demo-note-2', user_id: DEMO_OTHER, emoji: '❤️', created_at: ago(1400) }],
     notes: [
@@ -260,6 +340,7 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'list_items')
     return { done: false, done_by: null, added_by: me, remind_at: null, remind_to: null, reminded_at: null, created_at: now }
   if (table === 'pings') return { author: me, created_at: now }
+  if (table === 'bills') return { paid_at: null, paid_by: null, settled: false, added_by: me, created_at: now }
   if (table === 'note_reactions') return { user_id: me, created_at: now }
   return { author: me, created_at: now }
 }

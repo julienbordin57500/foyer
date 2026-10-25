@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { BellRing, ChevronRight, CircleCheckBig, Settings, ShoppingCart, SmilePlus, Sparkles, X } from 'lucide-react'
+import { BellRing, ChevronRight, CircleCheckBig, Receipt, Settings, ShoppingCart, SmilePlus, Sparkles, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
-import { ago, dueLabel, greeting, longDate } from '../lib/format'
+import { ago, dueLabel, euros, greeting, longDate } from '../lib/format'
 import { REACTIONS, type Note, type Reaction } from '../lib/types'
 import { Avatar, Card, Composer, Hero, HeroButton, SectionTitle, cx, useArrivals } from '../components/ui'
 import SettingsSheet from '../components/SettingsSheet'
@@ -360,6 +360,21 @@ function DaySummary({ go }: { go(t: Tab): void }) {
       items: tasks
         .slice(0, 3)
         .map((t) => ({ text: t.title, meta: dueLabel(t.due_date!).late ? 'en retard' : undefined, urgent: dueLabel(t.due_date!).late })),
+    })
+  // Factures en retard ou à payer dans les 3 prochains jours (pour moi ou pour nous deux).
+  const bills = data.bills
+    .filter((b) => !b.paid_at && !b.auto_debit && dueLabel(b.due_date).days <= 3 && (b.assignee === null || b.assignee === me))
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+  if (bills.length)
+    lines.push({
+      key: 'factures',
+      section: 'factures',
+      icon: <Receipt size={17} />,
+      title: `${bills.length} facture${bills.length > 1 ? 's' : ''} à payer · ${euros(bills.reduce((s, b) => s + b.amount, 0))}`,
+      items: bills.slice(0, 3).map((b) => {
+        const d = dueLabel(b.due_date)
+        return { text: `${b.title} · ${euros(b.amount)}`, meta: d.late ? 'en retard' : d.text, urgent: d.late || d.days === 0 }
+      }),
     })
   if (groceries.length || ping) {
     const who = ping ? member(ping.author) : null

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { Search as SearchIcon, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useStore } from '../data/store'
-import { normalizeName } from '../lib/format'
+import { euros, normalizeName } from '../lib/format'
 import { cx } from './ui'
 
 /** Ouvre la recherche depuis n'importe quel en-tête. */
@@ -106,6 +106,16 @@ export function SearchOverlay({ open, onClose, go }: { open: boolean; onClose():
             listId: i.list_id,
           }
         }),
+      ...data.bills
+        .filter((b) => hit(b.title))
+        .map((b) => ({
+          id: b.id,
+          tab: 'factures' as Tab,
+          icon: '💶',
+          text: `${b.title} · ${euros(b.amount)}`,
+          where: b.paid_at ? 'Facture · payée' : 'Facture',
+          done: !!b.paid_at,
+        })),
       ...data.notes
         .filter((m) => hit(m.body))
         .map((m) => ({ id: m.id, tab: 'accueil' as Tab, icon: '💌', text: m.body, where: 'Petit mot' })),

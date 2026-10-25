@@ -7,6 +7,7 @@ import type { List, ListItem } from '../lib/types'
 import { TEMPLATES, TEMPLATE_GROUPS } from '../lib/templates'
 import { ReminderBadge, ReminderPicker, type ReminderValue } from '../components/Reminder'
 import { SearchButton, consumePendingList } from '../components/Search'
+import { TasksSwitch } from '../components/Nav'
 import {
   Avatar,
   Button,
@@ -49,6 +50,7 @@ export default function ListsPage() {
           </div>
         }
       />
+      <TasksSwitch current="listes" />
 
       {data.lists.length === 0 ? (
         <>

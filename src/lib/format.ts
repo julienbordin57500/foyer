@@ -61,3 +61,13 @@ export const normalizeName = (s: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
+
+const eur = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+/** 1 234,50 € */
+export const euros = (n: number) => eur.format(n)
+
+/** « 12,5 » ou « 12.5 » → 12.5 */
+export const parseAmount = (s: string) => {
+  const n = Number(s.replace(/\s/g, '').replace(',', '.').replace('€', ''))
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN
+}

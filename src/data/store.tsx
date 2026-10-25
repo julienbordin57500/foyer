@@ -23,7 +23,7 @@ interface Store {
 /** Durée d'affichage du bandeau « Annuler » : assez pour réagir, pas assez pour gêner. */
 export const TOAST_MS = 4000
 
-const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [], note_reactions: [], pings: [] }
+const EMPTY: Data = { grocery_items: [], todos: [], notes: [], lists: [], list_items: [], note_reactions: [], pings: [], bills: [] }
 const Ctx = createContext<Store | null>(null)
 
 export function DataProvider({ backend, children }: { backend: Backend; children: ReactNode }) {
@@ -41,6 +41,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
     list_items: 0,
     note_reactions: 0,
     pings: 0,
+    bills: 0,
   })
 
   const refresh = useCallback(

@@ -98,6 +98,24 @@ export interface Ping {
   created_at: string
 }
 
+export type BillRepeat = 'month' | 'quarter' | 'year'
+
+export interface Bill {
+  id: string
+  title: string
+  amount: number
+  due_date: string // yyyy-mm-dd
+  assignee: string | null // null = tous les deux
+  repeat: BillRepeat | null
+  auto_debit: boolean
+  shared: boolean
+  paid_at: string | null
+  paid_by: string | null
+  settled: boolean
+  added_by: string
+  created_at: string
+}
+
 export interface Household {
   id: string
   name: string
@@ -112,6 +130,7 @@ export interface Tables {
   list_items: ListItem
   note_reactions: NoteReaction
   pings: Ping
+  bills: Bill
 }
 
 export type TableName = keyof Tables

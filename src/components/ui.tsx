@@ -737,3 +737,42 @@ export function SuccessCheck() {
     </svg>
   )
 }
+
+/** Interrupteur sur une ligne, avec une petite explication dessous. */
+export function ToggleRow({
+  label,
+  hint,
+  icon,
+  checked,
+  onChange,
+}: {
+  label: string
+  hint?: string
+  icon?: ReactNode
+  checked: boolean
+  onChange(v: boolean): void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-surface-2 px-4 py-2.5 text-left ring-1 ring-line/50"
+    >
+      {icon && <span className="text-sec">{icon}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px]">{label}</span>
+        {hint && <span className="block text-[12px] text-muted">{hint}</span>}
+      </span>
+      <span className={cx('relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300', checked ? 'bg-sec' : 'bg-line')}>
+        <span
+          className={cx(
+            'absolute left-0.5 top-0.5 size-6 rounded-full bg-surface shadow-soft transition-transform duration-300 ease-smooth',
+            checked && 'translate-x-5',
+          )}
+        />
+      </span>
+    </button>
+  )
+}

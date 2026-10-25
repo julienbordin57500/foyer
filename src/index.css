@@ -33,6 +33,7 @@
   --mint: #0f9b6c;
   --amber: #c97c00;
   --violet: #6e56e8;
+  --sky: #1f74d0;
   --coral: #e8553a;
 
   --shadow: 0 1px 2px rgba(20, 20, 22, 0.04), 0 10px 30px -16px rgba(20, 20, 22, 0.18);
@@ -66,6 +67,8 @@
     --mint: #7ee0b0;
     --amber: #ffc15e;
     --violet: #b9a8ff;
+    --sky: #7cc4ff;
+    --sky: #7cc4ff;
     --coral: #ff8a6b;
     --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
     --backdrop: rgba(0, 0, 0, 0.6);
@@ -96,6 +99,7 @@
   --mint: #7ee0b0;
   --amber: #ffc15e;
   --violet: #b9a8ff;
+  --sky: #7cc4ff;
   --coral: #ff8a6b;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --backdrop: rgba(0, 0, 0, 0.6);
@@ -120,6 +124,12 @@
   --hero-from: #ffc65c;
   --hero-to: #ff8a2a;
   --hero-ink: #2b1700;
+}
+[data-section='factures'] {
+  --sec: var(--sky);
+  --hero-from: #5ec8f2;
+  --hero-to: #2f6fe0;
+  --hero-ink: #ffffff;
 }
 [data-section='listes'] {
   --sec: var(--violet);
@@ -153,6 +163,7 @@
   --color-mint: var(--mint);
   --color-amber: var(--amber);
   --color-violet: var(--violet);
+  --color-sky: var(--sky);
   --color-coral: var(--coral);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: 'Newsreader Variable', ui-serif, Georgia, serif;
@@ -384,6 +395,7 @@ nav {
   --mint: #7ee0b0;
   --amber: #ffc15e;
   --violet: #b9a8ff;
+  --sky: #7cc4ff;
   --coral: #ff8a6b;
 }
 
@@ -473,29 +485,58 @@ nav {
 
 /* Bandeau « Annuler » : arrive de la droite, repart vers la droite. */
 @keyframes toast-in {
-  from { opacity: 0; transform: translateX(110%); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes toast-out {
-  to { opacity: 0; transform: translateX(110%); }
+  to {
+    opacity: 0;
+    transform: translateX(110%);
+  }
 }
 @keyframes toast-timer {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
-.toast-in { animation: toast-in 0.45s var(--ease-smooth) both; }
-.toast-out { animation: toast-out 0.35s ease-in forwards; }
-.toast-timer { animation: toast-timer linear forwards; }
+.toast-in {
+  animation: toast-in 0.45s var(--ease-smooth) both;
+}
+.toast-out {
+  animation: toast-out 0.35s ease-in forwards;
+}
+.toast-timer {
+  animation: toast-timer linear forwards;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .toast-in, .toast-out { animation-duration: 0.01s; }
+  .toast-in,
+  .toast-out {
+    animation-duration: 0.01s;
+  }
 }
 
 /* Coche de fin des courses : apparaît, reste un instant, puis s'efface en douceur. */
 @keyframes done-overlay {
-  0% { opacity: 0; }
-  12%, 75% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  12%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 .done-overlay {
   background: color-mix(in srgb, var(--bg) 45%, transparent);
