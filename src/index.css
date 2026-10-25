@@ -33,6 +33,15 @@
   --mint: #0f9b6c;
   --amber: #c97c00;
   --violet: #6e56e8;
+  /* Graphiques : 8 teintes catégorielles validées, en ordre fixe (une par catégorie de charge). */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --cat-7: #6250d6;
+  --cat-8: #e34948;
   --sky: #1f74d0;
   --coral: #e8553a;
 
@@ -67,6 +76,14 @@
     --mint: #7ee0b0;
     --amber: #ffc15e;
     --violet: #b9a8ff;
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
+    --cat-7: #9085e9;
+    --cat-8: #e66767;
     --sky: #7cc4ff;
     --sky: #7cc4ff;
     --coral: #ff8a6b;
@@ -100,6 +117,14 @@
   --amber: #ffc15e;
   --violet: #b9a8ff;
   --sky: #7cc4ff;
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #008300;
+  --cat-7: #9085e9;
+  --cat-8: #e66767;
   --coral: #ff8a6b;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --backdrop: rgba(0, 0, 0, 0.6);

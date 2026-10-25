@@ -3,6 +3,7 @@ import { Search as SearchIcon, X } from 'lucide-react'
 import type { Tab } from '../App'
 import { useStore } from '../data/store'
 import { euros, normalizeName } from '../lib/format'
+import { billIcon } from '../lib/billIcon'
 import { cx } from './ui'
 
 /** Ouvre la recherche depuis n'importe quel en-tête. */
@@ -111,7 +112,7 @@ export function SearchOverlay({ open, onClose, go }: { open: boolean; onClose():
         .map((b) => ({
           id: b.id,
           tab: 'factures' as Tab,
-          icon: '💶',
+          icon: billIcon(b.title),
           text: `${b.title} · ${euros(b.amount)}`,
           where: b.paid_at ? 'Facture · payée' : 'Facture',
           done: !!b.paid_at,

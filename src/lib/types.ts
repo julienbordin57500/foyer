@@ -116,6 +116,30 @@ export interface Bill {
   created_at: string
 }
 
+/** Catégories des charges fixes (ordre fixe : il donne aussi la couleur du graphique). */
+export const CHARGE_CATEGORIES = [
+  { id: 'Logement', emoji: '🏠' },
+  { id: 'Énergie', emoji: '⚡' },
+  { id: 'Assurance', emoji: '🛡️' },
+  { id: 'Transport', emoji: '🚗' },
+  { id: 'Alimentation', emoji: '🛒' },
+  { id: 'Loisirs', emoji: '🎉' },
+  { id: 'Santé', emoji: '🩺' },
+  { id: 'Autre', emoji: '💶' },
+] as const
+export type ChargeCategory = (typeof CHARGE_CATEGORIES)[number]['id']
+export type Every = 1 | 2 | 3 | 6 | 12
+
+export interface Charge {
+  id: string
+  label: string
+  category: ChargeCategory
+  amount: number
+  every_months: Every
+  debit_day: number | null
+  created_at: string
+}
+
 export interface Household {
   id: string
   name: string
@@ -131,6 +155,7 @@ export interface Tables {
   note_reactions: NoteReaction
   pings: Ping
   bills: Bill
+  charges: Charge
 }
 
 export type TableName = keyof Tables

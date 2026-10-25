@@ -6,6 +6,8 @@ import { SearchButton } from '../components/Search'
 import { addDays, parseISODate, toISODate, today } from '../lib/dates'
 import { ago, capitalize, dueLabel, euros, parseAmount } from '../lib/format'
 import type { Bill, BillRepeat } from '../lib/types'
+import { billIcon } from '../lib/billIcon'
+import { ChargesSection, MonthsRecap } from '../components/Money'
 import {
   Avatar,
   Card,
@@ -125,6 +127,9 @@ export default function BillsPage() {
 
       {paid.length > 0 && <PaidList bills={paid} onEdit={setEditing} />}
 
+      <ChargesSection />
+      <MonthsRecap />
+
       <Sheet open={editing !== null} title={editing === 'new' ? 'Nouvelle facture' : 'Facture'} onClose={() => setEditing(null)}>
         {editing && (
           <BillForm
@@ -186,6 +191,9 @@ function BillRow({ bill, fresh, onEdit }: { bill: Bill; fresh: boolean; onEdit()
             onClick={() => doPay()}
             label={`Marquer ${bill.title} comme payée`}
           />
+          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-2xl bg-sec/12 text-[19px]">
+            {billIcon(bill.title)}
+          </span>
           <button onClick={onEdit} className="min-w-0 flex-1 text-left">
             <span className={cx('block truncate text-[16px] leading-snug', leaving && 'text-muted line-through')}>{bill.title}</span>
             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
