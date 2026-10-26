@@ -6,7 +6,7 @@ import { Segmented } from './ui'
 export const NavContext = createContext<(t: Tab) => void>(() => {})
 export const useGo = () => useContext(NavContext)
 
-/** Bascule Tâches | Listes en haut de l'onglet « À faire » : deux parties, une seule place dans la barre. */
+/** Bascule Listes | Tâches en haut de l'onglet « À faire » : deux parties, une seule place dans la barre. */
 export function TasksSwitch({ current }: { current: 'afaire' | 'listes' }) {
   const go = useGo()
   return (
@@ -16,8 +16,8 @@ export function TasksSwitch({ current }: { current: 'afaire' | 'listes' }) {
         onChange={go}
         transitionName="tasks-switch"
         options={[
-          { value: 'afaire', label: '✓  Tâches' },
           { value: 'listes', label: '▦  Listes' },
+          { value: 'afaire', label: '✓  Tâches' },
         ]}
       />
     </div>

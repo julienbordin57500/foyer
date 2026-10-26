@@ -60,6 +60,24 @@ const calendarTime = (t: Todo) => {
   return d.toISOString()
 }
 
+type WhoFilter = 'all' | 'me' | 'partner'
+type GroupId = 'late' | 'today' | 'tomorrow' | 'week' | 'later' | 'someday'
+
+/** Groupes dans l'ordre d'urgence ; la date n'est répétée sur la ligne que si le groupe ne la dit pas déjà. */
+const GROUPS: { id: GroupId; label: string; showDate: boolean }[] = [
+  { id: 'late', label: 'En retard', showDate: true },
+  { id: 'today', label: "Aujourd'hui", showDate: false },
+  { id: 'tomorrow', label: 'Demain', showDate: false },
+  { id: 'week', label: 'Cette semaine', showDate: true },
+  { id: 'later', label: 'Plus tard', showDate: true },
+  { id: 'someday', label: 'Quand on peut', showDate: false },
+]
+const groupOf = (t: Todo): GroupId => {
+  if (!t.due_date) return 'someday'
+  const d = dueLabel(t.due_date).days
+  return d < 0 ? 'late' : d === 0 ? 'today' : d === 1 ? 'tomorrow' : d < 7 ? 'week' : 'later'
+}
+
 /** Heure du rappel : le jour de la tâche à l'heure choisie ; sans date, la prochaine fois que cette heure arrive. */
 const remindAt = (due: string | null, time: string) => {
   const [h, m] = time.split(':').map(Number)
@@ -89,9 +107,27 @@ export default function TodosPage() {
   const [notify, setNotify] = useState(false)
   const [notifyTime, setNotifyTime] = useState('09:00')
   const [editing, setEditing] = useState<Todo | null>(null)
+  const [who, setWho] = useState<WhoFilter>(() => {
+    try {
+      return (localStorage.getItem('foyer-todo-filter') as WhoFilter) || 'all'
+    } catch {
+      return 'all'
+    }
+  })
+  const pickWho = (w: WhoFilter) => {
+    setWho(w)
+    try {
+      localStorage.setItem('foyer-todo-filter', w)
+    } catch {
+      /* stockage indisponible */
+    }
+  }
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const open = data.todos.filter((t) => !t.done_at)
+  // Filtre « Tout · Moi · Claire » : les tâches pour nous deux restent visibles des deux côtés.
+  const target = who === 'me' ? me.user_id : who === 'partner' ? partner?.user_id : null
+  const forWho = (t: Todo) => !target || t.assignee === null || t.assignee === target
+  const open = data.todos.filter((t) => !t.done_at && forWho(t))
   const done = data.todos
     .filter((t) => t.done_at && Date.now() - new Date(t.done_at).getTime() < 7 * 86_400_000)
     .sort((a, b) => b.done_at!.localeCompare(a.done_at!))
@@ -103,9 +139,8 @@ export default function TodosPage() {
     if (b.due_date) return 1
     return b.created_at.localeCompare(a.created_at)
   })
-  const dated = sorted.filter((t) => t.due_date)
-  const someday = sorted.filter((t) => !t.due_date)
-  const lateCount = dated.filter((t) => dueLabel(t.due_date!).late).length
+  const groups = GROUPS.map((g) => ({ ...g, items: sorted.filter((t) => groupOf(t) === g.id) })).filter((g) => g.items.length > 0)
+  const lateCount = sorted.filter((t) => groupOf(t) === 'late').length
   const isNew = useArrivals(data.todos.map((t) => t.id))
 
   const add = () => {
@@ -164,6 +199,30 @@ export default function TodosPage() {
         />
       </Hero>
       <TasksSwitch current="afaire" />
+      {partner && (
+        <div className="mb-2 flex justify-center gap-1.5" role="group" aria-label="Afficher les tâches de">
+          {(
+            [
+              { value: 'all', label: 'Tout' },
+              { value: 'me', label: 'Moi' },
+              { value: 'partner', label: partner.display_name },
+            ] as { value: WhoFilter; label: string }[]
+          ).map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => pickWho(o.value)}
+              aria-pressed={who === o.value}
+              className={cx(
+                'h-8 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-300 active:scale-95',
+                who === o.value ? 'bg-sec/18 text-sec ring-1 ring-sec/35' : 'text-muted ring-1 ring-line/60',
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div
         className={cx(
           'grid transition-[grid-template-rows,opacity] duration-500 ease-smooth',
@@ -227,31 +286,20 @@ export default function TodosPage() {
         />
       )}
 
-      {dated.length > 0 && (
-        <>
-          <SectionTitle>Avec une date</SectionTitle>
+      {groups.map((g) => (
+        <section key={g.id}>
+          <SectionTitle aside={g.items.length}>
+            <span className={cx(g.id === 'late' && 'text-late')}>{g.label}</span>
+          </SectionTitle>
           <Card className="overflow-hidden">
             <ul>
-              {dated.map((t) => (
-                <TodoRow key={t.id} todo={t} fresh={isNew(t.id)} onEdit={() => setEditing(t)} />
+              {g.items.map((t) => (
+                <TodoRow key={t.id} todo={t} fresh={isNew(t.id)} showDate={g.showDate} onEdit={() => setEditing(t)} />
               ))}
             </ul>
           </Card>
-        </>
-      )}
-
-      {someday.length > 0 && (
-        <>
-          <SectionTitle>Quand on peut</SectionTitle>
-          <Card className="overflow-hidden">
-            <ul>
-              {someday.map((t) => (
-                <TodoRow key={t.id} todo={t} fresh={isNew(t.id)} onEdit={() => setEditing(t)} />
-              ))}
-            </ul>
-          </Card>
-        </>
-      )}
+        </section>
+      ))}
 
       {done.length > 0 && <DoneList items={done} />}
 
@@ -262,14 +310,15 @@ export default function TodosPage() {
   )
 }
 
-function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit(): void }) {
+function TodoRow({ todo, fresh, showDate, onEdit }: { todo: Todo; fresh: boolean; showDate: boolean; onEdit(): void }) {
   const { update, insert, removeWithUndo, me } = useStore()
   const member = useMember()
+  const partner = usePartner()
   const [leaving, setLeaving] = useState(false)
   const due = todo.due_date ? dueLabel(todo.due_date) : null
   const reminder = todo.remind_at && !todo.reminded_at ? todo.remind_at : null
   const who = todo.assignee ? member(todo.assignee) : null
-  const by = member(todo.added_by)
+  const both = [member(me), partner ? member(partner.user_id) : null].filter((m) => m !== null)
 
   const complete = (delay = 560) => {
     setLeaving(true)
@@ -310,36 +359,34 @@ function TodoRow({ todo, fresh, onEdit }: { todo: Todo; fresh: boolean; onEdit()
           run: () => removeWithUndo('todos', todo.id, todo.title),
         }}
       >
-        <div className="flex min-h-14 items-start gap-3 px-4 py-3">
+        <div className="flex min-h-16 items-center gap-3 px-4 py-3">
           <CheckCircle
             checked={leaving}
             tone={due?.late ? 'late' : 'default'}
             onClick={() => complete()}
             label={`Marquer « ${todo.title} » comme faite`}
           />
-          <button onClick={onEdit} className="min-w-0 flex-1 pt-0.5 text-left">
-            <span className={cx('block text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}>
+          <button onClick={onEdit} className="min-w-0 flex-1 text-left">
+            <span className={cx('block text-[16.5px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}>
               {todo.title}
             </span>
-            <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12.5px] leading-5 text-muted">
+            {/* Une seule petite ligne : rappel, date si utile, répétition, et pour qui (les initiales). */}
+            <span className="mt-1 flex items-center gap-2 text-[12.5px] leading-5 text-muted">
               {reminder && <ReminderBadge iso={reminder} />}
-              {due && <span className={cx('font-medium', due.late ? 'text-late' : due.days === 0 ? 'text-sec' : '')}>{due.text}</span>}
+              {due && showDate && <span className={cx('font-semibold', due.late ? 'text-late' : 'text-ink/75')}>{due.text}</span>}
               {todo.repeat && (
-                <span className="inline-flex items-center gap-0.5 text-sec" title={REPEAT_LABEL[todo.repeat]}>
-                  <RepeatIcon size={12} strokeWidth={2.4} />
+                <span className="inline-flex text-sec" title={REPEAT_LABEL[todo.repeat]} aria-label={REPEAT_LABEL[todo.repeat]}>
+                  <RepeatIcon size={13} strokeWidth={2.4} />
                 </span>
               )}
-              {due && <span className="text-faint">·</span>}
-              {who ? (
-                <span className="inline-flex items-center gap-1">
-                  <Avatar initial={who.initial} tone={who.tone} size="xs" />
-                  {who.isMe ? 'Pour moi' : `Pour ${who.name}`}
-                </span>
-              ) : (
-                <span>Nous deux</span>
-              )}
-              <span className="text-faint">·</span>
-              <span>notée par {by.isMe ? 'moi' : by.name}</span>
+              <span
+                className="inline-flex items-center -space-x-1"
+                aria-label={who ? (who.isMe ? 'Pour moi' : `Pour ${who.name}`) : 'Pour nous deux'}
+              >
+                {(who ? [who] : both).map((m) => (
+                  <Avatar key={m.initial + m.tone} initial={m.initial} tone={m.tone} size="xs" />
+                ))}
+              </span>
             </span>
           </button>
           {!isDemo && (
