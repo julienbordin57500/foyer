@@ -1,5 +1,5 @@
-import { useRef, useState, type FormEvent } from 'react'
-import { BellRing, CalendarDays, Check, Clock, Plus, Repeat as RepeatIcon, Trash2, Users } from 'lucide-react'
+import { useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { ArrowRight, BellRing, CalendarDays, Check, Clock, Plus, Repeat as RepeatIcon, Trash2, Users } from 'lucide-react'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
 import { addDays, nextOccurrence, nextSaturday, parseISODate, toISODate, today } from '../lib/dates'
@@ -26,6 +26,7 @@ import {
   Sheet,
   SwipeRow,
   ToggleRow,
+  tick,
   cx,
   useArrivals,
 } from '../components/ui'
@@ -231,18 +232,19 @@ export default function TodosPage() {
       >
         <div className="overflow-hidden">
           <div className="mb-2 space-y-2">
-            <OptionRow label="Pour qui ?" icon={<Users size={18} />} value={assignee} onChange={setAssignee} options={assigneeOptions} />
-            <OptionRow<When>
+            {/* Pour qui et quand : un appui sur une pastille, sans ouvrir de menu. */}
+            <QuickRow label="Pour qui ?" icon={<Users size={16} />} value={assignee} onChange={setAssignee} options={assigneeOptions} />
+            <QuickRow<When>
               label="Quand ?"
-              icon={<CalendarDays size={18} />}
+              icon={<CalendarDays size={16} />}
               value={when}
               onChange={setWhen}
               options={[
                 { value: 'none', label: 'Pas pressé' },
                 { value: 'today', label: "Aujourd'hui" },
                 { value: 'tomorrow', label: 'Demain' },
-                { value: 'weekend', label: 'Ce week-end' },
-                { value: 'custom', label: 'Une date précise' },
+                { value: 'weekend', label: 'Week-end' },
+                { value: 'custom', label: 'Une date…' },
               ]}
             />
             {when === 'custom' && <DateRow label="Le" value={custom} onChange={setCustom} min={toISODate(today())} />}
@@ -310,8 +312,52 @@ export default function TodosPage() {
   )
 }
 
+/** Rangée de pastilles : le choix se fait d'un seul appui. */
+function QuickRow<T extends string>({
+  label,
+  icon,
+  value,
+  onChange,
+  options,
+}: {
+  label: string
+  icon: ReactNode
+  value: T
+  onChange(v: T): void
+  options: { value: T; label: string }[]
+}) {
+  return (
+    <div className="rounded-2xl bg-surface-2 px-3 pb-3 pt-2.5 ring-1 ring-line/50" role="group" aria-label={label}>
+      <p className="mb-2 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-muted">
+        <span className="text-sec">{icon}</span>
+        {label}
+      </p>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              tick()
+              onChange(o.value)
+            }}
+            aria-pressed={value === o.value}
+            className={cx(
+              'h-9 rounded-full px-3.5 text-[14px] font-semibold transition duration-200 ease-smooth active:scale-95',
+              value === o.value ? 'bg-sec text-bg shadow-[0_4px_14px_-6px_var(--sec)]' : 'bg-surface text-ink ring-1 ring-line/60',
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function TodoRow({ todo, fresh, showDate, onEdit }: { todo: Todo; fresh: boolean; showDate: boolean; onEdit(): void }) {
-  const { update, insert, removeWithUndo, me } = useStore()
+  const { update, insert, removeWithUndo, showToast, me } = useStore()
   const member = useMember()
   const partner = usePartner()
   const [leaving, setLeaving] = useState(false)
@@ -319,6 +365,19 @@ function TodoRow({ todo, fresh, showDate, onEdit }: { todo: Todo; fresh: boolean
   const reminder = todo.remind_at && !todo.reminded_at ? todo.remind_at : null
   const who = todo.assignee ? member(todo.assignee) : null
   const both = [member(me), partner ? member(partner.user_id) : null].filter((m) => m !== null)
+
+  // Reporter à demain, en gardant l'heure du rappel s'il y en a un.
+  const canPostpone = !!due && due.days <= 0
+  const postpone = () => {
+    const tomorrow = addDays(today(), 1)
+    const shift = tomorrow.getTime() - parseISODate(todo.due_date!).getTime()
+    update('todos', todo.id, {
+      due_date: toISODate(tomorrow),
+      ...(todo.remind_at ? { remind_at: new Date(new Date(todo.remind_at).getTime() + shift).toISOString(), reminded_at: null } : {}),
+    })
+    const before = { due_date: todo.due_date, remind_at: todo.remind_at, reminded_at: todo.reminded_at }
+    showToast(`Reportée à demain`, () => update('todos', todo.id, before))
+  }
 
   const complete = (delay = 560) => {
     setLeaving(true)
@@ -389,18 +448,32 @@ function TodoRow({ todo, fresh, showDate, onEdit }: { todo: Todo; fresh: boolean
               </span>
             </span>
           </button>
-          {!isDemo && (
-            <a
-              href={calendarUrl(todo.title, calendarTime(todo))}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Ajouter « ${todo.title} » au calendrier`}
-              title="Ajouter au calendrier"
-              className="mt-0.5 flex h-7 shrink-0 items-center gap-0.5 self-end rounded-full bg-sec/12 px-2 text-sec ring-1 ring-sec/25 transition active:scale-90"
+          {canPostpone ? (
+            <button
+              type="button"
+              onClick={() => {
+                tick()
+                postpone()
+              }}
+              aria-label={`Reporter « ${todo.title} » à demain`}
+              className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-sec/12 px-2.5 text-[12.5px] font-semibold text-sec ring-1 ring-sec/25 transition active:scale-90"
             >
-              <Plus size={11} strokeWidth={3} />
-              <CalendarDays size={14} />
-            </a>
+              Demain <ArrowRight size={13} strokeWidth={2.6} />
+            </button>
+          ) : (
+            !isDemo && (
+              <a
+                href={calendarUrl(todo.title, calendarTime(todo))}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Ajouter « ${todo.title} » au calendrier`}
+                title="Ajouter au calendrier"
+                className="mt-0.5 flex h-7 shrink-0 items-center gap-0.5 self-end rounded-full bg-sec/12 px-2 text-sec ring-1 ring-sec/25 transition active:scale-90"
+              >
+                <Plus size={11} strokeWidth={3} />
+                <CalendarDays size={14} />
+              </a>
+            )
           )}
         </div>
       </SwipeRow>
