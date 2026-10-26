@@ -26,6 +26,7 @@ import {
   ToggleRow,
   cx,
   useArrivals,
+  Segmented,
 } from '../components/ui'
 
 type RepeatChoice = BillRepeat | 'none'
@@ -46,9 +47,12 @@ function nextDue(iso: string, repeat: BillRepeat) {
   return toISODate(d)
 }
 
+type View = 'pay' | 'charges' | 'bilan'
+
 export default function BillsPage() {
   const { data, me } = useStore()
   const [editing, setEditing] = useState<Bill | 'new' | null>(null)
+  const [view, setView] = useState<View>('pay')
 
   const unpaid = data.bills.filter((b) => !b.paid_at).sort((a, b) => a.due_date.localeCompare(b.due_date))
   const todayISO = toISODate(today())
@@ -89,46 +93,74 @@ export default function BillsPage() {
         </div>
       </Hero>
 
-      <Balance me={me} />
+      <Segmented<View>
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'pay', label: 'À payer' },
+          { value: 'charges', label: 'Charges' },
+          { value: 'bilan', label: 'Bilan' },
+        ]}
+      />
 
-      {data.bills.length === 0 && (
-        <Empty
-          emoji="💶"
-          title="Aucune facture"
-          text="Ajoutez une facture avec son montant et sa date : on vous prévient avant qu'il soit trop tard."
-        />
-      )}
+      <div key={view} className="animate-fade">
+        {view === 'pay' && (
+          <>
+            <Balance me={me} />
 
-      {late.length > 0 && (
-        <section data-section="factures">
-          <SectionTitle aside={euros(lateTotal)}>En retard</SectionTitle>
-          <Card className="overflow-hidden">
-            <ul>
-              {late.map((b) => (
-                <BillRow key={b.id} bill={b} fresh={isNew(b.id)} onEdit={() => setEditing(b)} />
-              ))}
-            </ul>
-          </Card>
-        </section>
-      )}
+            {data.bills.length === 0 && (
+              <Empty
+                emoji="💶"
+                title="Aucune facture"
+                text="Ajoutez une facture avec son montant et sa date : on vous prévient avant qu'il soit trop tard."
+              />
+            )}
 
-      {upcoming.length > 0 && (
-        <>
-          <SectionTitle>À venir</SectionTitle>
-          <Card className="overflow-hidden">
-            <ul>
-              {upcoming.map((b) => (
-                <BillRow key={b.id} bill={b} fresh={isNew(b.id)} onEdit={() => setEditing(b)} />
-              ))}
-            </ul>
-          </Card>
-        </>
-      )}
+            {late.length > 0 && (
+              <section data-section="factures">
+                <SectionTitle aside={euros(lateTotal)}>En retard</SectionTitle>
+                <Card className="overflow-hidden">
+                  <ul>
+                    {late.map((b) => (
+                      <BillRow key={b.id} bill={b} fresh={isNew(b.id)} onEdit={() => setEditing(b)} />
+                    ))}
+                  </ul>
+                </Card>
+              </section>
+            )}
 
-      {paid.length > 0 && <PaidList bills={paid} onEdit={setEditing} />}
+            {upcoming.length > 0 && (
+              <>
+                <SectionTitle>À venir</SectionTitle>
+                <Card className="overflow-hidden">
+                  <ul>
+                    {upcoming.map((b) => (
+                      <BillRow key={b.id} bill={b} fresh={isNew(b.id)} onEdit={() => setEditing(b)} />
+                    ))}
+                  </ul>
+                </Card>
+              </>
+            )}
 
-      <ChargesSection />
-      <MonthsRecap />
+            {data.bills.length > 0 && unpaid.length === 0 && (
+              <Empty emoji="🎉" title="Tout est payé" text="Rien à régler pour l'instant. On vous prévient quand une facture approche." />
+            )}
+          </>
+        )}
+
+        {view === 'charges' && <ChargesSection />}
+
+        {view === 'bilan' && (
+          <>
+            <MonthsRecap />
+            {paid.length > 0 ? (
+              <PaidList bills={paid} onEdit={setEditing} />
+            ) : (
+              <Empty emoji="📊" title="Pas encore de bilan" text="Les factures payées apparaîtront ici, mois par mois." />
+            )}
+          </>
+        )}
+      </div>
 
       <Sheet open={editing !== null} title={editing === 'new' ? 'Nouvelle facture' : 'Facture'} onClose={() => setEditing(null)}>
         {editing && (
