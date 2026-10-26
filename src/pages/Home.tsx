@@ -16,11 +16,8 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
   const [settings, setSettings] = useState(false)
 
   const groceries = data.grocery_items.filter((i) => i.status !== 'bought')
-  const toOrder = groceries.filter((i) => i.place === 'drive' && i.status === 'todo').length
   const todos = data.todos.filter((t) => !t.done_at)
-  const mine = todos.filter((t) => t.assignee === me.user_id || t.assignee === null)
   const late = todos.filter((t) => t.due_date && dueLabel(t.due_date).late).length
-  const todayCount = todos.filter((t) => t.due_date && dueLabel(t.due_date).days === 0).length
   const lists = data.lists
     .map((l) => {
       const items = data.list_items.filter((i) => i.list_id === l.id)
@@ -31,6 +28,8 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
       }
     })
     .filter((l) => l.total > 0 && l.done < l.total)
+  const unpaid = data.bills.filter((b) => !b.paid_at && !b.auto_debit)
+  const unpaidLate = unpaid.some((b) => dueLabel(b.due_date).late)
   const [, ...olderNotes] = data.notes
 
   return (
@@ -52,27 +51,13 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
 
       <DaySummary go={go} />
 
+      {/* Raccourcis discrets : l'essentiel du jour est déjà au-dessus. */}
       <SectionTitle>En ce moment</SectionTitle>
-      <div className="grid grid-cols-2 gap-3">
-        <Tile
-          section="courses"
-          emoji="🛒"
-          value={groceries.length}
-          label={groceries.length > 1 ? 'articles à prendre' : 'article à prendre'}
-          detail={toOrder ? `${toOrder} à commander au drive` : undefined}
-          onClick={() => go('courses')}
-        />
-        <Tile
-          section="afaire"
-          emoji="📝"
-          value={todos.length}
-          label={todos.length > 1 ? 'choses à faire' : 'chose à faire'}
-          detail={
-            late ? `${late} en retard` : todayCount ? `${todayCount} pour aujourd'hui` : mine.length ? `${mine.length} pour moi` : undefined
-          }
-          alert={late > 0}
-          onClick={() => go('afaire')}
-        />
+      <div className="grid grid-cols-4 gap-2">
+        <Tile section="courses" emoji="🛒" value={groceries.length} label="à prendre" onClick={() => go('courses')} />
+        <Tile section="afaire" emoji="📝" value={todos.length} label="à faire" alert={late > 0} onClick={() => go('afaire')} />
+        <Tile section="listes" emoji="🗂️" value={lists.length} label={lists.length > 1 ? 'listes' : 'liste'} onClick={() => go('listes')} />
+        <Tile section="factures" emoji="💶" value={unpaid.length} label="à payer" alert={unpaidLate} onClick={() => go('factures')} />
       </div>
 
       {lists.length > 0 && (
@@ -112,7 +97,6 @@ function Tile({
   emoji,
   value,
   label,
-  detail,
   alert,
   onClick,
 }: {
@@ -120,7 +104,6 @@ function Tile({
   emoji: string
   value: number
   label: string
-  detail?: string
   alert?: boolean
   onClick(): void
 }) {
@@ -128,15 +111,13 @@ function Tile({
     <button
       data-section={section}
       onClick={onClick}
-      className="card-glow flex min-h-[150px] flex-col rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent p-4 text-left transition duration-300 ease-smooth active:scale-[0.97]"
+      aria-label={`${value} ${label}`}
+      className="relative flex flex-col items-center rounded-[20px] bg-surface px-1 pb-2.5 pt-3 ring-1 ring-line/50 transition duration-300 ease-smooth active:scale-[0.95]"
     >
-      <span className="flex items-center justify-between">
-        <span className="grid size-9 place-items-center rounded-xl bg-sec/15 text-[18px]">{emoji}</span>
-        <ChevronRight size={16} className="text-faint" />
-      </span>
-      <span className="num mt-auto block pt-3 font-serif text-[40px] font-medium leading-none text-sec">{value}</span>
-      <span className="mt-1 block text-[13px] text-muted">{label}</span>
-      <span className={cx('mt-1.5 block min-h-4 text-[12.5px] font-medium leading-4', alert ? 'text-late' : 'text-ink/80')}>{detail}</span>
+      {alert && <span aria-hidden className="absolute right-2.5 top-2.5 size-2 rounded-full bg-late shadow-[0_0_8px_var(--late)]" />}
+      <span className="text-[18px] leading-none">{emoji}</span>
+      <span className="num mt-1.5 font-serif text-[24px] font-medium leading-none text-sec">{value}</span>
+      <span className="mt-1 text-[11.5px] text-muted">{label}</span>
     </button>
   )
 }
@@ -490,6 +471,10 @@ function DaySummary({ go }: { go(t: Tab): void }) {
     })
   }
 
+  // Ce qui presse remonte en premier.
+  const urgent = (l: SummaryLine) => l.items.some((it) => it.urgent)
+  lines.sort((a, b) => Number(urgent(b)) - Number(urgent(a)))
+
   return (
     <>
       <SectionTitle>Aujourd'hui</SectionTitle>
@@ -507,7 +492,8 @@ function DaySummary({ go }: { go(t: Tab): void }) {
         ) : (
           <ul>
             {lines.map((l) => (
-              <li key={l.key} data-section={l.section} className="border-b border-line/60 last:border-0">
+              <li key={l.key} data-section={l.section} className="relative border-b border-line/60 last:border-0">
+                {urgent(l) && <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-late" />}
                 <button
                   onClick={() => go(l.section)}
                   className="flex w-full gap-3 px-4 py-3.5 text-left transition-colors active:bg-surface-2"

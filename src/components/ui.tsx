@@ -99,9 +99,9 @@ export function HeroButton({ label, children, ...rest }: ButtonHTMLAttributes<HT
   )
 }
 
-export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+export function SectionTitle({ children, aside, className }: { children: ReactNode; aside?: ReactNode; className?: string }) {
   return (
-    <div className="mb-2 mt-8 flex h-5 items-center justify-between px-4">
+    <div className={cx('mb-2 mt-8 flex h-5 items-center justify-between px-4', className)}>
       <h2 className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted">
         <span aria-hidden className="size-1.5 rounded-full bg-sec shadow-[0_0_8px_var(--sec)]" />
         {children}
@@ -546,12 +546,15 @@ export function CheckCircle({
   onClick,
   label,
   tone = 'default',
+  big,
   children,
 }: {
   checked: boolean
   onClick(): void
   label: string
   tone?: 'default' | 'late' | 'drive'
+  /** Plus grande, pour cocher d'un pouce en magasin. */
+  big?: boolean
   children?: ReactNode
 }) {
   return (
@@ -563,7 +566,8 @@ export function CheckCircle({
       aria-label={label}
       aria-pressed={checked}
       className={cx(
-        'relative grid size-[26px] shrink-0 place-items-center rounded-full border-[1.5px] transition-colors duration-300 active:scale-90',
+        'relative grid shrink-0 place-items-center rounded-full border-[1.5px] transition-colors duration-300 active:scale-90',
+        big ? 'size-[32px] border-2' : 'size-[26px]',
         checked
           ? 'border-sec bg-sec text-bg'
           : tone === 'late'
@@ -573,7 +577,7 @@ export function CheckCircle({
               : 'border-faint hover:border-sec',
       )}
     >
-      {checked ? <Check size={15} strokeWidth={3} className="animate-check" /> : children}
+      {checked ? <Check size={big ? 18 : 15} strokeWidth={3} className="animate-check" /> : children}
     </button>
   )
 }
@@ -600,7 +604,14 @@ export function useArrivals(ids: string[]) {
 export function Empty({ emoji, title, text }: { emoji: string; title: string; text: string }) {
   return (
     <div className="animate-pop flex flex-col items-center px-8 py-14 text-center">
-      <div className="mb-4 text-5xl">{emoji}</div>
+      <div className="relative mb-5 grid size-24 place-items-center">
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] opacity-20 blur-xl"
+        />
+        <span aria-hidden className="absolute inset-2 rounded-full bg-sec/10 ring-1 ring-sec/20" />
+        <span className="relative text-[44px] leading-none">{emoji}</span>
+      </div>
       <p className="font-serif text-[22px] font-medium">{title}</p>
       <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{text}</p>
     </div>

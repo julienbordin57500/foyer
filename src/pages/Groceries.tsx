@@ -251,10 +251,15 @@ export default function GroceriesPage() {
       <div key={filter} className="animate-fade">
         {groups.map((g) => (
           <section key={g.id}>
-            <SectionTitle aside={g.items.length}>
-              <span className="text-[14px] normal-case">{g.emoji}</span>
-              {g.id}
-            </SectionTitle>
+            {/* Le rayon reste affiché en haut tant qu'on fait défiler ses articles. */}
+            <div className="sticky top-0 z-10 mt-3 pt-[env(safe-area-inset-top)]">
+              <div className="rounded-full bg-bg/80 py-1.5 backdrop-blur-xl">
+                <SectionTitle className="my-0" aside={g.items.length}>
+                  <span className="text-[15px] normal-case">{g.emoji}</span>
+                  <span className="text-[12.5px] text-ink/85">{g.id}</span>
+                </SectionTitle>
+              </div>
+            </div>
             <Card className="overflow-hidden">
               <ul>
                 {g.items.map((i) => (
@@ -371,8 +376,9 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
           run: () => removeWithUndo('grocery_items', item.id, item.name),
         }}
       >
-        <div className="flex min-h-14 items-center gap-3 px-4 py-2">
+        <div className="flex min-h-16 items-center gap-3.5 px-4 py-2.5">
           <CheckCircle
+            big
             checked={leaving}
             tone={ordered ? 'drive' : 'default'}
             onClick={advance}
@@ -382,7 +388,7 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
           </CheckCircle>
           <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
             <span
-              className={cx('block truncate text-[16px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}
+              className={cx('block truncate text-[17px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}
             >
               {item.name}
               {item.quantity && <span className="num ml-1.5 text-[14px] text-muted">× {item.quantity}</span>}
