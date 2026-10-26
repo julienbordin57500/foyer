@@ -1,67 +1,37 @@
-import { useState, type FormEvent } from "react";
-import {
-  BellRing,
-  ChevronRight,
-  CircleCheckBig,
-  Pencil,
-  Receipt,
-  Settings,
-  ShoppingCart,
-  SmilePlus,
-  Sparkles,
-} from "lucide-react";
-import type { Tab } from "../App";
-import { useMember, usePartner, useSession } from "../auth/AuthGate";
-import { useStore } from "../data/store";
-import { ago, dueLabel, euros, greeting, longDate } from "../lib/format";
-import { REACTIONS, type Note, type Reaction } from "../lib/types";
-import {
-  Avatar,
-  Button,
-  Card,
-  Composer,
-  Hero,
-  HeroButton,
-  SectionTitle,
-  Sheet,
-  SheetActions,
-  cx,
-  useArrivals,
-} from "../components/ui";
-import SettingsSheet from "../components/SettingsSheet";
-import { SearchButton } from "../components/Search";
-import { today } from "../lib/dates";
+import { useState, type FormEvent } from 'react'
+import { BellRing, ChevronRight, CircleCheckBig, Pencil, Receipt, Settings, ShoppingCart, SmilePlus, Sparkles } from 'lucide-react'
+import type { Tab } from '../App'
+import { useMember, usePartner, useSession } from '../auth/AuthGate'
+import { useStore } from '../data/store'
+import { ago, dueLabel, euros, greeting, longDate } from '../lib/format'
+import { REACTIONS, type Note, type Reaction } from '../lib/types'
+import { Avatar, Button, Card, Composer, Hero, HeroButton, SectionTitle, Sheet, SheetActions, cx, useArrivals } from '../components/ui'
+import SettingsSheet from '../components/SettingsSheet'
+import { SearchButton } from '../components/Search'
+import { today } from '../lib/dates'
 
 export default function HomePage({ go }: { go(t: Tab): void }) {
-  const { me } = useSession();
-  const { data } = useStore();
-  const [settings, setSettings] = useState(false);
+  const { me } = useSession()
+  const { data } = useStore()
+  const [settings, setSettings] = useState(false)
 
-  const groceries = data.grocery_items.filter((i) => i.status !== "bought");
-  const toOrder = groceries.filter(
-    (i) => i.place === "drive" && i.status === "todo",
-  ).length;
-  const todos = data.todos.filter((t) => !t.done_at);
-  const mine = todos.filter(
-    (t) => t.assignee === me.user_id || t.assignee === null,
-  );
-  const late = todos.filter(
-    (t) => t.due_date && dueLabel(t.due_date).late,
-  ).length;
-  const todayCount = todos.filter(
-    (t) => t.due_date && dueLabel(t.due_date).days === 0,
-  ).length;
+  const groceries = data.grocery_items.filter((i) => i.status !== 'bought')
+  const toOrder = groceries.filter((i) => i.place === 'drive' && i.status === 'todo').length
+  const todos = data.todos.filter((t) => !t.done_at)
+  const mine = todos.filter((t) => t.assignee === me.user_id || t.assignee === null)
+  const late = todos.filter((t) => t.due_date && dueLabel(t.due_date).late).length
+  const todayCount = todos.filter((t) => t.due_date && dueLabel(t.due_date).days === 0).length
   const lists = data.lists
     .map((l) => {
-      const items = data.list_items.filter((i) => i.list_id === l.id);
+      const items = data.list_items.filter((i) => i.list_id === l.id)
       return {
         ...l,
         total: items.length,
         done: items.filter((i) => i.done).length,
-      };
+      }
     })
-    .filter((l) => l.total > 0 && l.done < l.total);
-  const [, ...olderNotes] = data.notes;
+    .filter((l) => l.total > 0 && l.done < l.total)
+  const [, ...olderNotes] = data.notes
 
   return (
     <div className="animate-page">
@@ -88,28 +58,20 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
           section="courses"
           emoji="🛒"
           value={groceries.length}
-          label={
-            groceries.length > 1 ? "articles à prendre" : "article à prendre"
-          }
+          label={groceries.length > 1 ? 'articles à prendre' : 'article à prendre'}
           detail={toOrder ? `${toOrder} à commander au drive` : undefined}
-          onClick={() => go("courses")}
+          onClick={() => go('courses')}
         />
         <Tile
           section="afaire"
           emoji="📝"
           value={todos.length}
-          label={todos.length > 1 ? "choses à faire" : "chose à faire"}
+          label={todos.length > 1 ? 'choses à faire' : 'chose à faire'}
           detail={
-            late
-              ? `${late} en retard`
-              : todayCount
-                ? `${todayCount} pour aujourd'hui`
-                : mine.length
-                  ? `${mine.length} pour moi`
-                  : undefined
+            late ? `${late} en retard` : todayCount ? `${todayCount} pour aujourd'hui` : mine.length ? `${mine.length} pour moi` : undefined
           }
           alert={late > 0}
-          onClick={() => go("afaire")}
+          onClick={() => go('afaire')}
         />
       </div>
 
@@ -119,20 +81,13 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
           <Card className="overflow-hidden">
             <ul>
               {lists.map((l) => (
-                <li
-                  key={l.id}
-                  className="border-b border-line/60 last:border-0"
-                >
+                <li key={l.id} className="border-b border-line/60 last:border-0">
                   <button
-                    onClick={() => go("listes")}
+                    onClick={() => go('listes')}
                     className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left transition-colors active:bg-surface-2"
                   >
-                    <span className="grid size-8 place-items-center rounded-xl bg-sec/15 text-[16px]">
-                      {l.emoji}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[16px]">
-                      {l.title}
-                    </span>
+                    <span className="grid size-8 place-items-center rounded-xl bg-sec/15 text-[16px]">{l.emoji}</span>
+                    <span className="min-w-0 flex-1 truncate text-[16px]">{l.title}</span>
                     <span className="num text-[13px] font-semibold text-sec">
                       {l.done}/{l.total}
                     </span>
@@ -149,7 +104,7 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
 
       <SettingsSheet open={settings} onClose={() => setSettings(false)} />
     </div>
-  );
+  )
 }
 
 function Tile({
@@ -161,13 +116,13 @@ function Tile({
   alert,
   onClick,
 }: {
-  section: Tab;
-  emoji: string;
-  value: number;
-  label: string;
-  detail?: string;
-  alert?: boolean;
-  onClick(): void;
+  section: Tab
+  emoji: string
+  value: number
+  label: string
+  detail?: string
+  alert?: boolean
+  onClick(): void
 }) {
   return (
     <button
@@ -176,51 +131,38 @@ function Tile({
       className="card-glow flex min-h-[150px] flex-col rounded-[24px] bg-surface bg-gradient-to-b from-white/[0.035] to-transparent p-4 text-left transition duration-300 ease-smooth active:scale-[0.97]"
     >
       <span className="flex items-center justify-between">
-        <span className="grid size-9 place-items-center rounded-xl bg-sec/15 text-[18px]">
-          {emoji}
-        </span>
+        <span className="grid size-9 place-items-center rounded-xl bg-sec/15 text-[18px]">{emoji}</span>
         <ChevronRight size={16} className="text-faint" />
       </span>
-      <span className="num mt-auto block pt-3 font-serif text-[40px] font-medium leading-none text-sec">
-        {value}
-      </span>
+      <span className="num mt-auto block pt-3 font-serif text-[40px] font-medium leading-none text-sec">{value}</span>
       <span className="mt-1 block text-[13px] text-muted">{label}</span>
-      <span
-        className={cx(
-          "mt-1.5 block min-h-4 text-[12.5px] font-medium leading-4",
-          alert ? "text-late" : "text-ink/80",
-        )}
-      >
-        {detail}
-      </span>
+      <span className={cx('mt-1.5 block min-h-4 text-[12.5px] font-medium leading-4', alert ? 'text-late' : 'text-ink/80')}>{detail}</span>
     </button>
-  );
+  )
 }
 
 /** Dernier petit mot, en grand dans l'en-tête, avec de quoi répondre. */
 function LatestNote({ notes }: { notes: Note[] }) {
-  const { insert, me } = useStore();
-  const partner = usePartner();
-  const member = useMember();
-  const [text, setText] = useState("");
-  const [editing, setEditing] = useState<Note | null>(null);
-  const isNew = useArrivals(notes.map((n) => n.id));
-  const latest = notes[0];
-  const pronoun = partner ? member(partner.user_id).pronoun : "il";
+  const { insert, me } = useStore()
+  const partner = usePartner()
+  const member = useMember()
+  const [text, setText] = useState('')
+  const [editing, setEditing] = useState<Note | null>(null)
+  const isNew = useArrivals(notes.map((n) => n.id))
+  const latest = notes[0]
+  const pronoun = partner ? member(partner.user_id).pronoun : 'il'
 
   const send = () => {
-    const body = text.trim();
-    if (!body) return;
-    insert("notes", { body });
-    setText("");
-  };
+    const body = text.trim()
+    if (!body) return
+    insert('notes', { body })
+    setText('')
+  }
 
   return (
     <div className="space-y-3">
       <div className="rounded-[24px] bg-white/14 p-4 ring-1 ring-white/20 backdrop-blur-md">
-        <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] opacity-75">
-          Petits mots
-        </p>
+        <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] opacity-75">Petits mots</p>
         {latest ? (
           <NoteBody
             key={latest.id}
@@ -231,8 +173,7 @@ function LatestNote({ notes }: { notes: Note[] }) {
           />
         ) : (
           <p className="font-serif text-[21px] italic leading-snug opacity-85">
-            Laissez un premier mot{partner ? ` à ${partner.display_name}` : ""}{" "}
-            : {pronoun} le verra en ouvrant l'app.
+            Laissez un premier mot{partner ? ` à ${partner.display_name}` : ''} : {pronoun} le verra en ouvrant l'app.
           </p>
         )}
       </div>
@@ -240,33 +181,27 @@ function LatestNote({ notes }: { notes: Note[] }) {
         value={text}
         onChange={setText}
         onSubmit={send}
-        placeholder={
-          partner ? `Un mot pour ${partner.display_name}…` : "Écrire un mot…"
-        }
+        placeholder={partner ? `Un mot pour ${partner.display_name}…` : 'Écrire un mot…'}
         label="Écrire un petit mot"
         enterKeyHint="send"
         onHero
       />
       <NoteSheet note={editing} onClose={() => setEditing(null)} />
     </div>
-  );
+  )
 }
 
 function OlderNotes({ notes }: { notes: Note[] }) {
-  const { me } = useStore();
-  const [showAll, setShowAll] = useState(false);
-  const [editing, setEditing] = useState<Note | null>(null);
-  const shown = showAll ? notes : notes.slice(0, 3);
+  const { me } = useStore()
+  const [showAll, setShowAll] = useState(false)
+  const [editing, setEditing] = useState<Note | null>(null)
+  const shown = showAll ? notes : notes.slice(0, 3)
 
   return (
     <>
       <SectionTitle
         aside={
-          notes.length > 3 && (
-            <button onClick={() => setShowAll(!showAll)}>
-              {showAll ? "Réduire" : `Tout voir (${notes.length})`}
-            </button>
-          )
+          notes.length > 3 && <button onClick={() => setShowAll(!showAll)}>{showAll ? 'Réduire' : `Tout voir (${notes.length})`}</button>
         }
       >
         Mots précédents
@@ -274,79 +209,52 @@ function OlderNotes({ notes }: { notes: Note[] }) {
       <Card className="overflow-hidden">
         <ul>
           {shown.map((n) => (
-            <li
-              key={n.id}
-              className="flex items-start gap-3 border-b border-line/60 px-4 py-3.5 last:border-0"
-            >
-              <NoteBody
-                note={n}
-                onEdit={n.author === me ? () => setEditing(n) : undefined}
-              />
+            <li key={n.id} className="flex items-start gap-3 border-b border-line/60 px-4 py-3.5 last:border-0">
+              <NoteBody note={n} onEdit={n.author === me ? () => setEditing(n) : undefined} />
             </li>
           ))}
         </ul>
       </Card>
       <NoteSheet note={editing} onClose={() => setEditing(null)} />
     </>
-  );
+  )
 }
 
 /** Un mot : son texte, qui l'a écrit et quand. Le sien se touche pour le modifier. */
-function NoteBody({
-  note,
-  big,
-  animate,
-  onEdit,
-}: {
-  note: Note;
-  big?: boolean;
-  animate?: boolean;
-  onEdit?(): void;
-}) {
-  const m = useMember()(note.author);
-  const Text = onEdit ? "button" : "p";
+function NoteBody({ note, big, animate, onEdit }: { note: Note; big?: boolean; animate?: boolean; onEdit?(): void }) {
+  const m = useMember()(note.author)
+  const Text = onEdit ? 'button' : 'p'
   return (
-    <div className={cx("min-w-0 flex-1", animate && "animate-pop")}>
+    <div className={cx('min-w-0 flex-1', animate && 'animate-pop')}>
       <Text
         {...(onEdit
           ? {
-              type: "button" as const,
+              type: 'button' as const,
               onClick: onEdit,
-              "aria-label": "Modifier ce mot",
+              'aria-label': 'Modifier ce mot',
             }
           : {})}
         className={cx(
-          "block w-full break-words text-left transition-opacity active:opacity-60",
-          big
-            ? "font-serif text-[24px] leading-[1.28]"
-            : "text-[15px] leading-snug",
+          'block w-full break-words text-left transition-opacity active:opacity-60',
+          big ? 'font-serif text-[24px] leading-[1.28]' : 'text-[15px] leading-snug',
         )}
       >
         {big ? `« ${note.body} »` : note.body}
       </Text>
-      <p
-        className={cx(
-          "flex items-center gap-1.5",
-          big ? "mt-3 text-[13px] opacity-80" : "mt-1.5 text-[12px] text-muted",
-        )}
-      >
+      <p className={cx('flex items-center gap-1.5', big ? 'mt-3 text-[13px] opacity-80' : 'mt-1.5 text-[12px] text-muted')}>
         <Avatar initial={m.initial} tone={m.tone} size="xs" />
         <span className="min-w-0 flex-1 truncate">
-          {m.isMe ? "Vous" : m.name} · {ago(note.created_at)}
+          {m.isMe ? 'Vous' : m.name} · {ago(note.created_at)}
         </span>
         {onEdit && (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="flex items-center gap-1 font-semibold active:opacity-60"
-          >
+          <button type="button" onClick={onEdit} className="flex items-center gap-1 font-semibold active:opacity-60">
             <Pencil size={12} /> Modifier
           </button>
         )}
       </p>
       <Reactions note={note} glass={big} />
     </div>
-  );
+  )
 }
 
 /** Modifier ou supprimer son mot ; la suppression demande une confirmation. */
@@ -355,35 +263,33 @@ function NoteSheet({ note, onClose }: { note: Note | null; onClose(): void }) {
     <Sheet open={note !== null} title="Votre petit mot" onClose={onClose}>
       {note && <NoteForm key={note.id} note={note} onClose={onClose} />}
     </Sheet>
-  );
+  )
 }
 
 function NoteForm({ note, onClose }: { note: Note; onClose(): void }) {
-  const { update, remove } = useStore();
-  const [body, setBody] = useState(note.body);
-  const [confirm, setConfirm] = useState(false);
+  const { update, remove } = useStore()
+  const [body, setBody] = useState(note.body)
+  const [confirm, setConfirm] = useState(false)
 
   const save = (e: FormEvent) => {
-    e.preventDefault();
-    const text = body.trim();
-    if (!text) return setConfirm(true);
-    if (text !== note.body) update("notes", note.id, { body: text });
-    onClose();
-  };
+    e.preventDefault()
+    const text = body.trim()
+    if (!text) return setConfirm(true)
+    if (text !== note.body) update('notes', note.id, { body: text })
+    onClose()
+  }
 
   if (confirm)
     return (
       <div className="flex animate-pop flex-col items-center gap-2 pb-1 pt-2 text-center">
         <p className="font-serif text-[22px]">Supprimer ce mot ?</p>
-        <p className="mb-3 line-clamp-2 text-[14px] text-muted">
-          « {note.body} »
-        </p>
+        <p className="mb-3 line-clamp-2 text-[14px] text-muted">« {note.body} »</p>
         <Button
           variant="danger"
           className="w-full"
           onClick={() => {
-            remove("notes", note.id);
-            onClose();
+            remove('notes', note.id)
+            onClose()
           }}
         >
           Oui, supprimer
@@ -396,7 +302,7 @@ function NoteForm({ note, onClose }: { note: Note; onClose(): void }) {
           Annuler
         </button>
       </div>
-    );
+    )
 
   return (
     <form onSubmit={save} className="flex flex-col gap-2">
@@ -407,60 +313,51 @@ function NoteForm({ note, onClose }: { note: Note; onClose(): void }) {
         aria-label="Texte du mot"
         className="w-full resize-none rounded-2xl bg-surface-2 px-4 py-4 text-center font-serif text-[21px] leading-snug outline-none ring-1 ring-line/50 focus:ring-2 focus:ring-sec/50"
       />
-      <SheetActions
-        deleteLabel="Supprimer ce mot"
-        onDelete={() => setConfirm(true)}
-      />
+      <SheetActions deleteLabel="Supprimer ce mot" onDelete={() => setConfirm(true)} />
     </form>
-  );
+  )
 }
 
 /** Réactions sous un petit mot : une par personne, un appui pour changer ou retirer. */
 function Reactions({ note, glass }: { note: Note; glass?: boolean }) {
-  const { data, insert, update, remove, me } = useStore();
-  const member = useMember();
-  const [picking, setPicking] = useState(false);
-  const list = data.note_reactions.filter((r) => r.note_id === note.id);
-  const mine = list.find((r) => r.user_id === me);
+  const { data, insert, update, remove, me } = useStore()
+  const member = useMember()
+  const [picking, setPicking] = useState(false)
+  const list = data.note_reactions.filter((r) => r.note_id === note.id)
+  const mine = list.find((r) => r.user_id === me)
 
   const choose = (emoji: Reaction) => {
-    if (mine?.emoji === emoji) remove("note_reactions", mine.id);
-    else if (mine) update("note_reactions", mine.id, { emoji });
-    else insert("note_reactions", { note_id: note.id, emoji });
-    setPicking(false);
-  };
+    if (mine?.emoji === emoji) remove('note_reactions', mine.id)
+    else if (mine) update('note_reactions', mine.id, { emoji })
+    else insert('note_reactions', { note_id: note.id, emoji })
+    setPicking(false)
+  }
 
-  const chip = glass ? "bg-white/16 ring-white/25" : "bg-surface-2 ring-line";
+  const chip = glass ? 'bg-white/16 ring-white/25' : 'bg-surface-2 ring-line'
   return (
     <div className="mt-2.5 flex min-h-8 flex-wrap items-center gap-1.5">
       {list.map((r) => {
-        const who = member(r.user_id);
+        const who = member(r.user_id)
         return (
           <button
             key={r.id}
             onClick={() => r.user_id === me && choose(r.emoji)}
-            title={
-              who.isMe
-                ? "Votre réaction (appuyer pour retirer)"
-                : `${who.name} a réagi`
-            }
+            title={who.isMe ? 'Votre réaction (appuyer pour retirer)' : `${who.name} a réagi`}
             className={cx(
-              "animate-pop flex h-8 items-center gap-1 rounded-full pl-2 pr-1.5 text-[15px] ring-1 transition active:scale-90",
+              'animate-pop flex h-8 items-center gap-1 rounded-full pl-2 pr-1.5 text-[15px] ring-1 transition active:scale-90',
               chip,
             )}
           >
             {r.emoji}
             <Avatar initial={who.initial} tone={who.tone} size="xs" />
           </button>
-        );
+        )
       })}
       {picking ? (
         <div
           className={cx(
-            "animate-pop flex h-8 items-center gap-0.5 rounded-full px-1 ring-1",
-            glass
-              ? "bg-white/22 ring-white/30 backdrop-blur-md"
-              : "bg-surface shadow-soft ring-line",
+            'animate-pop flex h-8 items-center gap-0.5 rounded-full px-1 ring-1',
+            glass ? 'bg-white/22 ring-white/30 backdrop-blur-md' : 'bg-surface shadow-soft ring-line',
           )}
         >
           {REACTIONS.map((e, i) => (
@@ -479,153 +376,118 @@ function Reactions({ note, glass }: { note: Note; glass?: boolean }) {
         <button
           onClick={() => setPicking(true)}
           aria-label="Ajouter une réaction"
-          className={cx(
-            "grid size-8 place-items-center rounded-full transition active:scale-90",
-            glass ? "opacity-75" : "text-faint",
-          )}
+          className={cx('grid size-8 place-items-center rounded-full transition active:scale-90', glass ? 'opacity-75' : 'text-faint')}
         >
           <SmilePlus size={17} />
         </button>
       )}
     </div>
-  );
+  )
 }
 
 type SummaryLine = {
-  key: string;
-  section: Tab;
-  icon: React.ReactNode;
-  title: string;
-  items: { text: string; meta?: string; urgent?: boolean }[];
-};
+  key: string
+  section: Tab
+  icon: React.ReactNode
+  title: string
+  items: { text: string; meta?: string; urgent?: boolean }[]
+}
 
 const hhmm = (iso: string) => {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-};
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 /** Le résumé du jour : rappels, tâches du jour, courses, et l'autre parti(e) aux courses. */
 function DaySummary({ go }: { go(t: Tab): void }) {
-  const { data, me } = useStore();
-  const member = useMember();
-  const start = today();
-  const end = new Date(start.getTime() + 86_400_000);
+  const { data, me } = useStore()
+  const member = useMember()
+  const start = today()
+  const end = new Date(start.getTime() + 86_400_000)
   const isToday = (iso: string) => {
-    const t = new Date(iso).getTime();
-    return t >= start.getTime() && t < end.getTime();
-  };
-  const forMe = (to: string | null) => to === null || to === me;
+    const t = new Date(iso).getTime()
+    return t >= start.getTime() && t < end.getTime()
+  }
+  const forMe = (to: string | null) => to === null || to === me
 
   // Rappels encore à venir aujourd'hui (tâches et éléments de liste), du plus proche au plus lointain.
   const reminders = [
     ...data.todos
-      .filter(
-        (t) =>
-          !t.done_at &&
-          t.remind_at &&
-          !t.reminded_at &&
-          isToday(t.remind_at) &&
-          forMe(t.remind_to),
-      )
+      .filter((t) => !t.done_at && t.remind_at && !t.reminded_at && isToday(t.remind_at) && forMe(t.remind_to))
       .map((t) => ({ at: t.remind_at!, text: t.title })),
     ...data.list_items
-      .filter(
-        (i) =>
-          !i.done &&
-          i.remind_at &&
-          !i.reminded_at &&
-          isToday(i.remind_at) &&
-          forMe(i.remind_to),
-      )
+      .filter((i) => !i.done && i.remind_at && !i.reminded_at && isToday(i.remind_at) && forMe(i.remind_to))
       .map((i) => ({ at: i.remind_at!, text: i.text })),
-  ].sort((a, b) => a.at.localeCompare(b.at));
+  ].sort((a, b) => a.at.localeCompare(b.at))
 
   const tasks = data.todos.filter(
-    (t) =>
-      !t.done_at &&
-      t.due_date &&
-      dueLabel(t.due_date).days <= 0 &&
-      (t.assignee === null || t.assignee === me),
-  );
-  const late = tasks.filter((t) => dueLabel(t.due_date!).late);
-  const groceries = data.grocery_items.filter((i) => i.status !== "bought");
-  const ping = data.pings.find(
-    (p) =>
-      p.author !== me &&
-      Date.now() - new Date(p.created_at).getTime() < 2 * 3_600_000,
-  );
+    (t) => !t.done_at && t.due_date && dueLabel(t.due_date).days <= 0 && (t.assignee === null || t.assignee === me),
+  )
+  const late = tasks.filter((t) => dueLabel(t.due_date!).late)
+  const groceries = data.grocery_items.filter((i) => i.status !== 'bought')
+  const ping = data.pings.find((p) => p.author !== me && Date.now() - new Date(p.created_at).getTime() < 2 * 3_600_000)
 
-  const lines: SummaryLine[] = [];
+  const lines: SummaryLine[] = []
   if (reminders.length)
     lines.push({
-      key: "rappels",
-      section: "afaire",
+      key: 'rappels',
+      section: 'afaire',
       icon: <BellRing size={17} />,
-      title: `${reminders.length} rappel${reminders.length > 1 ? "s" : ""}`,
-      items: reminders
-        .slice(0, 3)
-        .map((r) => ({
-          text: r.text,
-          meta: hhmm(r.at),
-          urgent: new Date(r.at).getTime() - Date.now() < 3_600_000,
-        })),
-    });
+      title: `${reminders.length} rappel${reminders.length > 1 ? 's' : ''}`,
+      items: reminders.slice(0, 3).map((r) => ({
+        text: r.text,
+        meta: hhmm(r.at),
+        urgent: new Date(r.at).getTime() - Date.now() < 3_600_000,
+      })),
+    })
   if (tasks.length)
     lines.push({
-      key: "taches",
-      section: "afaire",
+      key: 'taches',
+      section: 'afaire',
       icon: <CircleCheckBig size={17} />,
-      title: `${tasks.length} chose${tasks.length > 1 ? "s" : ""} à faire${late.length ? ` · ${late.length} en retard` : ""}`,
-      items: tasks
-        .slice(0, 3)
-        .map((t) => ({
-          text: t.title,
-          meta: dueLabel(t.due_date!).late ? "en retard" : undefined,
-          urgent: dueLabel(t.due_date!).late,
-        })),
-    });
+      title: `${tasks.length} chose${tasks.length > 1 ? 's' : ''} à faire${late.length ? ` · ${late.length} en retard` : ''}`,
+      items: tasks.slice(0, 3).map((t) => ({
+        text: t.title,
+        meta: dueLabel(t.due_date!).late ? 'en retard' : undefined,
+        urgent: dueLabel(t.due_date!).late,
+      })),
+    })
   // Factures en retard ou à payer dans les 3 prochains jours (pour moi ou pour nous deux).
   const bills = data.bills
-    .filter(
-      (b) =>
-        !b.paid_at &&
-        !b.auto_debit &&
-        dueLabel(b.due_date).days <= 3 &&
-        (b.assignee === null || b.assignee === me),
-    )
-    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+    .filter((b) => !b.paid_at && !b.auto_debit && dueLabel(b.due_date).days <= 3 && (b.assignee === null || b.assignee === me))
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
   if (bills.length)
     lines.push({
-      key: "factures",
-      section: "factures",
+      key: 'factures',
+      section: 'factures',
       icon: <Receipt size={17} />,
-      title: `${bills.length} facture${bills.length > 1 ? "s" : ""} à payer · ${euros(bills.reduce((s, b) => s + b.amount, 0))}`,
+      title: `${bills.length} facture${bills.length > 1 ? 's' : ''} à payer · ${euros(bills.reduce((s, b) => s + b.amount, 0))}`,
       items: bills.slice(0, 3).map((b) => {
-        const d = dueLabel(b.due_date);
+        const d = dueLabel(b.due_date)
         return {
           text: `${b.title} · ${euros(b.amount)}`,
-          meta: d.late ? "en retard" : d.text,
+          meta: d.late ? 'en retard' : d.text,
           urgent: d.late || d.days === 0,
-        };
+        }
       }),
-    });
+    })
   if (groceries.length || ping) {
-    const who = ping ? member(ping.author) : null;
+    const who = ping ? member(ping.author) : null
     lines.push({
-      key: "courses",
-      section: "courses",
+      key: 'courses',
+      section: 'courses',
       icon: <ShoppingCart size={17} />,
-      title: `${groceries.length} article${groceries.length > 1 ? "s" : ""} à prendre`,
+      title: `${groceries.length} article${groceries.length > 1 ? 's' : ''} à prendre`,
       items: who
         ? [
             {
-              text: `${who.name} est parti${who.pronoun === "elle" ? "e" : ""} faire les courses`,
+              text: `${who.name} est parti${who.pronoun === 'elle' ? 'e' : ''} faire les courses`,
               meta: ago(ping!.created_at),
               urgent: true,
             },
           ]
         : [],
-    });
+    })
   }
 
   return (
@@ -638,56 +500,34 @@ function DaySummary({ go }: { go(t: Tab): void }) {
               <Sparkles size={19} />
             </span>
             <span>
-              <span className="block font-serif text-[19px] font-medium">
-                Journée tranquille
-              </span>
-              <span className="block text-[13px] text-muted">
-                Rien de prévu pour vous aujourd'hui.
-              </span>
+              <span className="block font-serif text-[19px] font-medium">Journée tranquille</span>
+              <span className="block text-[13px] text-muted">Rien de prévu pour vous aujourd'hui.</span>
             </span>
           </div>
         ) : (
           <ul>
             {lines.map((l) => (
-              <li
-                key={l.key}
-                data-section={l.section}
-                className="border-b border-line/60 last:border-0"
-              >
+              <li key={l.key} data-section={l.section} className="border-b border-line/60 last:border-0">
                 <button
                   onClick={() => go(l.section)}
                   className="flex w-full gap-3 px-4 py-3.5 text-left transition-colors active:bg-surface-2"
                 >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sec/15 text-sec">
-                    {l.icon}
-                  </span>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sec/15 text-sec">{l.icon}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="text-[15px] font-semibold">
-                        {l.title}
-                      </span>
+                      <span className="text-[15px] font-semibold">{l.title}</span>
                       <ChevronRight size={16} className="text-faint" />
                     </span>
                     {l.items.length > 0 && (
                       <span className="mt-1.5 block space-y-1">
                         {l.items.map((it, i) => (
-                          <span
-                            key={i}
-                            className="flex items-baseline gap-2 text-[14px]"
-                          >
+                          <span key={i} className="flex items-baseline gap-2 text-[14px]">
                             {it.meta && (
-                              <span
-                                className={cx(
-                                  "num shrink-0 text-[12.5px] font-semibold",
-                                  it.urgent ? "text-late" : "text-sec",
-                                )}
-                              >
+                              <span className={cx('num shrink-0 text-[12.5px] font-semibold', it.urgent ? 'text-late' : 'text-sec')}>
                                 {it.meta}
                               </span>
                             )}
-                            <span className="truncate text-muted">
-                              {it.text}
-                            </span>
+                            <span className="truncate text-muted">{it.text}</span>
                           </span>
                         ))}
                       </span>
@@ -700,5 +540,5 @@ function DaySummary({ go }: { go(t: Tab): void }) {
         )}
       </Card>
     </>
-  );
+  )
 }

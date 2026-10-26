@@ -35,7 +35,11 @@ export const PLACES: { value: Place; label: string; short: string }[] = [
   { value: 'drive', label: 'Au drive', short: 'Drive' },
   { value: 'both', label: 'Drive ou magasin', short: 'Les deux' },
 ]
-const nextPlace: Record<Place, Place> = { store: 'drive', drive: 'both', both: 'store' }
+const nextPlace: Record<Place, Place> = {
+  store: 'drive',
+  drive: 'both',
+  both: 'store',
+}
 const inDrive = (p: Place) => p !== 'store'
 const inStore = (p: Place) => p !== 'drive'
 
@@ -82,6 +86,32 @@ export default function GroceriesPage() {
   const parsed = splitQuantity(text)
   const preview = parsed.name ? guessCategory(parsed.name) : null
 
+  // Suggestions : ce qu'on a déjà acheté et dont un mot commence par ce qu'on tape.
+  const query = normalizeName(parsed.name)
+  const suggestions =
+    query.length < 2
+      ? []
+      : data.grocery_items
+          .filter((i) => i.status === 'bought' && normalizeName(i.name) !== query)
+          .filter((i) =>
+            normalizeName(i.name)
+              .split(/[^a-z0-9]+/)
+              .some((w) => w.startsWith(query)),
+          )
+          .sort((a, b) => (b.bought_at ?? '').localeCompare(a.bought_at ?? ''))
+          .slice(0, 4)
+
+  const putBack = (item: GroceryItem) => {
+    update('grocery_items', item.id, {
+      status: 'todo',
+      bought_at: null,
+      place,
+      quantity: parsed.quantity,
+    })
+    setText('')
+    inputRef.current?.focus()
+  }
+
   const add = () => {
     if (!parsed.name) return
     const name = capitalize(parsed.name)
@@ -92,9 +122,14 @@ export default function GroceriesPage() {
       if (parsed.quantity) update('grocery_items', existing.id, { quantity: parsed.quantity })
     } else if (existing) {
       // Déjà acheté par le passé : on le remet sur la liste, avec son rayon.
-      update('grocery_items', existing.id, { status: 'todo', bought_at: null, place, quantity: parsed.quantity })
+      return putBack(existing)
     } else {
-      insert('grocery_items', { name, quantity: parsed.quantity, category: guessCategory(name), place })
+      insert('grocery_items', {
+        name,
+        quantity: parsed.quantity,
+        category: guessCategory(name),
+        place,
+      })
     }
     setText('')
     inputRef.current?.focus()
@@ -140,14 +175,31 @@ export default function GroceriesPage() {
             </button>
           }
         />
-        <p className={cx('h-4 px-4 pt-2 text-[13px] transition-opacity duration-300', preview ? 'opacity-85' : 'opacity-0')}>
-          {preview && (
-            <>
-              {EMOJI[preview]} {preview}
-              {parsed.quantity && <> · quantité {parsed.quantity}</>}
-            </>
-          )}
-        </p>
+        {suggestions.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 px-1 pt-2.5" aria-label="Déjà achetés">
+            {suggestions.map((i) => (
+              <button
+                key={i.id}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => putBack(i)}
+                className="flex h-8 animate-pop items-center gap-1.5 rounded-full bg-white/16 px-3 text-[13px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition active:scale-95"
+              >
+                <span className="text-[12px]">{EMOJI[i.category]}</span>
+                {i.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className={cx('h-4 px-4 pt-2 text-[13px] transition-opacity duration-300', preview ? 'opacity-85' : 'opacity-0')}>
+            {preview && (
+              <>
+                {EMOJI[preview]} {preview}
+                {parsed.quantity && <> · quantité {parsed.quantity}</>}
+              </>
+            )}
+          </p>
+        )}
       </Hero>
 
       <PartnerShopping />
@@ -220,10 +272,20 @@ export default function GroceriesPage() {
             // Fin des courses : tout ce qui est affiché passe en « acheté », avec « Annuler » au cas où.
             const before = shown.map((i) => ({ id: i.id, status: i.status }))
             const now = new Date().toISOString()
-            before.forEach((b) => update('grocery_items', b.id, { status: 'bought', bought_at: now }))
+            before.forEach((b) =>
+              update('grocery_items', b.id, {
+                status: 'bought',
+                bought_at: now,
+              }),
+            )
             setAllDone(Date.now())
             showToast(`${before.length} articles achetés`, () =>
-              before.forEach((b) => update('grocery_items', b.id, { status: b.status, bought_at: null })),
+              before.forEach((b) =>
+                update('grocery_items', b.id, {
+                  status: b.status,
+                  bought_at: null,
+                }),
+              ),
             )
           }}
           className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold text-sec ring-1 ring-sec/30 transition active:scale-[0.98] active:bg-sec/10"
@@ -239,7 +301,12 @@ export default function GroceriesPage() {
             {bought.map((i) => (
               <button
                 key={i.id}
-                onClick={() => update('grocery_items', i.id, { status: 'todo', bought_at: null })}
+                onClick={() =>
+                  update('grocery_items', i.id, {
+                    status: 'todo',
+                    bought_at: null,
+                  })
+                }
                 className="flex h-9 items-center gap-1.5 rounded-full bg-surface-2 pl-3 pr-3.5 text-[14px] text-muted transition duration-200 ease-smooth active:scale-95"
                 title={`Remettre ${i.name} sur la liste`}
               >
@@ -273,7 +340,14 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
 
   const buy = (delay = 560) => {
     setLeaving(true)
-    setTimeout(() => update('grocery_items', item.id, { status: 'bought', bought_at: new Date().toISOString() }), delay)
+    setTimeout(
+      () =>
+        update('grocery_items', item.id, {
+          status: 'bought',
+          bought_at: new Date().toISOString(),
+        }),
+      delay,
+    )
   }
   // Drive seul : à commander → commandé → acheté. Sinon : à acheter → acheté.
   const advance = () => {
@@ -284,7 +358,12 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
   return (
     <Collapsible leaving={leaving} className={cx('border-b border-line/70 last:border-0', fresh && 'animate-pop')}>
       <SwipeRow
-        right={{ label: 'Acheté', icon: <Check size={18} strokeWidth={2.6} />, tone: 'done', run: () => buy(200) }}
+        right={{
+          label: 'Acheté',
+          icon: <Check size={18} strokeWidth={2.6} />,
+          tone: 'done',
+          run: () => buy(200),
+        }}
         left={{
           label: 'Supprimer',
           icon: <Trash2 size={18} />,
@@ -361,7 +440,10 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
         icon={<LayoutGrid size={18} />}
         value={category}
         onChange={setCategory}
-        options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.emoji}  ${c.id}` }))}
+        options={CATEGORIES.map((c) => ({
+          value: c.id,
+          label: `${c.emoji}  ${c.id}`,
+        }))}
       />
       <OptionRow<Place>
         label="Où ?"
