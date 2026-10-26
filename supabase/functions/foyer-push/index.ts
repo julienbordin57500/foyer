@@ -170,6 +170,35 @@ async function billReminders(recipientsOf: (h: string, to: string | null) => Pro
   return sent
 }
 
+/** Le point du matin, à 9 h (Paris) : une seule notification par personne, seulement s'il y a quelque chose. */
+async function morningDigest() {
+  const { day, hour } = parisNow()
+  if (hour !== 9) return 0
+  const { data: members } = await sb
+    .from('members')
+    .update({ digest_sent_on: day })
+    .eq('morning_digest', true)
+    .or(`digest_sent_on.is.null,digest_sent_on.lt.${day}`)
+    .select('user_id, household_id')
+  let sent = 0
+  for (const m of members ?? []) {
+    const h = m.household_id
+    const [todos, bills, groceries] = await Promise.all([
+      sb.from('todos').select('due_date, assignee').eq('household_id', h).is('done_at', null).lte('due_date', day),
+      sb.from('bills').select('title, due_date').eq('household_id', h).is('paid_at', null).lte('due_date', addDaysISO(day, 1)),
+      sb.from('grocery_items').select('id', { count: 'exact', head: true }).eq('household_id', h).neq('status', 'bought'),
+    ])
+    const mine = (todos.data ?? []).filter((t) => !t.assignee || t.assignee === m.user_id)
+    const late = mine.filter((t) => t.due_date < day).length
+    const parts: string[] = []
+    if (mine.length) parts.push(`${mine.length} chose${mine.length > 1 ? 's' : ''} à faire${late ? ` (dont ${late} en retard)` : ''}`)
+    for (const b of bills.data ?? []) parts.push(`${b.title} ${b.due_date < day ? 'en retard' : b.due_date === day ? "aujourd'hui" : 'demain'}`)
+    if (groceries.count) parts.push(`${groceries.count} article${groceries.count > 1 ? 's' : ''} en courses`)
+    if (parts.length) sent += await send([m.user_id], '☀️ Aujourd’hui', parts.join(' · '), mine.length ? 'afaire' : 'accueil')
+  }
+  return sent
+}
+
 // ─── Calendrier ────────────────────────────────────────────────────────────
 const icsDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/[,;]/g, (c) => `\\${c}`).replace(/\n/g, '\\n').slice(0, 200)
@@ -256,6 +285,7 @@ async function sendReminders() {
     sent += await send(await recipientsOf(i.household_id, i.remind_to), `🔔 ${list ? `${list.emoji} ${list.title}` : 'Rappel'}`, i.text, 'listes')
   }
   sent += await billReminders(recipientsOf)
+  sent += await morningDigest()
   return sent
 }
 

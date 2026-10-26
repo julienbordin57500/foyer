@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Bell, Check, Copy, LogOut, Monitor, Moon, Sun } from 'lucide-react'
+import { Bell, Check, Copy, LogOut, Monitor, Moon, Sun, Sunrise } from 'lucide-react'
 import { useSession } from '../auth/AuthGate'
 import { useTheme, type ThemePref } from '../lib/theme'
 import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
-import { Avatar, Button, Segmented, Sheet, cx } from './ui'
+import { supabase } from '../lib/supabase'
+import { Avatar, Button, Segmented, Sheet, ToggleRow, cx } from './ui'
 
 export default function SettingsSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { household, members, me, demo, signOut } = useSession()
@@ -59,7 +60,7 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
       />
       <p className="mb-6 mt-1.5 px-1 text-xs text-muted">« Auto » suit le réglage du téléphone.</p>
 
-      {!demo && <Notifications householdId={household.id} />}
+      {!demo && <Notifications householdId={household.id} userId={me.user_id} />}
 
       <p className="mb-2 px-1 text-[13px] font-medium text-muted">{household.name}</p>
       <ul className="mb-6 divide-y divide-line rounded-2xl bg-surface-2 px-4">
@@ -102,14 +103,26 @@ const PUSH_HINT: Record<PushState, string> = {
   on: 'Activées sur ce téléphone. Vous pouvez les couper à tout moment.',
 }
 
-function Notifications({ householdId }: { householdId: string }) {
+function Notifications({ householdId, userId }: { householdId: string; userId: string }) {
   const [state, setState] = useState<PushState | null>(null)
+  const [morning, setMorning] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     pushState().then(setState)
-  }, [])
+    supabase
+      ?.from('members')
+      .select('morning_digest')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data }) => setMorning(data?.morning_digest ?? true))
+  }, [userId])
+
+  const toggleMorning = (on: boolean) => {
+    setMorning(on)
+    supabase?.from('members').update({ morning_digest: on }).eq('user_id', userId).then()
+  }
 
   const toggle = async () => {
     setBusy(true)
@@ -147,6 +160,17 @@ function Notifications({ householdId }: { householdId: string }) {
         </span>
       </button>
       <p className="mt-1.5 px-1 text-xs leading-relaxed text-muted">{error ?? PUSH_HINT[state]}</p>
+      {state === 'on' && morning !== null && (
+        <div className="mt-3">
+          <ToggleRow
+            label="Le point du matin"
+            hint="À 9 h, ce qui vous attend aujourd'hui"
+            icon={<Sunrise size={18} />}
+            checked={morning}
+            onChange={toggleMorning}
+          />
+        </div>
+      )}
     </div>
   )
 }
