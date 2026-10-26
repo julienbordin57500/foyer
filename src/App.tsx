@@ -140,8 +140,7 @@ export default function App() {
               {TABS.map(({ id, label, icon: Icon }) => (
                 <li key={id} data-section={id}>
                   <button
-                    // « À faire » s'ouvre sur les Listes ; si on y est déjà, on reste sur la partie affichée.
-                    onClick={() => go(id === 'afaire' ? (navTab === 'afaire' ? tab : 'listes') : id)}
+                    onClick={() => go(id === 'afaire' && navTab === 'afaire' ? tab : id)}
                     aria-current={navTab === id ? 'page' : undefined}
                     className={cx(
                       'relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-300 active:scale-95',

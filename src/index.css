@@ -572,7 +572,7 @@ nav {
 /* Tâches ↔ Listes : fondu enchaîné de la page (View Transitions), la barre d'onglets ne bouge pas. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.32s;
+  animation-duration: 0.24s;
   animation-timing-function: var(--ease-smooth);
 }
 nav {

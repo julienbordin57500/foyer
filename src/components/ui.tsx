@@ -63,7 +63,6 @@ export function Hero({
       <header
         className="animate-hero relative mt-2 overflow-hidden rounded-[32px] p-5 text-hero-ink ring-1 ring-white/15"
         style={{
-          viewTransitionName: 'hero',
           background: 'linear-gradient(140deg, var(--hero-from), var(--hero-to))',
           // Ombre courte et nette + liseré clair en haut : des bords francs.
           boxShadow: '0 14px 32px -20px var(--hero-to), inset 0 1px 0 rgba(255,255,255,0.3)',
