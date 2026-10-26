@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Check, Hash, LayoutGrid, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
+import { Check, ChevronDown, Hash, LayoutGrid, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
+import { CategoryPicker, useCategories } from '../components/CategoryPicker'
 import { useStore } from '../data/store'
 import { guessCategory } from '../lib/categorize'
 import { ago, capitalize, normalizeName, splitQuantity } from '../lib/format'
-import { CATEGORIES, type Category, type GroceryItem, type Place } from '../lib/types'
+import { type Category, type GroceryItem, type Place } from '../lib/types'
 import {
   Avatar,
   Button,
@@ -28,7 +29,6 @@ import {
 } from '../components/ui'
 
 type Filter = 'all' | 'drive' | 'store'
-const EMOJI = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.emoji])) as Record<Category, string>
 
 export const PLACES: { value: Place; label: string; short: string }[] = [
   { value: 'store', label: 'En magasin', short: 'Magasin' },
@@ -74,17 +74,29 @@ export default function GroceriesPage() {
   const shown = open.filter((i) => filter === 'all' || (filter === 'drive' ? inDrive(i.place) : inStore(i.place)))
   const isNew = useArrivals(data.grocery_items.map((i) => i.id))
 
-  const groups = useMemo(
-    () =>
-      CATEGORIES.map((c) => ({
-        ...c,
-        items: shown.filter((i) => i.category === c.id).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
-      })).filter((g) => g.items.length > 0),
-    [shown],
-  )
+  const { all: categories, emojiOf } = useCategories()
+  const groups = useMemo(() => {
+    // Un article dont le rayon perso a disparu garde quand même son groupe.
+    const names = [...categories.map((c) => c.id), ...shown.map((i) => i.category)].filter((n, i, a) => a.indexOf(n) === i)
+    return names
+      .map((id) => ({
+        id,
+        emoji: emojiOf(id),
+        items: shown.filter((i) => i.category === id).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+      }))
+      .filter((g) => g.items.length > 0)
+  }, [shown, categories, emojiOf])
 
   const parsed = splitQuantity(text)
-  const preview = parsed.name ? guessCategory(parsed.name) : null
+  // Rayon : celui choisi à la main, sinon celui de la dernière fois, sinon la suggestion automatique.
+  const [picked, setPicked] = useState<Category | null>(null)
+  const [choosing, setChoosing] = useState(false)
+  const known = parsed.name ? data.grocery_items.find((i) => normalizeName(i.name) === normalizeName(parsed.name))?.category : undefined
+  const suggested = parsed.name ? (known ?? guessCategory(parsed.name)) : null
+  const category = picked ?? suggested
+  useEffect(() => {
+    if (!text.trim()) setPicked(null)
+  }, [text])
 
   // Suggestions : ce qu'on a déjà acheté et dont un mot commence par ce qu'on tape.
   const query = normalizeName(parsed.name)
@@ -107,7 +119,9 @@ export default function GroceriesPage() {
       bought_at: null,
       place,
       quantity: parsed.quantity,
+      ...(picked ? { category: picked } : {}),
     })
+    setPicked(null)
     setText('')
     inputRef.current?.focus()
   }
@@ -119,7 +133,11 @@ export default function GroceriesPage() {
     const existing = data.grocery_items.find((i) => normalizeName(i.name) === key)
     if (existing && existing.status !== 'bought') {
       // Déjà sur la liste : on met juste à jour la quantité si on en a donné une.
-      if (parsed.quantity) update('grocery_items', existing.id, { quantity: parsed.quantity })
+      if (parsed.quantity || picked)
+        update('grocery_items', existing.id, {
+          ...(parsed.quantity ? { quantity: parsed.quantity } : {}),
+          ...(picked ? { category: picked } : {}),
+        })
     } else if (existing) {
       // Déjà acheté par le passé : on le remet sur la liste, avec son rayon.
       return putBack(existing)
@@ -127,11 +145,12 @@ export default function GroceriesPage() {
       insert('grocery_items', {
         name,
         quantity: parsed.quantity,
-        category: guessCategory(name),
+        category: category ?? guessCategory(name),
         place,
       })
     }
     setText('')
+    setPicked(null)
     inputRef.current?.focus()
   }
 
@@ -175,8 +194,26 @@ export default function GroceriesPage() {
             </button>
           }
         />
-        {suggestions.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5 px-1 pt-2.5" aria-label="Déjà achetés">
+        {/* Rayon choisi d'office ; un appui pour le changer. Jamais d'étape obligatoire. */}
+        <div
+          className={cx('flex h-9 items-center gap-2 px-1 pt-2 transition-opacity duration-300', category ? 'opacity-100' : 'opacity-0')}
+        >
+          {category && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setChoosing(true)}
+              aria-label={`Rayon : ${category}. Toucher pour changer`}
+              className="flex h-7 items-center gap-1 rounded-full bg-white/14 pl-2.5 pr-2 text-[13px] font-semibold ring-1 ring-white/20 transition active:scale-95"
+            >
+              {emojiOf(category)} {category}
+              <ChevronDown size={14} strokeWidth={2.6} className="opacity-75" />
+            </button>
+          )}
+          {parsed.quantity && <span className="text-[13px] opacity-85">× {parsed.quantity}</span>}
+        </div>
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 px-1 pt-2" aria-label="Déjà achetés">
             {suggestions.map((i) => (
               <button
                 key={i.id}
@@ -185,22 +222,34 @@ export default function GroceriesPage() {
                 onClick={() => putBack(i)}
                 className="flex h-8 animate-pop items-center gap-1.5 rounded-full bg-white/16 px-3 text-[13px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition active:scale-95"
               >
-                <span className="text-[12px]">{EMOJI[i.category]}</span>
+                <span className="text-[12px]">{emojiOf(i.category)}</span>
                 {i.name}
               </button>
             ))}
           </div>
-        ) : (
-          <p className={cx('h-4 px-4 pt-2 text-[13px] transition-opacity duration-300', preview ? 'opacity-85' : 'opacity-0')}>
-            {preview && (
-              <>
-                {EMOJI[preview]} {preview}
-                {parsed.quantity && <> · quantité {parsed.quantity}</>}
-              </>
-            )}
-          </p>
         )}
       </Hero>
+
+      <Sheet
+        open={choosing}
+        title="Rayon"
+        onClose={() => {
+          setChoosing(false)
+          inputRef.current?.focus()
+        }}
+      >
+        {category && (
+          <CategoryPicker
+            value={category}
+            suggested={suggested ?? undefined}
+            onChange={(c) => {
+              setPicked(c)
+              setChoosing(false)
+              inputRef.current?.focus()
+            }}
+          />
+        )}
+      </Sheet>
 
       <PartnerShopping />
 
@@ -441,16 +490,12 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
           className="w-28 bg-transparent text-right text-[15px] font-semibold outline-none placeholder:text-faint"
         />
       </label>
-      <OptionRow<Category>
-        label="Rayon"
-        icon={<LayoutGrid size={18} />}
-        value={category}
-        onChange={setCategory}
-        options={CATEGORIES.map((c) => ({
-          value: c.id,
-          label: `${c.emoji}  ${c.id}`,
-        }))}
-      />
+      <div className="rounded-2xl bg-surface-2/60 px-3 pb-3 pt-2.5 ring-1 ring-line/50">
+        <p className="mb-2.5 flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted">
+          <LayoutGrid size={15} className="text-sec" /> Rayon
+        </p>
+        <CategoryPicker value={category} suggested={guessCategory(name)} onChange={setCategory} />
+      </div>
       <OptionRow<Place>
         label="Où ?"
         icon={<PlaceIcon place={place} size={18} />}

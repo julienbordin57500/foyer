@@ -12,6 +12,7 @@ export type NewRow<T extends TableName> = {
   note_reactions: Pick<Tables['note_reactions'], 'note_id' | 'emoji'>
   pings: Pick<Tables['pings'], 'kind' | 'place'>
   charges: Pick<Tables['charges'], 'label' | 'category' | 'amount' | 'every_months'>
+  grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
@@ -29,7 +30,18 @@ export interface Backend {
   subscribe(onChange: (table: TableName) => void): () => void
 }
 
-export const TABLES: TableName[] = ['grocery_items', 'todos', 'notes', 'lists', 'list_items', 'note_reactions', 'pings', 'bills', 'charges']
+export const TABLES: TableName[] = [
+  'grocery_items',
+  'todos',
+  'notes',
+  'lists',
+  'list_items',
+  'note_reactions',
+  'pings',
+  'bills',
+  'charges',
+  'grocery_categories',
+]
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
   const check = ({ error }: { error: { message: string } | null }) => {
@@ -59,8 +71,8 @@ export function supabaseBackend(sb: SupabaseClient, householdId: string, me: str
     me,
     reload,
     async load() {
-      const [grocery_items, todos, notes, lists, list_items, note_reactions, pings, bills, charges] = await Promise.all(TABLES.map(reload))
-      return { grocery_items, todos, notes, lists, list_items, note_reactions, pings, bills, charges } as Data
+      const rows = await Promise.all(TABLES.map(reload))
+      return Object.fromEntries(TABLES.map((t, i) => [t, rows[i]])) as Data
     },
     async insert(table, row) {
       check(await sb.from(table).insert({ ...row, household_id: householdId } as never))
@@ -121,6 +133,7 @@ const seed = (): Data => {
     ...extra,
   })
   return {
+    grocery_categories: [],
     grocery_items: [
       item('Tomates cerises', 'Fruits & légumes', DEMO_OTHER),
       item('Avocats', 'Fruits & légumes', DEMO_ME, { quantity: '3' }),
@@ -373,6 +386,7 @@ type GroceryCat = Tables['grocery_items']['category']
 export function rowDefaults(table: TableName, me: string) {
   const now = new Date().toISOString()
   if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, created_at: now }
+  if (table === 'grocery_categories') return { created_at: now }
   if (table === 'todos')
     return {
       added_by: me,
@@ -405,7 +419,8 @@ export function demoBackend(): Backend {
   const read = (): Data => {
     try {
       const raw = localStorage.getItem(KEY)
-      if (raw) return JSON.parse(raw)
+      // Une table ajoutée depuis : on la complète vide plutôt que de tout effacer.
+      if (raw) return { ...Object.fromEntries(TABLES.map((t) => [t, []])), ...JSON.parse(raw) } as Data
     } catch {
       /* stockage indisponible : on repart des données d'exemple */
     }

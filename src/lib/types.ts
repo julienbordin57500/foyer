@@ -9,7 +9,18 @@ export const CATEGORIES = [
   { id: 'Autre', emoji: '🛒' },
 ] as const
 
-export type Category = (typeof CATEGORIES)[number]['id']
+/** Rayons proposés d'office ; « Autre » reste toujours en dernier. */
+export type BuiltinCategory = (typeof CATEGORIES)[number]['id']
+/** Un rayon d'office, ou un rayon créé à la main par le foyer. */
+export type Category = string
+
+/** Rayon créé à la main : proposé ensuite pour tous les articles. */
+export interface GroceryCategory {
+  id: string
+  name: string
+  emoji: string
+  created_at: string
+}
 
 export type GroceryStatus = 'todo' | 'ordered' | 'bought'
 /** Où l'acheter : en magasin, au drive, ou l'un ou l'autre. */
@@ -156,6 +167,7 @@ export interface Tables {
   pings: Ping
   bills: Bill
   charges: Charge
+  grocery_categories: GroceryCategory
 }
 
 export type TableName = keyof Tables

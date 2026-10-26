@@ -33,6 +33,7 @@ const EMPTY: Data = {
   pings: [],
   bills: [],
   charges: [],
+  grocery_categories: [],
 }
 const Ctx = createContext<Store | null>(null)
 
@@ -53,6 +54,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
     pings: 0,
     bills: 0,
     charges: 0,
+    grocery_categories: 0,
   })
 
   const refresh = useCallback(

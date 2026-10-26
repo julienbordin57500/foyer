@@ -1,4 +1,4 @@
-import type { Category } from './types'
+import type { BuiltinCategory as Category } from './types'
 
 // Mots-clés courants → rayon. Volontairement court : le reste tombe dans « Autre », modifiable d'un appui.
 const KEYWORDS: Record<Exclude<Category, 'Autre'>, string[]> = {
