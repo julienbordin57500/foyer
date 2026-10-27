@@ -22,6 +22,15 @@ export interface GroceryCategory {
   created_at: string
 }
 
+/** Liste de courses à part, visible seulement par la personne qui l'a créée. */
+export interface GroceryList {
+  id: string
+  owner: string
+  name: string
+  emoji: string
+  created_at: string
+}
+
 export type GroceryStatus = 'todo' | 'ordered' | 'bought'
 /** Où l'acheter : en magasin, au drive, ou l'un ou l'autre. */
 export type Place = 'store' | 'drive' | 'both'
@@ -33,6 +42,8 @@ export interface GroceryItem {
   category: Category
   place: Place
   status: GroceryStatus
+  /** Liste à part (traiteur…) ; null = les courses de la maison. */
+  list_id: string | null
   added_by: string
   bought_at: string | null
   created_at: string
@@ -168,6 +179,7 @@ export interface Tables {
   bills: Bill
   charges: Charge
   grocery_categories: GroceryCategory
+  grocery_lists: GroceryList
 }
 
 export type TableName = keyof Tables

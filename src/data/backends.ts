@@ -4,7 +4,7 @@ import type { Place, TableName, Tables } from '../lib/types'
 export type Data = { [T in TableName]: Tables[T][] }
 /** Champs remplis par la base (id, dates, auteur) exclus. */
 export type NewRow<T extends TableName> = {
-  grocery_items: Pick<Tables['grocery_items'], 'name' | 'quantity' | 'category' | 'place'>
+  grocery_items: Pick<Tables['grocery_items'], 'name' | 'quantity' | 'category' | 'place' | 'list_id'>
   todos: Pick<Tables['todos'], 'title' | 'assignee' | 'due_date'> & Partial<Pick<Tables['todos'], 'repeat' | 'remind_at' | 'remind_to'>>
   notes: Pick<Tables['notes'], 'body'>
   lists: Pick<Tables['lists'], 'title' | 'emoji'>
@@ -13,6 +13,7 @@ export type NewRow<T extends TableName> = {
   pings: Pick<Tables['pings'], 'kind' | 'place'>
   charges: Pick<Tables['charges'], 'label' | 'category' | 'amount' | 'every_months'>
   grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
+  grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
@@ -41,6 +42,7 @@ export const TABLES: TableName[] = [
   'bills',
   'charges',
   'grocery_categories',
+  'grocery_lists',
 ]
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
@@ -126,6 +128,7 @@ const seed = (): Data => {
     quantity: null,
     category,
     place: 'store' as Place,
+    list_id: null,
     status: 'todo' as const,
     added_by,
     bought_at: null,
@@ -134,16 +137,17 @@ const seed = (): Data => {
   })
   return {
     grocery_categories: [],
+    grocery_lists: [],
     grocery_items: [
       item('Tomates cerises', 'Fruits & légumes', DEMO_OTHER),
       item('Avocats', 'Fruits & légumes', DEMO_ME, { quantity: '3' }),
-      item('Lait demi-écrémé', 'Frais', DEMO_OTHER, { place: 'both', quantity: '6' }),
+      item('Lait demi-écrémé', 'Frais', DEMO_OTHER, { quantity: '6' }),
       item('Comté', 'Frais', DEMO_ME),
-      item('Pâtes', 'Épicerie', DEMO_ME, { place: 'drive', status: 'ordered' }),
-      item('Café en grains', 'Épicerie', DEMO_OTHER, { place: 'drive' }),
-      item('Eau pétillante', 'Boissons', DEMO_ME, { place: 'drive', quantity: '2 packs' }),
+      item('Pâtes', 'Épicerie', DEMO_ME),
+      item('Café en grains', 'Épicerie', DEMO_OTHER),
+      item('Eau pétillante', 'Boissons', DEMO_ME, { quantity: '2 packs' }),
       item('Liquide vaisselle', 'Maison & hygiène', DEMO_OTHER),
-      item('Couches taille 3', 'Bébé', DEMO_OTHER, { place: 'drive' }),
+      item('Couches taille 3', 'Bébé', DEMO_OTHER),
       item('Bananes', 'Fruits & légumes', DEMO_ME, { status: 'bought', bought_at: ago(1500) }),
       item('Beurre', 'Frais', DEMO_OTHER, { status: 'bought', bought_at: ago(3000) }),
     ],
@@ -387,6 +391,7 @@ export function rowDefaults(table: TableName, me: string) {
   const now = new Date().toISOString()
   if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, created_at: now }
   if (table === 'grocery_categories') return { created_at: now }
+  if (table === 'grocery_lists') return { owner: me, created_at: now }
   if (table === 'todos')
     return {
       added_by: me,

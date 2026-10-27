@@ -40,6 +40,7 @@ async function buildMessage(table: string, r: Record<string, any>): Promise<Mess
     return { recipients: others(r.author), title: `💌 ${name(r.author)}`, body: r.body, tab: 'accueil' }
   }
   if (table === 'grocery_items') {
+    if (r.list_id) return null // liste à part : personne d'autre ne la voit
     return {
       recipients: others(r.added_by),
       title: '🛒 Courses',
@@ -53,10 +54,9 @@ async function buildMessage(table: string, r: Record<string, any>): Promise<Mess
     return { recipients: to, title: `📝 ${name(r.added_by)}`, body: r.title, tab: 'afaire' }
   }
   if (table === 'pings') {
-    const where = r.place === 'drive' ? 'récupérer le drive' : 'faire les courses'
     return {
       recipients: others(r.author),
-      title: `🛒 ${name(r.author)} part ${where}`,
+      title: `🛒 ${name(r.author)} part faire les courses`,
       body: 'Ajoute vite ce qui manque à la liste !',
       tab: 'courses',
       throttle: 'ping',
@@ -186,7 +186,7 @@ async function morningDigest() {
     const [todos, bills, groceries] = await Promise.all([
       sb.from('todos').select('due_date, assignee').eq('household_id', h).is('done_at', null).lte('due_date', day),
       sb.from('bills').select('title, due_date').eq('household_id', h).is('paid_at', null).lte('due_date', addDaysISO(day, 1)),
-      sb.from('grocery_items').select('id', { count: 'exact', head: true }).eq('household_id', h).neq('status', 'bought'),
+      sb.from('grocery_items').select('id', { count: 'exact', head: true }).eq('household_id', h).is('list_id', null).neq('status', 'bought'),
     ])
     const mine = (todos.data ?? []).filter((t) => !t.assignee || t.assignee === m.user_id)
     const late = mine.filter((t) => t.due_date < day).length

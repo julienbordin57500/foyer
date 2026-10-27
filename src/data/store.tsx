@@ -8,7 +8,8 @@ interface Store {
   loading: boolean
   error: string | null
   dismissError(): void
-  insert<T extends TableName>(table: T, row: NewRow<T>): void
+  /** Renvoie l'identifiant du nouvel élément. */
+  insert<T extends TableName>(table: T, row: NewRow<T>): string
   update<T extends TableName>(table: T, id: string, patch: Patch<T>): void
   remove(table: TableName, id: string): void
   /** Supprime après quelques secondes, avec un bouton « Annuler » entre-temps. */
@@ -34,6 +35,7 @@ const EMPTY: Data = {
   bills: [],
   charges: [],
   grocery_categories: [],
+  grocery_lists: [],
 }
 const Ctx = createContext<Store | null>(null)
 
@@ -55,6 +57,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
     bills: 0,
     charges: 0,
     grocery_categories: 0,
+    grocery_lists: 0,
   })
 
   const refresh = useCallback(
@@ -120,6 +123,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
           (rows) => (table === 'list_items' ? [...rows, optimistic] : [optimistic, ...rows]),
           () => backend.insert(table, full),
         )
+        return full.id
       },
       update: (table, id, patch) =>
         run(

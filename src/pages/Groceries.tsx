@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Check, ChevronDown, Hash, LayoutGrid, RotateCcw, ShoppingCart, Trash2, Truck } from 'lucide-react'
+import { Check, ChevronDown, Hash, LayoutGrid, Lock, Pencil, Plus, RotateCcw, ShoppingCart, Trash2 } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
 import { CategoryPicker, useCategories } from '../components/CategoryPicker'
 import { useStore } from '../data/store'
 import { guessCategory } from '../lib/categorize'
 import { ago, capitalize, normalizeName, splitQuantity } from '../lib/format'
-import { type Category, type GroceryItem, type Place } from '../lib/types'
+import { type Category, type GroceryItem, type GroceryList } from '../lib/types'
 import {
   Avatar,
   Button,
   Card,
   CheckCircle,
-  OptionRow,
   SheetActions,
   SuccessCheck,
   TitleInput,
@@ -21,57 +20,50 @@ import {
   Empty,
   Hero,
   SectionTitle,
-  Segmented,
   Sheet,
   SwipeRow,
   cx,
   useArrivals,
 } from '../components/ui'
 
-type Filter = 'all' | 'drive' | 'store'
-
-export const PLACES: { value: Place; label: string; short: string }[] = [
-  { value: 'store', label: 'En magasin', short: 'Magasin' },
-  { value: 'drive', label: 'Au drive', short: 'Drive' },
-  { value: 'both', label: 'Drive ou magasin', short: 'Les deux' },
-]
-const nextPlace: Record<Place, Place> = {
-  store: 'drive',
-  drive: 'both',
-  both: 'store',
-}
-const inDrive = (p: Place) => p !== 'store'
-const inStore = (p: Place) => p !== 'drive'
-
-function PlaceIcon({ place, size = 14 }: { place: Place; size?: number }) {
-  if (place === 'store') return <ShoppingCart size={size} />
-  if (place === 'drive') return <Truck size={size} />
-  return (
-    <span className="inline-flex items-center -space-x-0.5">
-      <Truck size={size} />
-      <ShoppingCart size={size} />
-    </span>
-  )
+const LIST_KEY = 'foyer-courses-liste'
+const readList = () => {
+  try {
+    return localStorage.getItem(LIST_KEY)
+  } catch {
+    return null
+  }
 }
 
 export default function GroceriesPage() {
   const { data, insert, update, showToast } = useStore()
-  const [filter, setFilter] = useState<Filter>('all')
   const [text, setText] = useState('')
-  const [place, setPlace] = useState<Place>('store')
+  // Liste affichée : null = les courses de la maison, sinon une liste à part (traiteur…).
+  const [savedList, setSavedList] = useState<string | null>(readList)
+  const list = data.grocery_lists.find((l) => l.id === savedList) ?? null
+  const listId = list?.id ?? null
+  const openList = (id: string | null) => {
+    setSavedList(id)
+    try {
+      if (id) localStorage.setItem(LIST_KEY, id)
+      else localStorage.removeItem(LIST_KEY)
+    } catch {
+      /* pas grave : on reviendra sur la maison */
+    }
+  }
+  const [listSheet, setListSheet] = useState<GroceryList | 'new' | null>(null)
   const [editing, setEditing] = useState<GroceryItem | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [leaving, setLeaving] = useState(false)
   const [allDone, setAllDone] = useState(0)
 
-  const open = data.grocery_items.filter((i) => i.status !== 'bought')
-  const bought = data.grocery_items
+  const scope = data.grocery_items.filter((i) => (i.list_id ?? null) === listId)
+  const open = scope.filter((i) => i.status !== 'bought')
+  const bought = scope
     .filter((i) => i.status === 'bought')
     .sort((a, b) => (b.bought_at ?? '').localeCompare(a.bought_at ?? ''))
     .slice(0, 16)
-  const driveCount = open.filter((i) => inDrive(i.place)).length
-  const storeCount = open.filter((i) => inStore(i.place)).length
-  const shown = open.filter((i) => filter === 'all' || (filter === 'drive' ? inDrive(i.place) : inStore(i.place)))
+  const shown = open
   const isNew = useArrivals(data.grocery_items.map((i) => i.id))
 
   const { all: categories, emojiOf } = useCategories()
@@ -103,7 +95,7 @@ export default function GroceriesPage() {
   const suggestions =
     query.length < 2
       ? []
-      : data.grocery_items
+      : scope
           .filter((i) => i.status === 'bought' && normalizeName(i.name) !== query)
           .filter((i) =>
             normalizeName(i.name)
@@ -117,7 +109,6 @@ export default function GroceriesPage() {
     update('grocery_items', item.id, {
       status: 'todo',
       bought_at: null,
-      place,
       quantity: parsed.quantity,
       ...(picked ? { category: picked } : {}),
     })
@@ -130,7 +121,7 @@ export default function GroceriesPage() {
     if (!parsed.name) return
     const name = capitalize(parsed.name)
     const key = normalizeName(name)
-    const existing = data.grocery_items.find((i) => normalizeName(i.name) === key)
+    const existing = scope.find((i) => normalizeName(i.name) === key)
     if (existing && existing.status !== 'bought') {
       // Déjà sur la liste : on met juste à jour la quantité si on en a donné une.
       if (parsed.quantity || picked)
@@ -146,7 +137,8 @@ export default function GroceriesPage() {
         name,
         quantity: parsed.quantity,
         category: category ?? guessCategory(name),
-        place,
+        place: 'store',
+        list_id: listId,
       })
     }
     setText('')
@@ -157,17 +149,22 @@ export default function GroceriesPage() {
   return (
     <div className="animate-page">
       <Hero
-        eyebrow={open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque'}
+        eyebrow={
+          (list ? `${list.emoji} ${list.name} · ` : '') +
+          (open.length ? `${open.length} article${open.length > 1 ? 's' : ''} à prendre` : 'Rien ne manque')
+        }
         title="Courses"
         action={
           <div className="flex gap-2">
             <SearchButton />
-            <button
-              onClick={() => setLeaving(true)}
-              className="flex h-11 items-center gap-1.5 rounded-full bg-white/18 pl-3 pr-4 text-[14px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-95"
-            >
-              <ShoppingCart size={17} /> Je pars
-            </button>
+            {!list && (
+              <button
+                onClick={() => setLeaving(true)}
+                className="flex h-11 items-center gap-1.5 rounded-full bg-white/18 pl-3 pr-4 text-[14px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-95"
+              >
+                <ShoppingCart size={17} /> Je pars
+              </button>
+            )}
           </div>
         }
       >
@@ -179,20 +176,6 @@ export default function GroceriesPage() {
           label="Nouvel article"
           inputRef={inputRef}
           onHero
-          middle={
-            <button
-              type="button"
-              onClick={() => setPlace(nextPlace[place])}
-              title="Où l'acheter ? (appuyer pour changer)"
-              className={cx(
-                'flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors duration-300',
-                place === 'store' ? 'bg-white/14' : 'bg-white text-[#0b6f73]',
-              )}
-            >
-              <PlaceIcon place={place} />
-              {PLACES.find((p) => p.value === place)!.short}
-            </button>
-          }
         />
         {/* Rayon choisi d'office ; un appui pour le changer. Jamais d'étape obligatoire. */}
         <div
@@ -251,53 +234,17 @@ export default function GroceriesPage() {
         )}
       </Sheet>
 
-      <PartnerShopping />
+      {data.grocery_lists.length > 0 && <ListSwitch lists={data.grocery_lists} current={listId} onPick={openList} onEdit={setListSheet} />}
 
-      {open.length > 0 && (
-        <div>
-          <Segmented<Filter>
-            value={filter}
-            onChange={setFilter}
-            options={[
-              {
-                value: 'all',
-                label: (
-                  <>
-                    Tout <span className="num text-faint">{open.length}</span>
-                  </>
-                ),
-              },
-              {
-                value: 'drive',
-                label: (
-                  <>
-                    Drive <span className="num text-faint">{driveCount}</span>
-                  </>
-                ),
-              },
-              {
-                value: 'store',
-                label: (
-                  <>
-                    Magasin <span className="num text-faint">{storeCount}</span>
-                  </>
-                ),
-              },
-            ]}
-          />
-        </div>
-      )}
+      {!list && <PartnerShopping />}
 
-      {open.length === 0 && (
-        <Empty emoji="🛒" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />
-      )}
-      {open.length > 0 && groups.length === 0 && (
-        <p className="animate-fade py-12 text-center text-[15px] text-muted">
-          {filter === 'drive' ? 'Rien à prendre au drive.' : 'Rien à prendre en magasin.'}
-        </p>
-      )}
-
-      <div key={filter} className="animate-fade">
+      {open.length === 0 &&
+        (list ? (
+          <Empty emoji={list.emoji} title="Rien sur cette liste" text="Ce que vous ajoutez ici reste à part : seul vous le voyez." />
+        ) : (
+          <Empty emoji="🛒" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />
+        ))}
+      <div key={listId ?? 'maison'} className="animate-fade">
         {groups.map((g) => (
           <section key={g.id}>
             {/* Le rayon reste affiché en haut tant qu'on fait défiler ses articles. */}
@@ -373,6 +320,28 @@ export default function GroceriesPage() {
         </section>
       )}
 
+      {data.grocery_lists.length === 0 && (
+        <button
+          onClick={() => setListSheet('new')}
+          className="mx-auto mt-8 flex h-10 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold text-faint transition active:scale-95"
+        >
+          <Plus size={15} strokeWidth={2.6} /> Une liste à part (traiteur…)
+        </button>
+      )}
+
+      <Sheet open={!!listSheet} title={listSheet === 'new' ? 'Nouvelle liste à part' : 'Liste à part'} onClose={() => setListSheet(null)}>
+        {listSheet && (
+          <ListForm
+            key={listSheet === 'new' ? 'new' : listSheet.id}
+            list={listSheet === 'new' ? null : listSheet}
+            onDone={(id) => {
+              if (id !== undefined) openList(id)
+              setListSheet(null)
+            }}
+          />
+        )}
+      </Sheet>
+
       {allDone > 0 && <DoneOverlay key={allDone} onDone={() => setAllDone(0)} />}
 
       <Sheet open={leaving} title="Je pars faire les courses" onClose={() => setLeaving(false)}>
@@ -390,7 +359,6 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
   const { update, removeWithUndo } = useStore()
   const member = useMember()(item.added_by)
   const [leaving, setLeaving] = useState(false)
-  const ordered = item.status === 'ordered'
 
   const buy = (delay = 560) => {
     setLeaving(true)
@@ -402,11 +370,6 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
         }),
       delay,
     )
-  }
-  // Drive seul : à commander → commandé → acheté. Sinon : à acheter → acheté.
-  const advance = () => {
-    if (item.place === 'drive' && item.status === 'todo') return update('grocery_items', item.id, { status: 'ordered' })
-    buy()
   }
 
   return (
@@ -426,15 +389,7 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
         }}
       >
         <div className="flex min-h-16 items-center gap-3.5 px-4 py-2.5">
-          <CheckCircle
-            big
-            checked={leaving}
-            tone={ordered ? 'drive' : 'default'}
-            onClick={advance}
-            label={item.place === 'drive' && !ordered ? `Marquer ${item.name} comme commandé` : `Marquer ${item.name} comme acheté`}
-          >
-            {ordered && <Truck size={13} strokeWidth={2.4} />}
-          </CheckCircle>
+          <CheckCircle big checked={leaving} onClick={() => buy()} label={`Marquer ${item.name} comme acheté`} />
           <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
             <span
               className={cx('block truncate text-[17px] leading-snug transition-colors duration-300', leaving && 'text-muted line-through')}
@@ -442,12 +397,6 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
               {item.name}
               {item.quantity && <span className="num ml-1.5 text-[14px] text-muted">× {item.quantity}</span>}
             </span>
-            {item.place !== 'store' && (
-              <span className="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-drive">
-                <PlaceIcon place={item.place} size={12} />
-                {ordered ? 'Commandé au drive' : item.place === 'both' ? 'Drive ou magasin' : 'Drive'}
-              </span>
-            )}
           </button>
           <Avatar initial={member.initial} tone={member.tone} size="xs" />
         </div>
@@ -462,8 +411,6 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
   const [name, setName] = useState(item.name)
   const [quantity, setQuantity] = useState(item.quantity ?? '')
   const [category, setCategory] = useState<Category>(item.category)
-  const [place, setPlace] = useState<Place>(item.place)
-  const [ordered, setOrdered] = useState(item.status === 'ordered')
 
   const save = (e: FormEvent) => {
     e.preventDefault()
@@ -471,8 +418,6 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
       name: name.trim() || item.name,
       quantity: quantity.trim() || null,
       category,
-      place,
-      status: place === 'drive' && ordered ? 'ordered' : 'todo',
     })
     onClose()
   }
@@ -496,25 +441,6 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
         </p>
         <CategoryPicker value={category} suggested={guessCategory(name)} onChange={setCategory} />
       </div>
-      <OptionRow<Place>
-        label="Où ?"
-        icon={<PlaceIcon place={place} size={18} />}
-        value={place}
-        onChange={setPlace}
-        options={PLACES.map((p) => ({ value: p.value, label: p.label }))}
-      />
-      {place === 'drive' && (
-        <OptionRow
-          label="Commande"
-          icon={<Truck size={18} />}
-          value={ordered ? 'yes' : 'no'}
-          onChange={(v) => setOrdered(v === 'yes')}
-          options={[
-            { value: 'no', label: 'À commander' },
-            { value: 'yes', label: 'Déjà commandé' },
-          ]}
-        />
-      )}
       <p className="mt-2 flex items-center justify-center gap-2 text-[13px] text-muted">
         <Avatar initial={member.initial} tone={member.tone} size="xs" />
         Ajouté par {member.isMe ? 'vous' : member.name} · {ago(item.created_at)}
@@ -525,6 +451,124 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
           remove('grocery_items', item.id)
           onClose()
         }}
+      />
+    </form>
+  )
+}
+
+/** Maison ou liste à part : un appui change de liste, un second appui sur la liste active la modifie. */
+function ListSwitch({
+  lists,
+  current,
+  onPick,
+  onEdit,
+}: {
+  lists: GroceryList[]
+  current: string | null
+  onPick(id: string | null): void
+  onEdit(l: GroceryList | 'new'): void
+}) {
+  const chip = (active: boolean) =>
+    cx(
+      'flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition duration-200 ease-smooth active:scale-95',
+      active ? 'bg-sec text-bg shadow-[0_4px_14px_-6px_var(--sec)]' : 'bg-surface-2 text-muted ring-1 ring-line/60',
+    )
+  return (
+    <div className="mb-4">
+      <div className="flex flex-wrap justify-center gap-1.5">
+        <button onClick={() => onPick(null)} aria-pressed={current === null} className={chip(current === null)}>
+          🏠 Maison
+        </button>
+        {lists.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => (current === l.id ? onEdit(l) : onPick(l.id))}
+            aria-pressed={current === l.id}
+            className={chip(current === l.id)}
+          >
+            {l.emoji} {l.name}
+            {current === l.id && <Pencil size={12} strokeWidth={2.6} className="opacity-70" aria-label="modifier" />}
+          </button>
+        ))}
+        <button onClick={() => onEdit('new')} aria-label="Nouvelle liste à part" className={cx(chip(false), 'w-9 justify-center px-0')}>
+          <Plus size={16} strokeWidth={2.6} />
+        </button>
+      </div>
+      {current && (
+        <p className="mt-2 flex animate-fade items-center justify-center gap-1 text-[12px] text-faint">
+          <Lock size={11} /> Liste à part : seul vous la voyez
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Créer, renommer ou supprimer une liste à part. `onDone(id)` ouvre la liste ; `onDone(null)` revient à la maison. */
+function ListForm({ list, onDone }: { list: GroceryList | null; onDone(id?: string | null): void }) {
+  const { insert, update, remove } = useStore()
+  const [name, setName] = useState(list?.name ?? '')
+  const [emoji, setEmoji] = useState(list?.emoji ?? '')
+  const [confirm, setConfirm] = useState(false)
+
+  const save = (e: FormEvent) => {
+    e.preventDefault()
+    const clean = capitalize(name.trim())
+    if (!clean) return
+    const icon = emoji.trim() || '📦'
+    if (list) {
+      update('grocery_lists', list.id, { name: clean, emoji: icon })
+      onDone()
+    } else onDone(insert('grocery_lists', { name: clean, emoji: icon }))
+  }
+
+  if (confirm && list)
+    return (
+      <div className="flex flex-col items-center gap-2 py-2 text-center">
+        <p className="font-serif text-[22px] font-medium">Supprimer « {list.name} » ?</p>
+        <p className="mb-3 text-[14px] text-muted">Ses articles partent avec elle.</p>
+        <Button
+          variant="danger"
+          className="w-full"
+          onClick={() => {
+            remove('grocery_lists', list.id)
+            onDone(null)
+          }}
+        >
+          Oui, supprimer
+        </Button>
+        <Button variant="secondary" className="w-full" onClick={() => setConfirm(false)}>
+          Annuler
+        </Button>
+      </div>
+    )
+
+  return (
+    <form onSubmit={save} className="flex flex-col gap-2">
+      <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-muted">
+        <Lock size={13} /> Seul vous la voyez, elle ne se mélange pas aux courses de la maison.
+      </p>
+      <div className="flex items-center gap-2 rounded-2xl bg-surface-2 p-2 ring-1 ring-line/50 focus-within:ring-2 focus-within:ring-sec/50">
+        <input
+          value={emoji}
+          onChange={(e) => setEmoji(e.target.value)}
+          placeholder="📦"
+          aria-label="Emoji de la liste (facultatif)"
+          className="size-12 shrink-0 rounded-xl bg-surface text-center text-[22px] outline-none ring-1 ring-line/60 placeholder:opacity-60"
+        />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus={!list}
+          maxLength={40}
+          placeholder="Traiteur, Boulot…"
+          aria-label="Nom de la liste"
+          className="h-12 min-w-0 flex-1 bg-transparent px-1 text-[17px] font-semibold outline-none placeholder:font-normal placeholder:text-faint"
+        />
+      </div>
+      <SheetActions
+        saveLabel={list ? 'Enregistrer' : 'Créer la liste'}
+        deleteLabel="Supprimer la liste"
+        onDelete={list ? () => setConfirm(true) : undefined}
       />
     </form>
   )

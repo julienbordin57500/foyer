@@ -34,7 +34,7 @@ export default function App() {
   // Les listes vivent dans l'onglet « À faire ».
   const navTab: Tab = tab === 'listes' ? 'afaire' : tab
   const index = TABS.findIndex((t) => t.id === navTab)
-  const toBuy = data.grocery_items.filter((i) => i.status !== 'bought').length
+  const toBuy = data.grocery_items.filter((i) => !i.list_id && i.status !== 'bought').length
   const lateCount = data.todos.filter((t) => !t.done_at && t.due_date && t.due_date < toISODate(today())).length
 
   useEffect(() => {

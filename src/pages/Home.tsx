@@ -15,7 +15,7 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
   const { data } = useStore()
   const [settings, setSettings] = useState(false)
 
-  const groceries = data.grocery_items.filter((i) => i.status !== 'bought')
+  const groceries = data.grocery_items.filter((i) => !i.list_id && i.status !== 'bought')
   const todos = data.todos.filter((t) => !t.done_at)
   const late = todos.filter((t) => t.due_date && dueLabel(t.due_date).late).length
   const lists = data.lists
@@ -405,7 +405,7 @@ function DaySummary({ go }: { go(t: Tab): void }) {
     (t) => !t.done_at && t.due_date && dueLabel(t.due_date).days <= 0 && (t.assignee === null || t.assignee === me),
   )
   const late = tasks.filter((t) => dueLabel(t.due_date!).late)
-  const groceries = data.grocery_items.filter((i) => i.status !== 'bought')
+  const groceries = data.grocery_items.filter((i) => !i.list_id && i.status !== 'bought')
   const ping = data.pings.find((p) => p.author !== me && Date.now() - new Date(p.created_at).getTime() < 2 * 3_600_000)
 
   const lines: SummaryLine[] = []
