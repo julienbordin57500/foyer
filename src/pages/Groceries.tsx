@@ -168,6 +168,9 @@ export default function GroceriesPage() {
           </div>
         }
       >
+        {data.grocery_lists.length > 0 && (
+          <ListSwitch lists={data.grocery_lists} current={listId} onPick={openList} onEdit={setListSheet} />
+        )}
         <Composer
           value={text}
           onChange={setText}
@@ -234,7 +237,11 @@ export default function GroceriesPage() {
         )}
       </Sheet>
 
-      {data.grocery_lists.length > 0 && <ListSwitch lists={data.grocery_lists} current={listId} onPick={openList} onEdit={setListSheet} />}
+      {list && (
+        <p className="-mt-2 mb-3 flex animate-fade items-center justify-center gap-1 text-[12px] text-faint">
+          <Lock size={11} /> Liste à part : seul vous la voyez
+        </p>
+      )}
 
       {!list && <PartnerShopping />}
 
@@ -456,7 +463,7 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
   )
 }
 
-/** Maison ou liste à part : un appui change de liste, un second appui sur la liste active la modifie. */
+/** En haut, dans le bandeau : Maison ou liste à part. Un appui change de liste, un second appui sur la liste active la modifie. */
 function ListSwitch({
   lists,
   current,
@@ -471,10 +478,10 @@ function ListSwitch({
   const chip = (active: boolean) =>
     cx(
       'flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition duration-200 ease-smooth active:scale-95',
-      active ? 'bg-sec text-bg shadow-[0_4px_14px_-6px_var(--sec)]' : 'bg-surface-2 text-muted ring-1 ring-line/60',
+      active ? 'bg-white text-[#0b6f73] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.35)]' : 'bg-white/14 ring-1 ring-white/25 backdrop-blur-md',
     )
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex flex-wrap justify-center gap-1.5">
         <button onClick={() => onPick(null)} aria-pressed={current === null} className={chip(current === null)}>
           🏠 Maison
@@ -494,11 +501,6 @@ function ListSwitch({
           <Plus size={16} strokeWidth={2.6} />
         </button>
       </div>
-      {current && (
-        <p className="mt-2 flex animate-fade items-center justify-center gap-1 text-[12px] text-faint">
-          <Lock size={11} /> Liste à part : seul vous la voyez
-        </p>
-      )}
     </div>
   )
 }
