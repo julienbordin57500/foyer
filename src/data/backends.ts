@@ -14,6 +14,7 @@ export type NewRow<T extends TableName> = {
   charges: Pick<Tables['charges'], 'label' | 'category' | 'amount' | 'every_months'>
   grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
   grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji' | 'note'>
+  recipes: Pick<Tables['recipes'], 'name' | 'emoji' | 'ingredients'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
@@ -43,6 +44,7 @@ export const TABLES: TableName[] = [
   'charges',
   'grocery_categories',
   'grocery_lists',
+  'recipes',
 ]
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
@@ -138,6 +140,7 @@ const seed = (): Data => {
   return {
     grocery_categories: [],
     grocery_lists: [],
+    recipes: [],
     grocery_items: [
       item('Tomates cerises', 'Fruits & légumes', DEMO_OTHER),
       item('Avocats', 'Fruits & légumes', DEMO_ME, { quantity: '3' }),
@@ -392,6 +395,7 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, created_at: now }
   if (table === 'grocery_categories') return { created_at: now }
   if (table === 'grocery_lists') return { owner: me, created_at: now }
+  if (table === 'recipes') return { added_by: me, created_at: now }
   if (table === 'todos')
     return {
       added_by: me,

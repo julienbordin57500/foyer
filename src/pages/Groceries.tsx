@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Check, ChevronDown, Hash, LayoutGrid, Pencil, Plus, RotateCcw, ShoppingCart, Trash2, Users } from 'lucide-react'
+import { Check, ChefHat, ChevronDown, Hash, LayoutGrid, Pencil, Plus, RotateCcw, ShoppingCart, Trash2, Users } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
 import { CategoryPicker, useCategories } from '../components/CategoryPicker'
+import { RecipeSheet } from '../components/RecipeSheet'
 import { useStore } from '../data/store'
 import { guessCategory } from '../lib/categorize'
 import { ago, capitalize, normalizeName, splitQuantity } from '../lib/format'
@@ -19,6 +20,7 @@ import {
   Composer,
   Empty,
   Hero,
+  HeroButton,
   SectionTitle,
   Sheet,
   SwipeRow,
@@ -36,7 +38,7 @@ const readList = () => {
 }
 
 export default function GroceriesPage() {
-  const { data, insert, update, showToast } = useStore()
+  const { data, insert, update, remove, showToast } = useStore()
   const [text, setText] = useState('')
   // Liste affichée : null = les courses de la maison, sinon une liste à part (traiteur…).
   const [savedList, setSavedList] = useState<string | null>(readList)
@@ -119,6 +121,42 @@ export default function GroceriesPage() {
     inputRef.current?.focus()
   }
 
+  // Ingrédients d'une recette : même règle qu'à la main (pas de doublon, l'ancien article revient), avec « Annuler ».
+  const [recipeOpen, setRecipeOpen] = useState(false)
+  const onList = useMemo(() => new Set(open.map((i) => normalizeName(i.name))), [open])
+  const addLines = (lines: string[]) => {
+    const added: string[] = []
+    const restored: { id: string; patch: Partial<GroceryItem> }[] = []
+    for (const line of lines) {
+      const q = splitQuantity(line)
+      if (!q.name) continue
+      const name = capitalize(q.name)
+      const key = normalizeName(name)
+      const existing = scope.find((i) => normalizeName(i.name) === key)
+      if (existing) {
+        restored.push({ id: existing.id, patch: { status: existing.status, bought_at: existing.bought_at, quantity: existing.quantity } })
+        update('grocery_items', existing.id, { status: 'todo', bought_at: null, quantity: q.quantity ?? existing.quantity })
+      } else {
+        const past = data.grocery_items.find((i) => normalizeName(i.name) === key)
+        added.push(
+          insert('grocery_items', {
+            name,
+            quantity: q.quantity,
+            category: past?.category ?? guessCategory(name),
+            place: 'store',
+            list_id: listId,
+          }),
+        )
+      }
+    }
+    const n = added.length + restored.length
+    if (!n) return
+    showToast(`${n} ingrédient${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} aux courses`, () => {
+      added.forEach((id) => remove('grocery_items', id))
+      restored.forEach((r) => update('grocery_items', r.id, r.patch))
+    })
+  }
+
   const add = () => {
     if (!parsed.name) return
     const name = capitalize(parsed.name)
@@ -159,6 +197,9 @@ export default function GroceriesPage() {
         action={
           <div className="flex gap-2">
             <SearchButton />
+            <HeroButton label="Idée recette" onClick={() => setRecipeOpen(true)}>
+              <ChefHat size={19} />
+            </HeroButton>
             {!list && (
               <button
                 onClick={() => setLeaving(true)}
@@ -363,6 +404,8 @@ export default function GroceriesPage() {
       </Sheet>
 
       {allDone > 0 && <DoneOverlay key={allDone} onDone={() => setAllDone(0)} />}
+
+      <RecipeSheet open={recipeOpen} onClose={() => setRecipeOpen(false)} onAdd={addLines} onList={onList} />
 
       <Sheet open={leaving} title="Je pars faire les courses" onClose={() => setLeaving(false)}>
         {leaving && <LeavingForm onDone={() => setLeaving(false)} />}

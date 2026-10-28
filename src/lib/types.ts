@@ -33,6 +33,16 @@ export interface GroceryList {
   created_at: string
 }
 
+/** Recette du foyer : ses ingrédients s'ajoutent aux courses (« 500 g spaghetti »). */
+export interface Recipe {
+  id: string
+  name: string
+  emoji: string
+  ingredients: string[]
+  added_by: string
+  created_at: string
+}
+
 export type GroceryStatus = 'todo' | 'ordered' | 'bought'
 /** Où l'acheter : en magasin, au drive, ou l'un ou l'autre. */
 export type Place = 'store' | 'drive' | 'both'
@@ -182,6 +192,7 @@ export interface Tables {
   charges: Charge
   grocery_categories: GroceryCategory
   grocery_lists: GroceryList
+  recipes: Recipe
 }
 
 export type TableName = keyof Tables
