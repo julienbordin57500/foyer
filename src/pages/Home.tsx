@@ -1,5 +1,16 @@
 import { useState, type FormEvent } from 'react'
-import { BellRing, ChevronRight, CircleCheckBig, Pencil, Receipt, Settings, ShoppingCart, SmilePlus, Sparkles } from 'lucide-react'
+import {
+  BellRing,
+  ChevronRight,
+  CircleCheckBig,
+  MessageCircleHeart,
+  Pencil,
+  Receipt,
+  Settings,
+  ShoppingCart,
+  SmilePlus,
+  Sparkles,
+} from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
@@ -14,6 +25,22 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
   const { me } = useSession()
   const { data } = useStore()
   const [settings, setSettings] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
+  // Pastille sur 💬 tant qu'on n'a pas ouvert le dernier mot de l'autre.
+  const [seenNote, setSeenNote] = useState(readSeenNote)
+  const latest = data.notes[0]
+  const unread = !!latest && latest.author !== me.user_id && latest.id !== seenNote
+  const openNotes = () => {
+    setNotesOpen(true)
+    if (latest) {
+      setSeenNote(latest.id)
+      try {
+        localStorage.setItem(SEEN_NOTE_KEY, latest.id)
+      } catch {
+        /* pas grave : la pastille reviendra */
+      }
+    }
+  }
 
   const groceries = data.grocery_items.filter((i) => !i.list_id && i.status !== 'bought')
   const todos = data.todos.filter((t) => !t.done_at)
@@ -30,7 +57,6 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
     .filter((l) => l.total > 0 && l.done < l.total)
   const unpaid = data.bills.filter((b) => !b.paid_at && !b.auto_debit)
   const unpaidLate = unpaid.some((b) => dueLabel(b.due_date).late)
-  const [, ...olderNotes] = data.notes
 
   return (
     <div className="animate-page">
@@ -40,16 +66,20 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
         action={
           <div className="flex gap-2">
             <SearchButton />
+            <HeroButton label={unread ? 'Petits mots (nouveau)' : 'Petits mots'} onClick={openNotes} className="relative">
+              <MessageCircleHeart size={19} />
+              {unread && (
+                <span aria-hidden className="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-white ring-2 ring-[var(--hero-from)]" />
+              )}
+            </HeroButton>
             <HeroButton label="Réglages" onClick={() => setSettings(true)}>
               <Settings size={19} />
             </HeroButton>
           </div>
         }
       >
-        <LatestNote notes={data.notes} />
+        <DaySummary go={go} />
       </Hero>
-
-      <DaySummary go={go} />
 
       {/* Raccourcis discrets : l'essentiel du jour est déjà au-dessus. */}
       <SectionTitle>En ce moment</SectionTitle>
@@ -85,11 +115,22 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
         </div>
       )}
 
-      {olderNotes.length > 0 && <OlderNotes notes={olderNotes} />}
+      <Sheet open={notesOpen} title="Petits mots" onClose={() => setNotesOpen(false)}>
+        {notesOpen && <NotesPanel notes={data.notes} />}
+      </Sheet>
 
       <SettingsSheet open={settings} onClose={() => setSettings(false)} />
     </div>
   )
+}
+
+const SEEN_NOTE_KEY = 'foyer-mot-lu'
+const readSeenNote = () => {
+  try {
+    return localStorage.getItem(SEEN_NOTE_KEY)
+  } catch {
+    return null
+  }
 }
 
 function Tile({
@@ -122,16 +163,15 @@ function Tile({
   )
 }
 
-/** Dernier petit mot, en grand dans l'en-tête, avec de quoi répondre. */
-function LatestNote({ notes }: { notes: Note[] }) {
+/** Les petits mots, rangés derrière le bouton 💬 : écrire en haut, puis les mots du plus récent au plus ancien. */
+function NotesPanel({ notes }: { notes: Note[] }) {
   const { insert, me } = useStore()
   const partner = usePartner()
-  const member = useMember()
   const [text, setText] = useState('')
   const [editing, setEditing] = useState<Note | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const isNew = useArrivals(notes.map((n) => n.id))
-  const latest = notes[0]
-  const pronoun = partner ? member(partner.user_id).pronoun : 'il'
+  const shown = showAll ? notes : notes.slice(0, 6)
 
   const send = () => {
     const body = text.trim()
@@ -140,24 +180,11 @@ function LatestNote({ notes }: { notes: Note[] }) {
     setText('')
   }
 
+  // Modifier un mot remplace la liste le temps de la modification (pas de fiche sur une fiche).
+  if (editing) return <NoteForm key={editing.id} note={editing} onClose={() => setEditing(null)} />
+
   return (
     <div className="space-y-3">
-      <div className="rounded-[24px] bg-white/14 p-4 ring-1 ring-white/20 backdrop-blur-md">
-        <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] opacity-75">Petits mots</p>
-        {latest ? (
-          <NoteBody
-            key={latest.id}
-            note={latest}
-            big
-            animate={isNew(latest.id)}
-            onEdit={latest.author === me ? () => setEditing(latest) : undefined}
-          />
-        ) : (
-          <p className="font-serif text-[21px] italic leading-snug opacity-85">
-            Laissez un premier mot{partner ? ` à ${partner.display_name}` : ''} : {pronoun} le verra en ouvrant l'app.
-          </p>
-        )}
-      </div>
       <Composer
         value={text}
         onChange={setText}
@@ -165,39 +192,26 @@ function LatestNote({ notes }: { notes: Note[] }) {
         placeholder={partner ? `Un mot pour ${partner.display_name}…` : 'Écrire un mot…'}
         label="Écrire un petit mot"
         enterKeyHint="send"
-        onHero
       />
-      <NoteSheet note={editing} onClose={() => setEditing(null)} />
+      {notes.length === 0 ? (
+        <p className="py-6 text-center text-[15px] text-muted">Pas encore de mot. Le premier fera plaisir 💌</p>
+      ) : (
+        <Card className="overflow-hidden">
+          <ul>
+            {shown.map((n) => (
+              <li key={n.id} className="flex items-start gap-3 border-b border-line/60 px-4 py-3.5 last:border-0">
+                <NoteBody note={n} animate={isNew(n.id)} onEdit={n.author === me ? () => setEditing(n) : undefined} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+      {notes.length > 6 && (
+        <button onClick={() => setShowAll(!showAll)} className="mx-auto block h-10 px-4 text-[14px] font-semibold text-sec">
+          {showAll ? 'Réduire' : `Tout voir (${notes.length})`}
+        </button>
+      )}
     </div>
-  )
-}
-
-function OlderNotes({ notes }: { notes: Note[] }) {
-  const { me } = useStore()
-  const [showAll, setShowAll] = useState(false)
-  const [editing, setEditing] = useState<Note | null>(null)
-  const shown = showAll ? notes : notes.slice(0, 3)
-
-  return (
-    <>
-      <SectionTitle
-        aside={
-          notes.length > 3 && <button onClick={() => setShowAll(!showAll)}>{showAll ? 'Réduire' : `Tout voir (${notes.length})`}</button>
-        }
-      >
-        Mots précédents
-      </SectionTitle>
-      <Card className="overflow-hidden">
-        <ul>
-          {shown.map((n) => (
-            <li key={n.id} className="flex items-start gap-3 border-b border-line/60 px-4 py-3.5 last:border-0">
-              <NoteBody note={n} onEdit={n.author === me ? () => setEditing(n) : undefined} />
-            </li>
-          ))}
-        </ul>
-      </Card>
-      <NoteSheet note={editing} onClose={() => setEditing(null)} />
-    </>
   )
 }
 
@@ -239,14 +253,6 @@ function NoteBody({ note, big, animate, onEdit }: { note: Note; big?: boolean; a
 }
 
 /** Modifier ou supprimer son mot ; la suppression demande une confirmation. */
-function NoteSheet({ note, onClose }: { note: Note | null; onClose(): void }) {
-  return (
-    <Sheet open={note !== null} title="Votre petit mot" onClose={onClose}>
-      {note && <NoteForm key={note.id} note={note} onClose={onClose} />}
-    </Sheet>
-  )
-}
-
 function NoteForm({ note, onClose }: { note: Note; onClose(): void }) {
   const { update, remove } = useStore()
   const [body, setBody] = useState(note.body)
@@ -475,56 +481,57 @@ function DaySummary({ go }: { go(t: Tab): void }) {
   const urgent = (l: SummaryLine) => l.items.some((it) => it.urgent)
   lines.sort((a, b) => Number(urgent(b)) - Number(urgent(a)))
 
+  // Dans le bandeau du haut, en verre dépoli comme le reste de l'en-tête.
   return (
-    <>
-      <SectionTitle>Aujourd'hui</SectionTitle>
-      <Card className="overflow-hidden">
-        {lines.length === 0 ? (
-          <div className="flex items-center gap-3 px-4 py-4">
-            <span className="grid size-10 place-items-center rounded-2xl bg-sec/15 text-sec">
-              <Sparkles size={19} />
-            </span>
-            <span>
-              <span className="block font-serif text-[19px] font-medium">Journée tranquille</span>
-              <span className="block text-[13px] text-muted">Rien de prévu pour vous aujourd'hui.</span>
-            </span>
-          </div>
-        ) : (
-          <ul>
-            {lines.map((l) => (
-              <li key={l.key} data-section={l.section} className="relative border-b border-line/60 last:border-0">
-                {urgent(l) && <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-late" />}
-                <button
-                  onClick={() => go(l.section)}
-                  className="flex w-full gap-3 px-4 py-3.5 text-left transition-colors active:bg-surface-2"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sec/15 text-sec">{l.icon}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[15px] font-semibold">{l.title}</span>
-                      <ChevronRight size={16} className="text-faint" />
-                    </span>
-                    {l.items.length > 0 && (
-                      <span className="mt-1.5 block space-y-1">
-                        {l.items.map((it, i) => (
-                          <span key={i} className="flex items-baseline gap-2 text-[14px]">
-                            {it.meta && (
-                              <span className={cx('num shrink-0 text-[12.5px] font-semibold', it.urgent ? 'text-late' : 'text-sec')}>
-                                {it.meta}
-                              </span>
-                            )}
-                            <span className="truncate text-muted">{it.text}</span>
-                          </span>
-                        ))}
-                      </span>
-                    )}
+    <div className="overflow-hidden rounded-[24px] bg-white/14 ring-1 ring-white/20 backdrop-blur-md">
+      <p className="px-4 pt-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] opacity-75">Aujourd'hui</p>
+      {lines.length === 0 ? (
+        <div className="flex items-center gap-3 px-4 pb-4 pt-2.5">
+          <span className="grid size-10 place-items-center rounded-2xl bg-white/18">
+            <Sparkles size={19} />
+          </span>
+          <span>
+            <span className="block font-serif text-[21px] font-medium leading-tight">Journée tranquille</span>
+            <span className="block text-[13px] opacity-80">Rien de prévu pour vous aujourd'hui.</span>
+          </span>
+        </div>
+      ) : (
+        <ul className="pt-1">
+          {lines.map((l) => (
+            <li key={l.key} className="relative border-b border-white/15 last:border-0">
+              {urgent(l) && <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-white" />}
+              <button onClick={() => go(l.section)} className="flex w-full gap-3 px-4 py-3 text-left transition-opacity active:opacity-70">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/18">{l.icon}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-[15px] font-semibold">{l.title}</span>
+                    <ChevronRight size={16} className="opacity-60" />
                   </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-    </>
+                  {l.items.length > 0 && (
+                    <span className="mt-1 block space-y-0.5">
+                      {l.items.map((it, i) => (
+                        <span key={i} className="flex items-baseline gap-2 text-[14px]">
+                          {it.meta && (
+                            <span
+                              className={cx(
+                                'num shrink-0 text-[12px] font-bold',
+                                it.urgent ? 'rounded-full bg-white px-1.5 text-[var(--late)]' : 'opacity-90',
+                              )}
+                            >
+                              {it.meta}
+                            </span>
+                          )}
+                          <span className="truncate opacity-85">{it.text}</span>
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
