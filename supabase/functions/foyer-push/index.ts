@@ -40,7 +40,7 @@ async function buildMessage(table: string, r: Record<string, any>): Promise<Mess
     return { recipients: others(r.author), title: `💌 ${name(r.author)}`, body: r.body, tab: 'accueil' }
   }
   if (table === 'grocery_items') {
-    if (r.list_id) return null // liste à part : personne d'autre ne la voit
+    if (r.list_id) return null // liste à part : pas de notification
     return {
       recipients: others(r.added_by),
       title: '🛒 Courses',

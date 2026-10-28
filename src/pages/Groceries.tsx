@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Check, ChevronDown, Hash, LayoutGrid, Lock, Pencil, Plus, RotateCcw, ShoppingCart, Trash2 } from 'lucide-react'
+import { Check, ChevronDown, Hash, LayoutGrid, Pencil, Plus, RotateCcw, ShoppingCart, Trash2, Users } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
 import { CategoryPicker, useCategories } from '../components/CategoryPicker'
@@ -239,7 +239,7 @@ export default function GroceriesPage() {
 
       {list && (
         <p className="-mt-2 mb-3 flex animate-fade items-center justify-center gap-1 text-[12px] text-faint">
-          <Lock size={11} /> Liste à part : seul vous la voyez
+          <Users size={12} /> Liste à part, visible par vous deux
         </p>
       )}
 
@@ -247,7 +247,11 @@ export default function GroceriesPage() {
 
       {open.length === 0 &&
         (list ? (
-          <Empty emoji={list.emoji} title="Rien sur cette liste" text="Ce que vous ajoutez ici reste à part : seul vous le voyez." />
+          <Empty
+            emoji={list.emoji}
+            title="Rien sur cette liste"
+            text="Ce que vous ajoutez ici ne se mélange pas aux courses de la maison."
+          />
         ) : (
           <Empty emoji="🛒" title="La liste est vide" text="Ajoutez ce qui manque : l'autre le verra tout de suite sur son téléphone." />
         ))}
@@ -547,7 +551,7 @@ function ListForm({ list, onDone }: { list: GroceryList | null; onDone(id?: stri
   return (
     <form onSubmit={save} className="flex flex-col gap-2">
       <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-muted">
-        <Lock size={13} /> Seul vous la voyez, elle ne se mélange pas aux courses de la maison.
+        <Users size={14} /> Visible par vous deux, elle ne se mélange pas aux courses de la maison.
       </p>
       <div className="flex items-center gap-2 rounded-2xl bg-surface-2 p-2 ring-1 ring-line/50 focus-within:ring-2 focus-within:ring-sec/50">
         <input

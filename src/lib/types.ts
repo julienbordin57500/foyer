@@ -22,7 +22,7 @@ export interface GroceryCategory {
   created_at: string
 }
 
-/** Liste de courses à part, visible seulement par la personne qui l'a créée. */
+/** Liste de courses à part (traiteur…), partagée avec le foyer mais séparée des courses de la maison. */
 export interface GroceryList {
   id: string
   owner: string
