@@ -3,8 +3,8 @@ import { normalizeName } from './format'
 export type BookRecipe = { name: string; emoji: string; ingredients: string[] }
 
 /**
- * Recettes d'office, pour 4 personnes. La quantité vient en tête (« 500 g spaghetti ») pour que
- * l'ajout aux courses la sépare du nom. Sel, poivre et huile sont supposés toujours là.
+ * Recettes d'office, écrites pour 4 et servies pour 2 (voir `forTwo`). La quantité vient en tête
+ * (« 500 g spaghetti ») pour que l'ajout aux courses la sépare du nom. Sel, poivre et huile sont supposés là.
  */
 export const RECIPE_BOOK: BookRecipe[] = [
   { name: 'Pâtes carbonara', emoji: '🍝', ingredients: ['500 g spaghetti', '200 g lardons', '4 œufs', '100 g parmesan', 'Crème fraîche'] },
@@ -169,6 +169,36 @@ export const RECIPE_BOOK: BookRecipe[] = [
   },
   { name: 'Crêpes', emoji: '🥞', ingredients: ['250 g farine', '4 œufs', '50 cl lait', 'Beurre', 'Pâte à tartiner'] },
 ]
+
+/** « échalotes » → « échalote », « salades romaines » → « salade romaine » (jusqu'au « de » / « à »). */
+function singular(words: string) {
+  const parts = words.split(' ')
+  const stop = parts.findIndex((w) => /^(de|à|d')$/i.test(w))
+  return parts.map((w, i) => (stop !== -1 && i >= stop) || w.length < 4 ? w : w.replace(/eaux$/, 'eau').replace(/s$/, '')).join(' ')
+}
+
+const fmt = (n: number) => String(n).replace('.', ',')
+
+/** « 500 g spaghetti » → « 250 g spaghetti », « 4 œufs » → « 2 œufs », « 1 oignon » reste 1. */
+export function forTwo(line: string) {
+  const m = line.match(/^(\d+(?:,\d+)?)\s?(kg|g|cl|ml|l)?\s+(.+)$/i)
+  if (!m) return line
+  let n = Number(m[1].replace(',', '.')) / 2
+  let unit = m[2]?.toLowerCase()
+  const rest = m[3]
+  if (!unit) {
+    const count = Math.max(1, Math.ceil(n))
+    return `${count} ${count === 1 && n > 0.5 ? singular(rest) : rest}`
+  }
+  if (unit === 'kg' && n < 1) [n, unit] = [n * 1000, 'g']
+  if (unit === 'l' && n < 1) [n, unit] = [n * 100, 'cl']
+  if (unit === 'g') n = n >= 50 ? Math.round(n / 10) * 10 : Math.round(n)
+  if (unit === 'cl') n = Math.round(n / 5) * 5 || 5
+  return `${fmt(n)} ${unit} ${rest}`
+}
+
+/** Le carnet d'office, ramené à 2 personnes. */
+export const BOOK_FOR_TWO: BookRecipe[] = RECIPE_BOOK.map((r) => ({ ...r, ingredients: r.ingredients.map(forTwo) }))
 
 /** Recettes connues dont le nom contient ce qu'on tape (« carbo » → Pâtes carbonara). */
 export function findRecipes<T extends { name: string }>(all: T[], query: string) {

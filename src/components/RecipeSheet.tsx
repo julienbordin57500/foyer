@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Dices, Plus, X } from 'lucide-react'
 import { useStore } from '../data/store'
 import { capitalize, normalizeName, splitQuantity } from '../lib/format'
-import { RECIPE_BOOK, findRecipes } from '../lib/recipes'
+import { BOOK_FOR_TWO, findRecipes } from '../lib/recipes'
 import type { Recipe } from '../lib/types'
 import { Button, CheckCircle, Composer, Sheet, cx, tick } from './ui'
 
@@ -15,7 +15,7 @@ function useRecipes(): Entry[] {
   return useMemo(() => {
     const mine = data.recipes.map((r) => ({ name: r.name, emoji: r.emoji, ingredients: r.ingredients, custom: r }))
     const taken = new Set(mine.map((r) => normalizeName(r.name)))
-    return [...mine, ...RECIPE_BOOK.filter((r) => !taken.has(normalizeName(r.name)))]
+    return [...mine, ...BOOK_FOR_TWO.filter((r) => !taken.has(normalizeName(r.name)))]
   }, [data.recipes])
 }
 
@@ -125,7 +125,8 @@ function RecipeFlow({ onAdd, onList, onDone }: { onAdd(lines: string[]): void; o
       <div className="flex flex-col items-center text-center">
         <span className="text-[40px] leading-none">{recipe.emoji}</span>
         <p className="mt-2 font-serif text-[26px] font-medium leading-tight">{recipe.name}</p>
-        <p className="mt-1 text-[13px] text-muted">Décochez ce que vous avez déjà, touchez un ingrédient pour le modifier.</p>
+        <p className="mt-1 text-[13px] font-semibold text-sec">Pour 2 personnes</p>
+        <p className="mt-0.5 text-[13px] text-muted">Décochez ce que vous avez déjà, touchez un ingrédient pour le modifier.</p>
       </div>
 
       <ul className="overflow-hidden rounded-2xl bg-surface-2/60 ring-1 ring-line/50">

@@ -20,7 +20,6 @@ import {
   Composer,
   Empty,
   Hero,
-  HeroButton,
   SectionTitle,
   Sheet,
   SwipeRow,
@@ -197,13 +196,10 @@ export default function GroceriesPage() {
         action={
           <div className="flex gap-2">
             <SearchButton />
-            <HeroButton label="Idée recette" onClick={() => setRecipeOpen(true)}>
-              <ChefHat size={19} />
-            </HeroButton>
             {!list && (
               <button
                 onClick={() => setLeaving(true)}
-                className="flex h-11 items-center gap-1.5 rounded-full bg-white/18 pl-3 pr-4 text-[14px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-95"
+                className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/18 pl-3 pr-4 text-[14px] font-semibold ring-1 ring-white/25 backdrop-blur-md transition duration-300 ease-smooth active:scale-95"
               >
                 <ShoppingCart size={17} /> Je pars
               </button>
@@ -223,10 +219,17 @@ export default function GroceriesPage() {
           inputRef={inputRef}
           onHero
         />
-        {/* Rayon choisi d'office ; un appui pour le changer. Jamais d'étape obligatoire. */}
-        <div
-          className={cx('flex h-9 items-center gap-2 px-1 pt-2 transition-opacity duration-300', category ? 'opacity-100' : 'opacity-0')}
-        >
+        {/* Rayon choisi d'office ; un appui pour le changer. Sans saisie, la place sert à l'idée recette. */}
+        <div className="flex h-9 items-center gap-2 px-1 pt-2">
+          {!category && (
+            <button
+              type="button"
+              onClick={() => setRecipeOpen(true)}
+              className="flex h-7 animate-fade items-center gap-1.5 rounded-full bg-white/14 pl-2.5 pr-3 text-[13px] font-semibold ring-1 ring-white/20 transition active:scale-95"
+            >
+              <ChefHat size={14} strokeWidth={2.4} /> Idée recette
+            </button>
+          )}
           {category && (
             <button
               type="button"
