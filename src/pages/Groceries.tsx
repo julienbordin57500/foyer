@@ -50,6 +50,8 @@ export default function GroceriesPage() {
     } catch {
       /* pas grave : on reviendra sur la maison */
     }
+    // On change de liste pour y ajouter quelque chose : le clavier s'ouvre tout de suite.
+    inputRef.current?.focus()
   }
   const [listSheet, setListSheet] = useState<GroceryList | 'new' | null>(null)
   const [editing, setEditing] = useState<GroceryItem | null>(null)
@@ -238,9 +240,16 @@ export default function GroceriesPage() {
       </Sheet>
 
       {list && (
-        <p className="-mt-2 mb-3 flex animate-fade items-center justify-center gap-1 text-[12px] text-faint">
-          <Users size={12} /> Liste à part, visible par vous deux
-        </p>
+        <div key={`note-${list.id}`} className="-mt-2 mb-3 flex animate-fade flex-col items-center gap-1 text-center">
+          {list.note && (
+            <button onClick={() => setListSheet(list)} className="max-w-full px-4 text-[15px] font-medium leading-snug text-ink">
+              {list.note}
+            </button>
+          )}
+          <p className="flex items-center gap-1 text-[12px] text-faint">
+            <Users size={12} /> Liste à part, visible par vous deux
+          </p>
+        </div>
       )}
 
       {!list && <PartnerShopping />}
@@ -399,7 +408,7 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
           run: () => removeWithUndo('grocery_items', item.id, item.name),
         }}
       >
-        <div className="flex min-h-16 items-center gap-3.5 px-4 py-2.5">
+        <div className="flex min-h-16 items-center gap-3 px-4 py-3">
           <CheckCircle big checked={leaving} onClick={() => buy()} label={`Marquer ${item.name} comme acheté`} />
           <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
             <span
@@ -514,6 +523,7 @@ function ListForm({ list, onDone }: { list: GroceryList | null; onDone(id?: stri
   const { insert, update, remove } = useStore()
   const [name, setName] = useState(list?.name ?? '')
   const [emoji, setEmoji] = useState(list?.emoji ?? '')
+  const [note, setNote] = useState(list?.note ?? '')
   const [confirm, setConfirm] = useState(false)
 
   const save = (e: FormEvent) => {
@@ -521,10 +531,11 @@ function ListForm({ list, onDone }: { list: GroceryList | null; onDone(id?: stri
     const clean = capitalize(name.trim())
     if (!clean) return
     const icon = emoji.trim() || '📦'
+    const memo = note.trim() || null
     if (list) {
-      update('grocery_lists', list.id, { name: clean, emoji: icon })
+      update('grocery_lists', list.id, { name: clean, emoji: icon, note: memo })
       onDone()
-    } else onDone(insert('grocery_lists', { name: clean, emoji: icon }))
+    } else onDone(insert('grocery_lists', { name: clean, emoji: icon, note: memo }))
   }
 
   if (confirm && list)
@@ -571,6 +582,14 @@ function ListForm({ list, onDone }: { list: GroceryList | null; onDone(id?: stri
           className="h-12 min-w-0 flex-1 bg-transparent px-1 text-[17px] font-semibold outline-none placeholder:font-normal placeholder:text-faint"
         />
       </div>
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        maxLength={140}
+        placeholder="Note (facultatif) : paella 40 pers., samedi…"
+        aria-label="Note de la liste"
+        className="h-12 rounded-2xl bg-surface-2 px-4 text-[15px] outline-none ring-1 ring-line/50 placeholder:text-faint focus:ring-2 focus:ring-sec/50"
+      />
       <SheetActions
         saveLabel={list ? 'Enregistrer' : 'Créer la liste'}
         deleteLabel="Supprimer la liste"

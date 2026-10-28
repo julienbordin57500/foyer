@@ -43,13 +43,16 @@ export function dueLabel(iso: string) {
   return { text, late, days }
 }
 
-/** « 6 œufs », « œufs x6 », « œufs ×6 » → quantité + nom. */
+/** « 6 œufs », « œufs x6 », « œufs ×6 », « crème fraîche 5 », « riz 2 kg » → quantité + nom. */
 export function splitQuantity(input: string): { name: string; quantity: string | null } {
   const s = input.trim().replace(/\s+/g, ' ')
   let m = s.match(/^(\d+(?:[.,]\d+)?\s?(?:kg|g|l|cl|ml)?)\s+(.+)$/i)
   if (m) return { quantity: m[1], name: m[2] }
   m = s.match(/^(.+?)\s*[x×]\s?(\d+)$/i)
   if (m) return { quantity: m[2], name: m[1] }
+  // Nombre à la fin, sauf s'il fait partie du nom (« couches taille 3 », « lait 1er âge »…).
+  m = s.match(/^(.+?)\s(\d+(?:[.,]\d+)?\s?(?:kg|g|l|cl|ml)?)$/i)
+  if (m && !/\b(taille|t|n°|no|num[ée]ro|[âa]ge|[ée]tape|type|mois|ans)$/i.test(m[1])) return { quantity: m[2], name: m[1] }
   return { name: s, quantity: null }
 }
 

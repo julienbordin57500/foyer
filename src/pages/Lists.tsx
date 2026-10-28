@@ -354,7 +354,7 @@ function ItemRow({ item, fresh, bare, onEdit }: { item: ListItem; fresh: boolean
         }}
         left={{ label: 'Supprimer', icon: <Trash2 size={18} />, tone: 'late', run: () => removeWithUndo('list_items', item.id, item.text) }}
       >
-        <div className="flex min-h-14 items-center gap-3 px-4 py-2">
+        <div className="flex min-h-16 items-center gap-3 px-4 py-2.5">
           <CheckCircle checked={item.done} label={item.done ? `Décocher ${item.text}` : `Cocher ${item.text}`} onClick={toggle} />
           <button onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
             <span

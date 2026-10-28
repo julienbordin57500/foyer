@@ -13,7 +13,7 @@ export type NewRow<T extends TableName> = {
   pings: Pick<Tables['pings'], 'kind' | 'place'>
   charges: Pick<Tables['charges'], 'label' | 'category' | 'amount' | 'every_months'>
   grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
-  grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji'>
+  grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji' | 'note'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>

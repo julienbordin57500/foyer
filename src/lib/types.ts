@@ -28,6 +28,8 @@ export interface GroceryList {
   owner: string
   name: string
   emoji: string
+  /** Petite note en haut de la liste : « Paella 40 pers. – samedi ». */
+  note: string | null
   created_at: string
 }
 
