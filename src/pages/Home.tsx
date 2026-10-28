@@ -8,7 +8,7 @@ import { REACTIONS, type Note, type Reaction } from '../lib/types'
 import { Avatar, Button, Card, Composer, Hero, HeroButton, SectionTitle, Sheet, SheetActions, cx, useArrivals } from '../components/ui'
 import SettingsSheet from '../components/SettingsSheet'
 import { SearchButton } from '../components/Search'
-import { today } from '../lib/dates'
+import { addDays, toISODate, today } from '../lib/dates'
 
 export default function HomePage({ go }: { go(t: Tab): void }) {
   const { me } = useSession()
@@ -47,16 +47,16 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
         }
       >
         <DaySummary go={go} />
+        {/* Raccourcis : les quatre compteurs, en cases sombres dans le bandeau. */}
+        <div className="mt-2.5 grid grid-cols-4 gap-2">
+          <Tile emoji="🛒" value={groceries.length} label="à prendre" onClick={() => go('courses')} />
+          <Tile emoji="📝" value={todos.length} label="à faire" alert={late > 0} onClick={() => go('afaire')} />
+          <Tile emoji="🗂️" value={lists.length} label={lists.length > 1 ? 'listes' : 'liste'} onClick={() => go('listes')} />
+          <Tile emoji="💶" value={unpaid.length} label="à payer" alert={unpaidLate} onClick={() => go('factures')} />
+        </div>
       </Hero>
 
-      {/* Raccourcis discrets : l'essentiel du jour est déjà au-dessus. */}
-      <SectionTitle>En ce moment</SectionTitle>
-      <div className="grid grid-cols-4 gap-2">
-        <Tile section="courses" emoji="🛒" value={groceries.length} label="à prendre" onClick={() => go('courses')} />
-        <Tile section="afaire" emoji="📝" value={todos.length} label="à faire" alert={late > 0} onClick={() => go('afaire')} />
-        <Tile section="listes" emoji="🗂️" value={lists.length} label={lists.length > 1 ? 'listes' : 'liste'} onClick={() => go('listes')} />
-        <Tile section="factures" emoji="💶" value={unpaid.length} label="à payer" alert={unpaidLate} onClick={() => go('factures')} />
-      </div>
+      <Week go={go} />
 
       {lists.length > 0 && (
         <div data-section="listes">
@@ -94,33 +94,114 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
   )
 }
 
-function Tile({
-  section,
-  emoji,
-  value,
-  label,
-  alert,
-  onClick,
-}: {
-  section: Tab
-  emoji: string
-  value: number
-  label: string
-  alert?: boolean
-  onClick(): void
-}) {
+function Tile({ emoji, value, label, alert, onClick }: { emoji: string; value: number; label: string; alert?: boolean; onClick(): void }) {
   return (
     <button
-      data-section={section}
       onClick={onClick}
       aria-label={`${value} ${label}`}
-      className="relative flex flex-col items-center rounded-[20px] bg-surface px-1 pb-2.5 pt-3 ring-1 ring-line/50 transition duration-300 ease-smooth active:scale-[0.95]"
+      className="relative flex flex-col items-center rounded-[20px] bg-black/25 px-1 pb-2.5 pt-3 ring-1 ring-white/10 transition duration-300 ease-smooth active:scale-[0.95]"
     >
-      {alert && <span aria-hidden className="absolute right-2.5 top-2.5 size-2 rounded-full bg-late shadow-[0_0_8px_var(--late)]" />}
+      {alert && <span aria-hidden className="absolute right-2.5 top-2.5 size-2 rounded-full bg-white shadow-[0_0_8px_white]" />}
       <span className="text-[18px] leading-none">{emoji}</span>
-      <span className="num mt-1.5 font-serif text-[24px] font-medium leading-none text-sec">{value}</span>
-      <span className="mt-1 text-[11.5px] text-muted">{label}</span>
+      <span className="num mt-1.5 font-serif text-[24px] font-medium leading-none">{value}</span>
+      <span className="mt-1 text-[11.5px] opacity-75">{label}</span>
     </button>
+  )
+}
+
+type WeekItem = { key: string; tab: Tab; emoji: string; text: string; meta?: string }
+const WEEKDAY = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' })
+
+/** Les 7 prochains jours en cases : un point par chose prévue, un appui montre le détail du jour. */
+function Week({ go }: { go(t: Tab): void }) {
+  const { data } = useStore()
+  const member = useMember()
+  const [picked, setPicked] = useState<string | null>(null)
+  const start = today()
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(start, i)
+    const iso = toISODate(d)
+    const items: WeekItem[] = [
+      ...data.todos
+        .filter((t) => !t.done_at && t.due_date === iso)
+        .map((t) => ({
+          key: t.id,
+          tab: 'afaire' as Tab,
+          emoji: '📝',
+          text: t.title,
+          meta: t.assignee ? member(t.assignee).name : undefined,
+        })),
+      ...data.list_items
+        .filter((i) => !i.done && i.remind_at && toISODate(new Date(i.remind_at)) === iso)
+        .map((i) => ({ key: i.id, tab: 'listes' as Tab, emoji: '🔔', text: i.text })),
+      ...data.bills
+        .filter((b) => !b.paid_at && b.due_date === iso)
+        .map((b) => ({
+          key: b.id,
+          tab: 'factures' as Tab,
+          emoji: '💶',
+          text: `${b.title} · ${euros(b.amount)}`,
+          meta: b.auto_debit ? 'prélevé' : undefined,
+        })),
+    ]
+    return { iso, d, items, label: i === 0 ? 'auj.' : WEEKDAY.format(d) }
+  })
+  const day = days.find((x) => x.iso === picked)
+
+  return (
+    <section>
+      <SectionTitle aside={!day && <span className="normal-case">Touchez un jour</span>}>Cette semaine</SectionTitle>
+      <div className="grid grid-cols-7 gap-1.5">
+        {days.map((x) => {
+          const on = x.iso === picked
+          return (
+            <button
+              key={x.iso}
+              onClick={() => setPicked(on ? null : x.iso)}
+              aria-pressed={on}
+              aria-label={`${x.label} ${x.d.getDate()} : ${x.items.length} chose${x.items.length > 1 ? 's' : ''}`}
+              className={cx(
+                'flex flex-col items-center rounded-[18px] pb-2 pt-2.5 transition duration-200 ease-smooth active:scale-[0.94]',
+                on ? 'bg-sec text-bg shadow-[0_6px_18px_-8px_var(--sec)]' : 'bg-surface ring-1 ring-line/50',
+              )}
+            >
+              <span className={cx('text-[11px] font-semibold uppercase tracking-wide', on ? 'opacity-80' : 'text-muted')}>
+                {x.label.replace('.', '')}
+              </span>
+              <span className="num mt-0.5 font-serif text-[21px] font-medium leading-tight">{x.d.getDate()}</span>
+              <span className="mt-1 flex h-1.5 items-center gap-0.5">
+                {x.items.slice(0, 3).map((it) => (
+                  <span key={it.key} className={cx('size-1.5 rounded-full', on ? 'bg-bg/70' : 'bg-sec')} />
+                ))}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      {day && (
+        <Card key={day.iso} className="mt-2 animate-pop overflow-hidden">
+          {day.items.length === 0 ? (
+            <p className="px-4 py-4 text-center text-[14px] text-muted">Rien de prévu ce jour-là.</p>
+          ) : (
+            <ul>
+              {day.items.map((it) => (
+                <li key={it.key} className="border-b border-line/60 last:border-0">
+                  <button
+                    onClick={() => go(it.tab)}
+                    className="flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left transition-colors active:bg-surface-2"
+                  >
+                    <span className="text-[16px]">{it.emoji}</span>
+                    <span className="min-w-0 flex-1 truncate text-[15px]">{it.text}</span>
+                    {it.meta && <span className="shrink-0 text-[12.5px] text-muted">{it.meta}</span>}
+                    <ChevronRight size={16} className="text-faint" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+    </section>
   )
 }
 
