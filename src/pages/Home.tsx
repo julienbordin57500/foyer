@@ -1,16 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import {
-  BellRing,
-  ChevronRight,
-  CircleCheckBig,
-  MessageCircleHeart,
-  Pencil,
-  Receipt,
-  Settings,
-  ShoppingCart,
-  SmilePlus,
-  Sparkles,
-} from 'lucide-react'
+import { BellRing, ChevronRight, CircleCheckBig, Pencil, Receipt, Settings, ShoppingCart, SmilePlus, Sparkles } from 'lucide-react'
 import type { Tab } from '../App'
 import { useMember, usePartner, useSession } from '../auth/AuthGate'
 import { useStore } from '../data/store'
@@ -26,21 +15,6 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
   const { data } = useStore()
   const [settings, setSettings] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
-  // Pastille sur 💬 tant qu'on n'a pas ouvert le dernier mot de l'autre.
-  const [seenNote, setSeenNote] = useState(readSeenNote)
-  const latest = data.notes[0]
-  const unread = !!latest && latest.author !== me.user_id && latest.id !== seenNote
-  const openNotes = () => {
-    setNotesOpen(true)
-    if (latest) {
-      setSeenNote(latest.id)
-      try {
-        localStorage.setItem(SEEN_NOTE_KEY, latest.id)
-      } catch {
-        /* pas grave : la pastille reviendra */
-      }
-    }
-  }
 
   const groceries = data.grocery_items.filter((i) => !i.list_id && i.status !== 'bought')
   const todos = data.todos.filter((t) => !t.done_at)
@@ -66,12 +40,6 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
         action={
           <div className="flex gap-2">
             <SearchButton />
-            <HeroButton label={unread ? 'Petits mots (nouveau)' : 'Petits mots'} onClick={openNotes} className="relative">
-              <MessageCircleHeart size={19} />
-              {unread && (
-                <span aria-hidden className="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-white ring-2 ring-[var(--hero-from)]" />
-              )}
-            </HeroButton>
             <HeroButton label="Réglages" onClick={() => setSettings(true)}>
               <Settings size={19} />
             </HeroButton>
@@ -115,6 +83,8 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
         </div>
       )}
 
+      <MiniNotes notes={data.notes} onOpen={() => setNotesOpen(true)} />
+
       <Sheet open={notesOpen} title="Petits mots" onClose={() => setNotesOpen(false)}>
         {notesOpen && <NotesPanel notes={data.notes} />}
       </Sheet>
@@ -122,15 +92,6 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
       <SettingsSheet open={settings} onClose={() => setSettings(false)} />
     </div>
   )
-}
-
-const SEEN_NOTE_KEY = 'foyer-mot-lu'
-const readSeenNote = () => {
-  try {
-    return localStorage.getItem(SEEN_NOTE_KEY)
-  } catch {
-    return null
-  }
 }
 
 function Tile({
@@ -160,6 +121,57 @@ function Tile({
       <span className="num mt-1.5 font-serif text-[24px] font-medium leading-none text-sec">{value}</span>
       <span className="mt-1 text-[11.5px] text-muted">{label}</span>
     </button>
+  )
+}
+
+/** Mini bandeau en bas de l'Accueil : le dernier mot, et de quoi en écrire un. L'historique s'ouvre d'un appui. */
+function MiniNotes({ notes, onOpen }: { notes: Note[]; onOpen(): void }) {
+  const { insert } = useStore()
+  const partner = usePartner()
+  const member = useMember()
+  const [text, setText] = useState('')
+  const isNew = useArrivals(notes.map((n) => n.id))
+  const latest = notes[0]
+  const who = latest ? member(latest.author) : null
+
+  const send = () => {
+    const body = text.trim()
+    if (!body) return
+    insert('notes', { body })
+    setText('')
+  }
+
+  return (
+    <section data-section="accueil">
+      <SectionTitle aside={notes.length > 0 && <button onClick={onOpen}>Tout voir</button>}>Petits mots</SectionTitle>
+      <Card className="space-y-3 p-3">
+        {latest && who ? (
+          <button
+            key={latest.id}
+            onClick={onOpen}
+            className={cx('flex w-full items-start gap-2.5 px-1 pt-0.5 text-left', isNew(latest.id) && 'animate-pop')}
+          >
+            <Avatar initial={who.initial} tone={who.tone} size="xs" />
+            <span className="min-w-0 flex-1">
+              <span className="line-clamp-2 font-serif text-[17px] leading-snug">« {latest.body} »</span>
+              <span className="mt-0.5 block text-[12px] text-muted">
+                {who.isMe ? 'Vous' : who.name} · {ago(latest.created_at)}
+              </span>
+            </span>
+          </button>
+        ) : (
+          <p className="px-1 text-[14px] text-muted">Laissez un premier mot{partner ? ` à ${partner.display_name}` : ''} 💌</p>
+        )}
+        <Composer
+          value={text}
+          onChange={setText}
+          onSubmit={send}
+          placeholder={partner ? `Un mot pour ${partner.display_name}…` : 'Écrire un mot…'}
+          label="Écrire un petit mot"
+          enterKeyHint="send"
+        />
+      </Card>
+    </section>
   )
 }
 
