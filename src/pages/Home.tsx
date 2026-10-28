@@ -9,6 +9,7 @@ import { Avatar, Button, Card, Composer, Hero, HeroButton, SectionTitle, Sheet, 
 import SettingsSheet from '../components/SettingsSheet'
 import { SearchButton } from '../components/Search'
 import { addDays, toISODate, today } from '../lib/dates'
+import { useWeather } from '../lib/weather'
 
 export default function HomePage({ go }: { go(t: Tab): void }) {
   const { me } = useSession()
@@ -53,6 +54,7 @@ export default function HomePage({ go }: { go(t: Tab): void }) {
           <Tile emoji="🗂️" value={lists.length} label={lists.length > 1 ? 'listes' : 'liste'} onClick={() => go('listes')} />
           <Tile emoji="💶" value={unpaid.length} label="à payer" alert={unpaidLate} onClick={() => go('factures')} />
         </div>
+        <WeatherLine />
       </Hero>
 
       <Week go={go} />
@@ -105,6 +107,21 @@ function Tile({ emoji, value, label, alert, onClick }: { emoji: string; value: n
       <span className="num mt-1.5 font-serif text-[24px] font-medium leading-none">{value}</span>
       <span className="mt-1 text-[11.5px] opacity-75">{label}</span>
     </button>
+  )
+}
+
+/** Une ligne discrète sous les cases : le temps qu'il fait à Saint-Avold, et la pluie à venir. */
+function WeatherLine() {
+  const w = useWeather()
+  if (!w) return null
+  return (
+    <p className="mt-3 animate-fade text-center text-[13px] opacity-85">
+      {w.emoji} <span className="num font-semibold">{w.temp}°</span> · {w.label} ·{' '}
+      <span className="num">
+        {w.min}° / {w.max}°
+      </span>
+      {w.rainAt !== null && ` · pluie vers ${w.rainAt} h`}
+    </p>
   )
 }
 
