@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import { AlertCircle, CircleCheckBig, House, Receipt, ShoppingCart, X } from 'lucide-react'
 import { TOAST_MS, useStore } from './data/store'
 import { cx } from './components/ui'
-import { toISODate, today } from './lib/dates'
+import { addMonths, toISODate, today } from './lib/dates'
 import { hideSplash } from './lib/splash'
 import { SearchContext, SearchOverlay } from './components/Search'
 import HomePage from './pages/Home'
@@ -30,7 +30,15 @@ const readHash = (): Tab => {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>(readHash)
-  const { data, loading, error, dismissError, toast } = useStore()
+  const { data, loading, error, dismissError, toast, update } = useStore()
+
+  // Courses qui reviennent : à l'échéance, l'article repasse « à prendre » (le premier téléphone ouvert s'en charge).
+  useEffect(() => {
+    const now = Date.now()
+    for (const i of data.grocery_items)
+      if (i.status === 'bought' && i.repeat_months && i.bought_at && addMonths(new Date(i.bought_at), i.repeat_months).getTime() <= now)
+        update('grocery_items', i.id, { status: 'todo', bought_at: null })
+  }, [data.grocery_items, update])
   // Les listes vivent dans l'onglet « À faire ».
   const navTab: Tab = tab === 'listes' ? 'afaire' : tab
   const index = TABS.findIndex((t) => t.id === navTab)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Check, ChefHat, ChevronDown, Hash, LayoutGrid, Pencil, Plus, RotateCcw, ShoppingCart, Trash2, Users } from 'lucide-react'
+import { Check, ChefHat, ChevronDown, Hash, LayoutGrid, Pencil, Plus, Repeat, RotateCcw, ShoppingCart, Trash2, Users } from 'lucide-react'
 import { useMember, usePartner } from '../auth/AuthGate'
 import { SearchButton } from '../components/Search'
 import { CategoryPicker, useCategories } from '../components/CategoryPicker'
@@ -26,6 +26,17 @@ import {
   cx,
   useArrivals,
 } from '../components/ui'
+
+// Articles qui reviennent tout seuls (filtre à café, piles…).
+const REPEATS: { months: number | null; label: string }[] = [
+  { months: null, label: 'Non' },
+  { months: 1, label: '1 mois' },
+  { months: 2, label: '2 mois' },
+  { months: 3, label: '3 mois' },
+  { months: 6, label: '6 mois' },
+  { months: 12, label: '1 an' },
+]
+const repeatLabel = (m: number) => (m === 12 ? 'tous les ans' : m === 1 ? 'tous les mois' : `tous les ${m} mois`)
 
 const LIST_KEY = 'foyer-courses-liste'
 const readList = () => {
@@ -463,6 +474,11 @@ function GroceryRow({ item, fresh, onEdit }: { item: GroceryItem; fresh: boolean
               {item.name}
               {item.quantity && <span className="num ml-1.5 text-[14px] text-muted">× {item.quantity}</span>}
             </span>
+            {item.repeat_months && (
+              <span className="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-sec">
+                <Repeat size={11} strokeWidth={2.6} /> {repeatLabel(item.repeat_months)}
+              </span>
+            )}
           </button>
           <Avatar initial={member.initial} tone={member.tone} size="xs" />
         </div>
@@ -477,6 +493,7 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
   const [name, setName] = useState(item.name)
   const [quantity, setQuantity] = useState(item.quantity ?? '')
   const [category, setCategory] = useState<Category>(item.category)
+  const [repeat, setRepeat] = useState<number | null>(item.repeat_months ?? null)
 
   const save = (e: FormEvent) => {
     e.preventDefault()
@@ -484,6 +501,7 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
       name: name.trim() || item.name,
       quantity: quantity.trim() || null,
       category,
+      repeat_months: repeat,
     })
     onClose()
   }
@@ -506,6 +524,32 @@ function ItemForm({ item, onClose }: { item: GroceryItem; onClose(): void }) {
           <LayoutGrid size={15} className="text-sec" /> Rayon
         </p>
         <CategoryPicker value={category} suggested={guessCategory(name)} onChange={setCategory} />
+      </div>
+      <div className="rounded-2xl bg-surface-2/60 px-3 pb-3 pt-2.5 ring-1 ring-line/50">
+        <p className="mb-2.5 flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted">
+          <Repeat size={15} className="text-sec" /> Revient tout seul ?
+        </p>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {REPEATS.map((r) => (
+            <button
+              key={r.label}
+              type="button"
+              onClick={() => setRepeat(r.months)}
+              aria-pressed={repeat === r.months}
+              className={cx(
+                'h-9 rounded-full px-3.5 text-[14px] font-semibold transition duration-200 ease-smooth active:scale-95',
+                repeat === r.months ? 'bg-sec text-bg shadow-[0_4px_14px_-6px_var(--sec)]' : 'bg-surface-2 text-ink ring-1 ring-line/60',
+              )}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        {repeat && (
+          <p className="mt-2.5 text-center text-[12.5px] text-muted">
+            Une fois acheté, il reviendra sur la liste {repeat === 12 ? 'dans 1 an' : `dans ${repeat} mois`}.
+          </p>
+        )}
       </div>
       <p className="mt-2 flex items-center justify-center gap-2 text-[13px] text-muted">
         <Avatar initial={member.initial} tone={member.tone} size="xs" />

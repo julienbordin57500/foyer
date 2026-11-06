@@ -58,6 +58,8 @@ export interface GroceryItem {
   list_id: string | null
   added_by: string
   bought_at: string | null
+  /** Revient tout seul sur la liste ce nombre de mois après l'achat (filtre à café : 2). */
+  repeat_months: number | null
   created_at: string
 }
 

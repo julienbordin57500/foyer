@@ -22,6 +22,16 @@ export const addDays = (d: Date, n: number) => {
   return x
 }
 
+/** Même jour, n mois plus tard (le 31 devient le dernier jour du mois s'il le faut). */
+export const addMonths = (d: Date, n: number) => {
+  const x = new Date(d)
+  const day = x.getDate()
+  x.setDate(1)
+  x.setMonth(x.getMonth() + n)
+  x.setDate(Math.min(day, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate()))
+  return x
+}
+
 /** Samedi qui vient (aujourd'hui si on est samedi). */
 export const nextSaturday = (from = today()) => addDays(from, (6 - from.getDay() + 7) % 7)
 

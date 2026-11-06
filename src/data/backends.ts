@@ -131,6 +131,7 @@ const seed = (): Data => {
     category,
     place: 'store' as Place,
     list_id: null,
+    repeat_months: null,
     status: 'todo' as const,
     added_by,
     bought_at: null,
@@ -392,7 +393,7 @@ type GroceryCat = Tables['grocery_items']['category']
 /** Valeurs que la base remplit elle-même : utilisées pour l'affichage immédiat (optimiste). */
 export function rowDefaults(table: TableName, me: string) {
   const now = new Date().toISOString()
-  if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, created_at: now }
+  if (table === 'grocery_items') return { status: 'todo', added_by: me, bought_at: null, repeat_months: null, created_at: now }
   if (table === 'grocery_categories') return { created_at: now }
   if (table === 'grocery_lists') return { owner: me, created_at: now }
   if (table === 'recipes') return { added_by: me, created_at: now }
