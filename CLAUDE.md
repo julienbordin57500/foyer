@@ -21,7 +21,7 @@ factures et charges, listes, petits mots, notifications. Toujours répondre en f
 - `src/data/store.tsx` (état + mises à jour optimistes), `src/data/backends.ts` (Supabase ou démo)
 - `src/lib/` : `categorize.ts` (rayons auto), `recipes.ts`, `reminders.ts`, `theme.ts`, `weather.ts`, `agenda.ts` (tout ce qui a une date, pour le calendrier), `types.ts`
 - `src/components/` : feuilles (Settings, Recipe…), `Calendar.tsx` (calendrier de l'Accueil), `ui.tsx` (éléments communs)
-- `supabase/schema.sql` puis `v2_…` → `v17_…` : à appliquer dans l'ordre ; `functions/foyer-push` : notifications ;
+- `supabase/schema.sql` puis `v2_…` → `v18_…` : à appliquer dans l'ordre ; `functions/foyer-push` : notifications ;
   `functions/foyer-ical` : import des calendriers iPhone (lien iCloud public, agit au nom de la personne connectée)
 - `public/push-sw.js` : réception des notifications ; `scripts/icons.mjs` : icônes depuis le logo
 
