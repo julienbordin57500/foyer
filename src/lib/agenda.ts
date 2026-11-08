@@ -59,7 +59,7 @@ export function useAgenda() {
         tab: 'accueil',
         emoji: e.kind === 'memo' ? '📌' : '📅',
         text: e.title,
-        meta: e.note ?? undefined,
+        meta: [e.private && '🔒 Juste moi', e.feed_id && '📱 iPhone', e.note].filter(Boolean).join(' · ') || undefined,
         time: e.time?.slice(0, 5),
         event: e,
       })

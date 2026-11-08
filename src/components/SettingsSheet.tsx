@@ -5,6 +5,7 @@ import { useTheme, type ThemePref } from '../lib/theme'
 import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
 import { supabase } from '../lib/supabase'
 import { Avatar, Button, Segmented, Sheet, ToggleRow, cx } from './ui'
+import { IphoneCalendars } from './IphoneCalendars'
 
 export default function SettingsSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { household, members, me, demo, signOut } = useSession()
@@ -61,6 +62,8 @@ export default function SettingsSheet({ open, onClose }: { open: boolean; onClos
       <p className="mb-6 mt-1.5 px-1 text-xs text-muted">« Auto » suit le réglage du téléphone.</p>
 
       {!demo && <Notifications householdId={household.id} userId={me.user_id} />}
+
+      <IphoneCalendars />
 
       <p className="mb-2 px-1 text-[13px] font-medium text-muted">{household.name}</p>
       <ul className="mb-6 divide-y divide-line rounded-2xl bg-surface-2 px-4">

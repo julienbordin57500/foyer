@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { BellRing, CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, StickyNote, Trash2 } from 'lucide-react'
+import { BellRing, CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, StickyNote, Trash2 } from 'lucide-react'
 import type { Tab } from '../App'
 import { useStore } from '../data/store'
+import { useIphoneImport } from './IphoneCalendars'
 import { AGENDA_COLORS, AGENDA_LEGEND, useAgenda, type AgendaItem } from '../lib/agenda'
 import { addDays, parseISODate, toISODate, today } from '../lib/dates'
 import { capitalize } from '../lib/format'
@@ -23,24 +24,30 @@ const REMINDERS: { days: number | null; label: string }[] = [
   { days: 7, label: '1 semaine avant' },
 ]
 
-/**
- * Heure de la notification : à 9 h le jour du rappel ; le jour même avec une heure, 1 h avant
- * (mais pas avant 7 h). Pour un rappel déjà passé, la notification part tout de suite.
- */
-function remindAt(date: string, time: string, days: number | null) {
+/** Moment de la notification : le jour du rappel (0 à 7 jours avant), à l'heure choisie. Déjà passé : elle part tout de suite. */
+function remindAt(date: string, days: number | null, at: string) {
   if (days === null) return null
-  const at = addDays(parseISODate(date), -days)
-  if (days === 0 && time) {
-    const [h, m] = time.split(':').map(Number)
-    if (h - 1 < 7) at.setHours(7, 0)
-    else at.setHours(h - 1, m)
-  } else at.setHours(9, 0)
-  return at.toISOString()
+  const d = addDays(parseISODate(date), -days)
+  const [h, m] = (at || '09:00').split(':').map(Number)
+  d.setHours(h, m)
+  return d.toISOString()
+}
+/** « 09:00 » → « 9 h », « 18:30 » → « 18 h 30 ». */
+const spoken = (t: string) => {
+  const [h, m] = t.split(':')
+  return `${Number(h)} h${m === '00' ? '' : ` ${m}`}`
+}
+const hhmmOf = (iso: string) => {
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 /** Le calendrier du foyer, en grand sur l'Accueil : le mois, puis le détail du jour choisi. */
 export function CalendarBlock({ go }: { go(t: Tab): void }) {
   const itemsOn = useAgenda()
+  const { data } = useStore()
+  const { run: importIphone, busy } = useIphoneImport()
+  const hasFeeds = data.calendar_feeds.length > 0
   const todayIso = toISODate(today())
   const [picked, setPicked] = useState(todayIso)
   const [month, setMonth] = useState(() => {
@@ -67,9 +74,16 @@ export function CalendarBlock({ go }: { go(t: Tab): void }) {
     <section>
       <SectionTitle
         aside={
-          <button onClick={() => setDraft({ date: picked })} className="flex items-center gap-1 font-semibold normal-case text-sec">
-            <Plus size={13} strokeWidth={2.8} /> Ajouter
-          </button>
+          <span className="flex items-center gap-3">
+            {hasFeeds && (
+              <button onClick={importIphone} disabled={busy} className="flex items-center gap-1 font-semibold normal-case text-muted">
+                <RefreshCw size={12} strokeWidth={2.8} className={cx(busy && 'animate-spin')} /> iPhone
+              </button>
+            )}
+            <button onClick={() => setDraft({ date: picked })} className="flex items-center gap-1 font-semibold normal-case text-sec">
+              <Plus size={13} strokeWidth={2.8} /> Ajouter
+            </button>
+          </span>
         }
       >
         Calendrier
@@ -232,14 +246,18 @@ function AgendaRow({ item, onOpen }: { item: AgendaItem; onOpen(): void }) {
 
 /** Ajouter ou modifier un événement / pense-bête. Supprimer demande une confirmation. */
 function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): void }) {
-  const { insert, update, remove } = useStore()
+  const { insert, update, remove, me } = useStore()
   const existing = 'id' in draft ? draft : null
+  const mine = !existing || existing.added_by === me
   const [title, setTitle] = useState(existing?.title ?? '')
   const [kind, setKind] = useState<CalendarEvent['kind']>(existing?.kind ?? 'event')
   const [date, setDate] = useState(draft.date)
   const [time, setTime] = useState(existing?.time?.slice(0, 5) ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
   const [remind, setRemind] = useState<number | null>(existing ? existing.remind_days : 1)
+  const [remindTime, setRemindTime] = useState(existing?.remind_at ? hhmmOf(existing.remind_at) : '09:00')
+  const [secret, setSecret] = useState(existing?.private ?? false)
+  const who = secret ? 'vous seul' : 'vous deux'
   const [confirm, setConfirm] = useState(false)
 
   const save = (e: FormEvent) => {
@@ -253,7 +271,8 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
       time: time || null,
       note: note.trim() || null,
       remind_days: remind,
-      remind_at: remindAt(date, time, remind),
+      remind_at: remindAt(date, remind, remindTime),
+      private: secret,
     }
     if (existing) {
       // Jour, heure ou rappel changés : la notification repartira à la nouvelle heure.
@@ -267,7 +286,7 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
     return (
       <div className="flex flex-col items-center gap-2 py-2 text-center">
         <p className="font-serif text-[22px] font-medium">Supprimer « {existing.title} » ?</p>
-        <p className="mb-3 text-[14px] text-muted">Il disparaîtra du calendrier pour vous deux.</p>
+        <p className="mb-3 text-[14px] text-muted">Il disparaîtra du calendrier{existing.private ? '' : ' pour vous deux'}.</p>
         <Button
           variant="danger"
           className="w-full"
@@ -315,6 +334,29 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
           </button>
         ))}
       </div>
+      {mine && (
+        <div className="flex justify-center gap-1.5 pb-1">
+          {(
+            [
+              [false, '👥 Nous deux'],
+              [true, '🔒 Juste moi'],
+            ] as const
+          ).map(([p, label]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setSecret(p)}
+              aria-pressed={secret === p}
+              className={cx(
+                'h-9 rounded-full px-3.5 text-[14px] font-semibold transition duration-200 ease-smooth active:scale-95',
+                secret === p ? 'bg-ink text-bg' : 'bg-surface-2 text-muted ring-1 ring-line/60',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <DateRow label="Jour" icon={<CalendarDays size={18} />} value={date} onChange={setDate} />
       <label className="flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 ring-1 ring-line/50 focus-within:ring-2 focus-within:ring-sec/50">
         <Clock size={18} className="text-sec" />
@@ -339,7 +381,7 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
       </label>
       <div className="rounded-2xl bg-surface-2/60 px-3 pb-3 pt-2.5 ring-1 ring-line/50">
         <p className="mb-2.5 flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted">
-          <BellRing size={15} className="text-sec" /> Nous prévenir
+          <BellRing size={15} className="text-sec" /> {secret ? 'Me prévenir' : 'Nous prévenir'}
         </p>
         <div className="flex flex-wrap justify-center gap-1.5">
           {REMINDERS.map((r) => (
@@ -358,15 +400,24 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
           ))}
         </div>
         {remind !== null && (
-          <p className="mt-2.5 text-center text-[12.5px] text-muted">
-            Une notification pour vous deux{' '}
-            {remind === 0
-              ? time
-                ? '1 h avant'
-                : 'le matin même à 9 h'
-              : `${remind === 7 ? 'une semaine' : `${remind} jour${remind > 1 ? 's' : ''}`} avant, à 9 h`}
-            .
-          </p>
+          <>
+            <label className="mx-auto mt-2.5 flex h-11 max-w-60 items-center gap-2 rounded-full bg-surface px-4 ring-1 ring-line/60 focus-within:ring-2 focus-within:ring-sec/50">
+              <Clock size={15} className="text-sec" />
+              <span className="flex-1 text-[14px] text-muted">À quelle heure ?</span>
+              <input
+                type="time"
+                value={remindTime}
+                onChange={(e) => setRemindTime(e.target.value)}
+                aria-label="Heure du rappel"
+                className="bg-transparent text-right text-[15px] font-semibold outline-none"
+              />
+            </label>
+            <p className="mt-2 text-center text-[12.5px] text-muted">
+              Une notification pour {who}{' '}
+              {remind === 0 ? 'le jour même' : `${remind === 7 ? 'une semaine' : `${remind} jour${remind > 1 ? 's' : ''}`} avant`}, à{' '}
+              {spoken(remindTime || '09:00')}.
+            </p>
+          </>
         )}
       </div>
       <SheetActions

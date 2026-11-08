@@ -1,0 +1,150 @@
+import { useState } from 'react'
+import { Link2, Lock, RefreshCw, Trash2, Users } from 'lucide-react'
+import { usePartner } from '../auth/AuthGate'
+import { useStore } from '../data/store'
+import { supabase } from '../lib/supabase'
+import { Button, cx } from './ui'
+
+type Result = { name: string; imported?: number; removed?: number; error?: string }
+
+/** Va chercher les calendriers de l'iPhone (serveur foyer-ical) et résume ce qui a été fait. */
+export function useIphoneImport() {
+  const { showToast } = useStore()
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    if (!supabase || busy) return
+    setBusy(true)
+    try {
+      const { data, error } = await supabase.functions.invoke<{ results: Result[] }>('foyer-ical', { body: {} })
+      if (error) throw error
+      const results = data?.results ?? []
+      const failed = results.find((r) => r.error)
+      const total = results.reduce((n, r) => n + (r.imported ?? 0), 0)
+      showToast(
+        failed ? `${failed.name} : ${failed.error}` : `📱 ${total} événement${total > 1 ? 's' : ''} à jour depuis l'iPhone`,
+        () => {},
+      )
+    } catch {
+      showToast("Import impossible pour l'instant, réessayez plus tard.", () => {})
+    } finally {
+      setBusy(false)
+    }
+  }
+  return { run, busy }
+}
+
+/** Réglages : les calendriers de l'iPhone à importer, chacun « Juste moi » ou « Nous deux ». */
+export function IphoneCalendars() {
+  const { data, insert, remove } = useStore()
+  const { run, busy } = useIphoneImport()
+  const partner = usePartner()?.display_name ?? "l'autre"
+  const [name, setName] = useState('')
+  const [url, setUrl] = useState('')
+  const [secret, setSecret] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const valid = /^(webcal|https):\/\/[a-z0-9.-]+\.icloud\.com\//i.test(url.trim())
+
+  const add = () => {
+    if (!name.trim() || !valid) return
+    insert('calendar_feeds', { name: name.trim().slice(0, 40), url: url.trim(), private: secret })
+    setName('')
+    setUrl('')
+    setAdding(false)
+  }
+
+  return (
+    <div className="mb-6">
+      <p className="mb-2 px-1 text-[13px] font-medium text-muted">Calendriers de l'iPhone</p>
+      {data.calendar_feeds.length > 0 && (
+        <ul className="mb-2 divide-y divide-line rounded-2xl bg-surface-2 px-4">
+          {data.calendar_feeds.map((f) => (
+            <li key={f.id} className="flex min-h-14 items-center gap-3 py-2">
+              {f.private ? <Lock size={17} className="text-sec" /> : <Users size={17} className="text-sec" />}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{f.name}</span>
+                <span className="block text-[12px] text-muted">
+                  {f.private ? 'Juste moi' : 'Nous deux'}
+                  {f.synced_at && ` · importé ${new Date(f.synced_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}
+                </span>
+              </span>
+              <button
+                onClick={() => remove('calendar_feeds', f.id)}
+                aria-label={`Retirer ${f.name} et ses événements`}
+                className="grid size-9 place-items-center rounded-full text-faint active:bg-line/40"
+              >
+                <Trash2 size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {adding ? (
+        <div className="flex flex-col gap-2 rounded-2xl bg-surface-2/60 p-3 ring-1 ring-line/50">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={40}
+            placeholder="Nom : Perso, Famille…"
+            aria-label="Nom du calendrier"
+            className="h-12 rounded-xl bg-surface px-4 text-[15px] outline-none ring-1 ring-line/60 placeholder:text-faint focus:ring-2 focus:ring-sec/50"
+          />
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            inputMode="url"
+            autoCapitalize="off"
+            autoCorrect="off"
+            placeholder="Lien webcal://…icloud.com/…"
+            aria-label="Lien du calendrier public iCloud"
+            className="h-12 rounded-xl bg-surface px-4 text-[14px] outline-none ring-1 ring-line/60 placeholder:text-faint focus:ring-2 focus:ring-sec/50"
+          />
+          {url.trim() && !valid && <p className="px-1 text-[12px] text-late">Ce lien doit venir d'iCloud (webcal://…icloud.com/…).</p>}
+          <div className="flex justify-center gap-1.5 py-1">
+            {(
+              [
+                [true, '🔒 Juste moi'],
+                [false, '👥 Nous deux'],
+              ] as const
+            ).map(([p, label]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setSecret(p)}
+                aria-pressed={secret === p}
+                className={cx(
+                  'h-9 rounded-full px-3.5 text-[14px] font-semibold transition active:scale-95',
+                  secret === p ? 'bg-ink text-bg' : 'bg-surface text-muted ring-1 ring-line/60',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Button onClick={add} disabled={!name.trim() || !valid}>
+            Ajouter ce calendrier
+          </Button>
+          <button onClick={() => setAdding(false)} className="h-10 text-[14px] font-semibold text-muted">
+            Annuler
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {data.calendar_feeds.length > 0 && (
+            <Button onClick={run} disabled={busy || !supabase}>
+              <RefreshCw size={17} className={cx(busy && 'animate-spin')} /> {busy ? 'Import en cours…' : "Importer de l'iPhone"}
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => setAdding(true)}>
+            <Link2 size={17} /> Ajouter un calendrier
+          </Button>
+        </div>
+      )}
+      <p className="mt-1.5 px-1 text-xs leading-relaxed text-muted">
+        {supabase
+          ? `Le lien reste privé : seul vous le voyez. « Juste moi » : ${partner} ne voit pas ces événements.`
+          : "Mode démo : l'import marche seulement dans la vraie app."}
+      </p>
+    </div>
+  )
+}

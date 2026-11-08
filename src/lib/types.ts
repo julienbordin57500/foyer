@@ -55,7 +55,23 @@ export interface CalendarEvent {
   remind_days: number | null
   remind_at: string | null
   reminded_at: string | null
+  /** true : seule la personne qui l'a ajouté le voit (protégé par la base). */
+  private: boolean
+  /** Importé d'un calendrier iPhone : le lien d'origine et l'identifiant de l'événement là-bas. */
+  feed_id: string | null
+  source_uid: string | null
   added_by: string
+  created_at: string
+}
+
+/** Calendrier de l'iPhone à importer (lien iCloud public), visible seulement par son propriétaire. */
+export interface CalendarFeed {
+  id: string
+  owner: string
+  name: string
+  url: string
+  private: boolean
+  synced_at: string | null
   created_at: string
 }
 
@@ -212,6 +228,7 @@ export interface Tables {
   grocery_lists: GroceryList
   recipes: Recipe
   calendar_events: CalendarEvent
+  calendar_feeds: CalendarFeed
 }
 
 export type TableName = keyof Tables

@@ -15,7 +15,8 @@ export type NewRow<T extends TableName> = {
   grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
   grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji' | 'note'>
   recipes: Pick<Tables['recipes'], 'name' | 'emoji' | 'ingredients'>
-  calendar_events: Pick<Tables['calendar_events'], 'title' | 'kind' | 'date' | 'time' | 'note' | 'remind_days' | 'remind_at'>
+  calendar_events: Pick<Tables['calendar_events'], 'title' | 'kind' | 'date' | 'time' | 'note' | 'remind_days' | 'remind_at' | 'private'>
+  calendar_feeds: Pick<Tables['calendar_feeds'], 'name' | 'url' | 'private'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
@@ -47,6 +48,7 @@ export const TABLES: TableName[] = [
   'grocery_lists',
   'recipes',
   'calendar_events',
+  'calendar_feeds',
 ]
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
@@ -144,6 +146,7 @@ const seed = (): Data => {
     grocery_categories: [],
     grocery_lists: [],
     recipes: [],
+    calendar_feeds: [],
     calendar_events: [
       {
         id: uid(),
@@ -155,6 +158,9 @@ const seed = (): Data => {
         remind_days: 1,
         remind_at: null,
         reminded_at: null,
+        private: false,
+        feed_id: null,
+        source_uid: null,
         added_by: DEMO_OTHER,
         created_at: ago(300),
       },
@@ -168,6 +174,9 @@ const seed = (): Data => {
         remind_days: 7,
         remind_at: null,
         reminded_at: null,
+        private: true,
+        feed_id: null,
+        source_uid: null,
         added_by: DEMO_ME,
         created_at: ago(900),
       },
@@ -427,7 +436,8 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'grocery_categories') return { created_at: now }
   if (table === 'grocery_lists') return { owner: me, created_at: now }
   if (table === 'recipes') return { added_by: me, created_at: now }
-  if (table === 'calendar_events') return { added_by: me, reminded_at: null, created_at: now }
+  if (table === 'calendar_events') return { added_by: me, reminded_at: null, feed_id: null, source_uid: null, created_at: now }
+  if (table === 'calendar_feeds') return { owner: me, synced_at: null, created_at: now }
   if (table === 'todos')
     return {
       added_by: me,

@@ -277,7 +277,7 @@ async function sendReminders() {
     .update({ reminded_at: now })
     .lte('remind_at', now)
     .is('reminded_at', null)
-    .select('household_id, title, kind, date, time')
+    .select('household_id, title, kind, date, time, private, added_by')
 
   const recipientsOf = async (household: string, to: string | null) => {
     if (to) return [to]
@@ -290,13 +290,13 @@ async function sendReminders() {
     const { data: list } = await sb.from('lists').select('title, emoji').eq('id', i.list_id).maybeSingle()
     sent += await send(await recipientsOf(i.household_id, i.remind_to), `🔔 ${list ? `${list.emoji} ${list.title}` : 'Rappel'}`, i.text, 'listes')
   }
-  // Calendrier : pour vous deux, avec le jour en clair (« Demain à 10:30 », « Dans 7 jours »).
+  // Calendrier : pour vous deux (ou seulement l'auteur si « Juste moi »), avec le jour en clair (« Demain à 10:30 », « Dans 7 jours »).
   const { day } = parisNow()
   for (const e of events ?? []) {
     const diff = Math.round((Date.parse(`${e.date}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`)) / 86_400_000)
     const when = diff <= 0 ? "Aujourd'hui" : diff === 1 ? 'Demain' : `Dans ${diff} jours (le ${ddmm(e.date)})`
     const at = e.time ? ` à ${String(e.time).slice(0, 5)}` : ''
-    sent += await send(await recipientsOf(e.household_id, null), `${e.kind === 'memo' ? '📌' : '📅'} ${e.title}`, `${when}${at}`, 'accueil')
+    sent += await send(await recipientsOf(e.household_id, e.private ? e.added_by : null), `${e.kind === 'memo' ? '📌' : '📅'} ${e.title}`, `${when}${at}`, 'accueil')
   }
   sent += await billReminders(recipientsOf)
   sent += await morningDigest()
