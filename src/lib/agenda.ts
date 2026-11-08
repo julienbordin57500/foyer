@@ -17,6 +17,8 @@ export type AgendaItem = {
   meta?: string
   /** hh:mm, pour trier la journée (les choses sans heure passent en premier). */
   time?: string
+  /** Couleur de sa pastille : celle de son calendrier iPhone, sinon celle de sa sorte. */
+  color: string
   event?: CalendarEvent
 }
 
@@ -29,6 +31,9 @@ export const AGENDA_COLORS: Record<AgendaKind, string> = {
   list: '#c4b5fd',
   courses: '#4ade9b',
 }
+
+/** Couleurs proposées pour les calendriers de l'iPhone. */
+export const FEED_COLORS = ['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#22d3ee', '#4dabf7', '#b197fc', '#f783ac']
 
 export const AGENDA_LEGEND: { kind: AgendaKind; label: string }[] = [
   { kind: 'event', label: 'Événement' },
@@ -59,8 +64,9 @@ export function useAgenda() {
         tab: 'accueil',
         emoji: e.kind === 'memo' ? '📌' : '📅',
         text: e.title,
-        meta: [e.private && '🔒 Juste moi', e.feed_id && '📱 iPhone', e.note].filter(Boolean).join(' · ') || undefined,
+        meta: e.note ?? undefined,
         time: e.time?.slice(0, 5),
+        color: e.color ?? AGENDA_COLORS[e.kind],
         event: e,
       })
     for (const t of data.todos)
@@ -68,6 +74,7 @@ export function useAgenda() {
         add(t.due_date, {
           key: t.id,
           kind: 'todo',
+          color: AGENDA_COLORS.todo,
           tab: 'afaire',
           emoji: '📝',
           text: t.title,
@@ -81,6 +88,7 @@ export function useAgenda() {
         add(toISODate(at), {
           key: i.id,
           kind: 'list',
+          color: AGENDA_COLORS.list,
           tab: 'listes',
           emoji: list?.emoji ?? '🔔',
           text: i.text,
@@ -93,6 +101,7 @@ export function useAgenda() {
         add(b.due_date, {
           key: b.id,
           kind: 'bill',
+          color: AGENDA_COLORS.bill,
           tab: 'factures',
           emoji: '💶',
           text: `${b.title} · ${euros(b.amount)}`,
@@ -103,6 +112,7 @@ export function useAgenda() {
         add(toISODate(addMonths(new Date(g.bought_at), g.repeat_months)), {
           key: g.id,
           kind: 'courses',
+          color: AGENDA_COLORS.courses,
           tab: 'courses',
           emoji: '🛒',
           text: `${g.name} revient sur la liste`,

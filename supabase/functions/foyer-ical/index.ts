@@ -15,7 +15,7 @@ const DAY = 86_400_000
 const MAX_BYTES = 5_000_000
 const MAX_EVENTS = 800
 
-type Feed = { id: string; household_id: string; name: string; url: string; private: boolean }
+type Feed = { id: string; household_id: string; name: string; url: string; private: boolean; color: string }
 type Occurrence = { uid: string; title: string; date: string; time: string | null; note: string | null }
 
 // ─── Lecture du fichier .ics ───────────────────────────────────────────────
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
   const { data: user } = await sb.auth.getUser()
   if (!user.user) return json({ error: 'Non connecté' }, 401)
 
-  const { data: feeds, error } = await sb.from('calendar_feeds').select('id, household_id, name, url, private')
+  const { data: feeds, error } = await sb.from('calendar_feeds').select('id, household_id, name, url, private, color')
   if (error) return json({ error: error.message }, 400)
 
   const from = new Date(Date.now() - 30 * DAY)
@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
         time: e.time,
         note: e.note,
         private: f.private,
+        color: f.color,
         feed_id: f.id,
         source_uid: e.uid,
         added_by: user.user.id,

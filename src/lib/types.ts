@@ -60,6 +60,8 @@ export interface CalendarEvent {
   /** Importé d'un calendrier iPhone : le lien d'origine et l'identifiant de l'événement là-bas. */
   feed_id: string | null
   source_uid: string | null
+  /** Couleur de pastille, recopiée de son calendrier iPhone (null : couleur selon la sorte). */
+  color: string | null
   added_by: string
   created_at: string
 }
@@ -71,6 +73,7 @@ export interface CalendarFeed {
   name: string
   url: string
   private: boolean
+  color: string
   synced_at: string | null
   created_at: string
 }

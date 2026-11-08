@@ -16,7 +16,7 @@ export type NewRow<T extends TableName> = {
   grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji' | 'note'>
   recipes: Pick<Tables['recipes'], 'name' | 'emoji' | 'ingredients'>
   calendar_events: Pick<Tables['calendar_events'], 'title' | 'kind' | 'date' | 'time' | 'note' | 'remind_days' | 'remind_at' | 'private'>
-  calendar_feeds: Pick<Tables['calendar_feeds'], 'name' | 'url' | 'private'>
+  calendar_feeds: Pick<Tables['calendar_feeds'], 'name' | 'url' | 'private' | 'color'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
@@ -161,6 +161,7 @@ const seed = (): Data => {
         private: false,
         feed_id: null,
         source_uid: null,
+        color: null,
         added_by: DEMO_OTHER,
         created_at: ago(300),
       },
@@ -177,6 +178,7 @@ const seed = (): Data => {
         private: true,
         feed_id: null,
         source_uid: null,
+        color: null,
         added_by: DEMO_ME,
         created_at: ago(900),
       },
@@ -436,7 +438,7 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'grocery_categories') return { created_at: now }
   if (table === 'grocery_lists') return { owner: me, created_at: now }
   if (table === 'recipes') return { added_by: me, created_at: now }
-  if (table === 'calendar_events') return { added_by: me, reminded_at: null, feed_id: null, source_uid: null, created_at: now }
+  if (table === 'calendar_events') return { added_by: me, reminded_at: null, feed_id: null, source_uid: null, color: null, created_at: now }
   if (table === 'calendar_feeds') return { owner: me, synced_at: null, created_at: now }
   if (table === 'todos')
     return {

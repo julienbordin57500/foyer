@@ -7,7 +7,7 @@ import { AGENDA_COLORS, AGENDA_LEGEND, useAgenda, type AgendaItem } from '../lib
 import { addDays, parseISODate, toISODate, today } from '../lib/dates'
 import { capitalize } from '../lib/format'
 import type { CalendarEvent } from '../lib/types'
-import { Button, Card, DateRow, SectionTitle, Sheet, SheetActions, SwipeRow, TitleInput, cx, tick } from './ui'
+import { Button, Card, DateRow, SectionTitle, Segmented, Sheet, SheetActions, SwipeRow, TitleInput, cx, tick } from './ui'
 
 const MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
 const DAY_TITLE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -42,33 +42,102 @@ const hhmmOf = (iso: string) => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/** Le calendrier du foyer, en grand sur l'Accueil : le mois, puis le détail du jour choisi. */
+type View = 'mois' | 'semaine' | 'liste'
+const VIEW_KEY = 'foyer-calendrier-vue'
+const readView = (): View => {
+  try {
+    const v = localStorage.getItem(VIEW_KEY)
+    return v === 'semaine' || v === 'liste' ? v : 'mois'
+  } catch {
+    return 'mois'
+  }
+}
+const SHORT_DAY = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric' })
+const SHORT_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' })
+const mondayOf = (d: Date) => addDays(d, -((d.getDay() + 6) % 7))
+
+/** Une pastille par chose prévue (4 au plus, puis « + »), chacune à la couleur de son calendrier. */
+function Dots({ items, light }: { items: AgendaItem[]; light?: boolean }) {
+  return (
+    <span className="flex h-1.5 items-center gap-0.5">
+      {items.slice(0, 4).map((it) => (
+        <span key={it.key} className="size-1.5 rounded-full" style={{ background: light ? 'var(--bg)' : it.color }} />
+      ))}
+      {items.length > 4 && <span className={cx('text-[9px] font-bold leading-none', light ? 'text-bg' : 'text-muted')}>+</span>}
+    </span>
+  )
+}
+
+/** Le calendrier du foyer, en grand sur l'Accueil : par mois (grille), par semaine, ou en liste. */
 export function CalendarBlock({ go }: { go(t: Tab): void }) {
   const itemsOn = useAgenda()
   const { data } = useStore()
   const { run: importIphone, busy } = useIphoneImport()
   const hasFeeds = data.calendar_feeds.length > 0
   const todayIso = toISODate(today())
+  const [view, setView] = useState<View>(readView)
   const [picked, setPicked] = useState(todayIso)
   const [month, setMonth] = useState(() => {
     const d = today()
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
+  const [week, setWeek] = useState(() => mondayOf(today()))
   const [draft, setDraft] = useState<Draft | null>(null)
 
+  const changeView = (v: View) => {
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      /* pas grave : on reviendra au mois */
+    }
+  }
+  const open = (it: AgendaItem) => (it.event ? setDraft(it.event) : go(it.tab))
+
   // Grille du lundi au dimanche, 6 semaines : comme le calendrier de l'iPhone.
-  const first = addDays(month, -((month.getDay() + 6) % 7))
-  const cells = Array.from({ length: 42 }, (_, i) => addDays(first, i))
-  const shift = (n: number) => {
+  const cells = Array.from({ length: 42 }, (_, i) => addDays(mondayOf(month), i))
+  const shiftMonth = (n: number) => {
     tick()
     setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
   }
   const pick = (d: Date) => {
     setPicked(toISODate(d))
     if (d.getMonth() !== month.getMonth()) setMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+    setWeek(mondayOf(d))
   }
   const isThisMonth = month.getMonth() === today().getMonth() && month.getFullYear() === today().getFullYear()
+  const isThisWeek = toISODate(week) === toISODate(mondayOf(today()))
   const dayItems = itemsOn(picked)
+  // Légende : les sortes, puis mes calendriers iPhone avec leur couleur.
+  const legend = [
+    ...AGENDA_LEGEND.map((l) => ({ key: l.kind, label: l.label, color: AGENDA_COLORS[l.kind] })),
+    ...data.calendar_feeds.map((f) => ({ key: f.id, label: f.name, color: f.color })),
+  ]
+
+  const header = (title: string, onPrev: () => void, onNext: () => void, onToday: () => void, isNow: boolean, label: string) => (
+    <div className="mb-1 flex items-center justify-between px-1">
+      <button
+        onClick={onPrev}
+        aria-label={`${label} précédent${label === 'Semaine' ? 'e' : ''}`}
+        className="grid size-9 place-items-center rounded-full text-muted active:bg-surface-2"
+      >
+        <ChevronLeft size={19} />
+      </button>
+      <button onClick={onToday} className="flex flex-col items-center leading-tight">
+        <span key={title} className="animate-fade font-serif text-[21px] font-medium first-letter:uppercase">
+          {title}
+        </span>
+        {!isNow && <span className="text-[11px] font-semibold text-sec">Revenir à aujourd'hui</span>}
+      </button>
+      <button
+        onClick={onNext}
+        aria-label={`${label} suivant${label === 'Semaine' ? 'e' : ''}`}
+        className="grid size-9 place-items-center rounded-full text-muted active:bg-surface-2"
+      >
+        <ChevronRight size={19} />
+      </button>
+    </div>
+  )
 
   return (
     <section>
@@ -88,97 +157,138 @@ export function CalendarBlock({ go }: { go(t: Tab): void }) {
       >
         Calendrier
       </SectionTitle>
-      <Card className="p-3">
-        <div className="mb-1 flex items-center justify-between px-1">
-          <button
-            onClick={() => shift(-1)}
-            aria-label="Mois précédent"
-            className="grid size-9 place-items-center rounded-full text-muted active:bg-surface-2"
-          >
-            <ChevronLeft size={19} />
-          </button>
-          <button onClick={() => pick(today())} className="flex flex-col items-center leading-tight">
-            <span key={month.getTime()} className="animate-fade font-serif text-[21px] font-medium first-letter:uppercase">
-              {MONTH.format(month)}
-            </span>
-            {!isThisMonth && <span className="text-[11px] font-semibold text-sec">Revenir à aujourd'hui</span>}
-          </button>
-          <button
-            onClick={() => shift(1)}
-            aria-label="Mois suivant"
-            className="grid size-9 place-items-center rounded-full text-muted active:bg-surface-2"
-          >
-            <ChevronRight size={19} />
-          </button>
-        </div>
-        <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-faint">
-          {WEEKDAYS.map((w, i) => (
-            <span key={i} className="py-1">
-              {w}
-            </span>
-          ))}
-        </div>
-        <div key={month.getTime()} className="grid animate-fade grid-cols-7 gap-y-0.5">
-          {cells.map((d) => {
-            const iso = toISODate(d)
-            const items = itemsOn(iso)
-            const kinds = [...new Set(items.map((x) => x.kind))].slice(0, 3)
-            const on = iso === picked
-            const out = d.getMonth() !== month.getMonth()
-            return (
-              <button
-                key={iso}
-                onClick={() => pick(d)}
-                aria-pressed={on}
-                aria-label={`${DAY_TITLE.format(d)} : ${items.length} chose${items.length > 1 ? 's' : ''}`}
-                className={cx('flex h-12 flex-col items-center justify-center gap-1 transition-opacity', out && 'opacity-30')}
-              >
-                <span
-                  className={cx(
-                    'num grid size-8 place-items-center rounded-full text-[15px] font-semibold transition duration-200 ease-smooth',
-                    on ? 'bg-sec text-bg shadow-[0_4px_14px_-4px_var(--sec)]' : iso === todayIso && 'text-sec ring-2 ring-sec/60',
-                  )}
-                >
-                  {d.getDate()}
-                </span>
-                <span className="flex h-1.5 gap-0.5">
-                  {kinds.map((k) => (
-                    <span key={k} className="size-1.5 rounded-full" style={{ background: AGENDA_COLORS[k] }} />
-                  ))}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 border-t border-line/60 pt-2.5 text-[11px] text-muted">
-          {AGENDA_LEGEND.map((l) => (
-            <span key={l.kind} className="flex items-center gap-1">
-              <span className="size-1.5 rounded-full" style={{ background: AGENDA_COLORS[l.kind] }} />
-              {l.label}
-            </span>
-          ))}
-        </div>
-      </Card>
+      <div className="mb-2">
+        <Segmented<View>
+          value={view}
+          onChange={changeView}
+          options={[
+            { value: 'mois', label: 'Mois' },
+            { value: 'semaine', label: 'Semaine' },
+            { value: 'liste', label: 'Liste' },
+          ]}
+        />
+      </div>
 
-      <p className="mb-2 mt-4 px-4 text-[15px] font-semibold first-letter:uppercase">
-        {picked === todayIso ? "Aujourd'hui" : DAY_TITLE.format(parseISODate(picked))}
-      </p>
-      <Card key={picked} className="animate-fade overflow-hidden">
-        {dayItems.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
-            <p className="text-[15px] text-muted">Rien de prévu ce jour-là.</p>
-            <Button variant="secondary" onClick={() => setDraft({ date: picked })}>
-              <Plus size={17} /> Ajouter un événement
-            </Button>
+      {view === 'mois' && (
+        <>
+          <Card className="p-3">
+            {header(
+              MONTH.format(month),
+              () => shiftMonth(-1),
+              () => shiftMonth(1),
+              () => pick(today()),
+              isThisMonth,
+              'Mois',
+            )}
+            <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-faint">
+              {WEEKDAYS.map((w, i) => (
+                <span key={i} className="py-1">
+                  {w}
+                </span>
+              ))}
+            </div>
+            <div key={month.getTime()} className="grid animate-fade grid-cols-7 gap-y-0.5">
+              {cells.map((d) => {
+                const iso = toISODate(d)
+                const items = itemsOn(iso)
+                const on = iso === picked
+                return (
+                  <button
+                    key={iso}
+                    onClick={() => pick(d)}
+                    aria-pressed={on}
+                    aria-label={`${DAY_TITLE.format(d)} : ${items.length} chose${items.length > 1 ? 's' : ''}`}
+                    className={cx(
+                      'flex h-12 flex-col items-center justify-center gap-1 transition-opacity',
+                      d.getMonth() !== month.getMonth() && 'opacity-30',
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        'num grid size-8 place-items-center rounded-full text-[15px] font-semibold transition duration-200 ease-smooth',
+                        on ? 'bg-sec text-bg shadow-[0_4px_14px_-4px_var(--sec)]' : iso === todayIso && 'text-sec ring-2 ring-sec/60',
+                      )}
+                    >
+                      {d.getDate()}
+                    </span>
+                    <Dots items={items} />
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 border-t border-line/60 pt-2.5 text-[11px] text-muted">
+              {legend.map((l) => (
+                <span key={l.key} className="flex items-center gap-1">
+                  <span className="size-1.5 rounded-full" style={{ background: l.color }} />
+                  {l.label}
+                </span>
+              ))}
+            </div>
+          </Card>
+
+          <p className="mb-2 mt-4 px-4 text-[15px] font-semibold first-letter:uppercase">
+            {picked === todayIso ? "Aujourd'hui" : DAY_TITLE.format(parseISODate(picked))}
+          </p>
+          <Card key={picked} className="animate-fade overflow-hidden">
+            {dayItems.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
+                <p className="text-[15px] text-muted">Rien de prévu ce jour-là.</p>
+                <Button variant="secondary" onClick={() => setDraft({ date: picked })}>
+                  <Plus size={17} /> Ajouter un événement
+                </Button>
+              </div>
+            ) : (
+              <ul>
+                {dayItems.map((it) => (
+                  <AgendaRow key={it.key} item={it} onOpen={() => open(it)} />
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {view === 'semaine' && (
+        <Card className="overflow-hidden">
+          <div className="p-3 pb-1">
+            {header(
+              `${SHORT_DATE.format(week)} – ${SHORT_DATE.format(addDays(week, 6))}`,
+              () => setWeek(addDays(week, -7)),
+              () => setWeek(addDays(week, 7)),
+              () => setWeek(mondayOf(today())),
+              isThisWeek,
+              'Semaine',
+            )}
           </div>
-        ) : (
-          <ul>
-            {dayItems.map((it) => (
-              <AgendaRow key={it.key} item={it} onOpen={() => (it.event ? setDraft(it.event) : go(it.tab))} />
-            ))}
+          <ul key={toISODate(week)} className="animate-fade">
+            {Array.from({ length: 7 }, (_, i) => addDays(week, i)).map((d) => {
+              const iso = toISODate(d)
+              const items = itemsOn(iso)
+              return (
+                <li key={iso} className="flex gap-3 border-t border-line/60 px-4 py-2.5">
+                  <button
+                    onClick={() => setDraft({ date: iso })}
+                    aria-label={`Ajouter le ${DAY_TITLE.format(d)}`}
+                    className={cx('w-11 shrink-0 pt-1 text-center leading-tight', iso === todayIso ? 'text-sec' : 'text-muted')}
+                  >
+                    <span className="block text-[11px] font-semibold uppercase">{SHORT_DAY.format(d).split(' ')[0].replace('.', '')}</span>
+                    <span className="num block font-serif text-[22px] font-medium text-ink">{d.getDate()}</span>
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    {items.length === 0 ? (
+                      <p className="pt-2.5 text-[14px] text-faint">—</p>
+                    ) : (
+                      items.map((it) => <CompactRow key={it.key} item={it} onOpen={() => open(it)} />)
+                    )}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
-        )}
-      </Card>
+        </Card>
+      )}
+
+      {view === 'liste' && <AgendaList itemsOn={itemsOn} onOpen={open} />}
 
       <Sheet open={!!draft} title={draft && 'id' in draft ? "Modifier l'événement" : 'Nouvel événement'} onClose={() => setDraft(null)}>
         {draft && (
@@ -196,6 +306,49 @@ export function CalendarBlock({ go }: { go(t: Tab): void }) {
   )
 }
 
+/** Vue Semaine : une ligne courte par chose prévue. */
+function CompactRow({ item, onOpen }: { item: AgendaItem; onOpen(): void }) {
+  return (
+    <button onClick={onOpen} className="flex min-h-10 w-full items-center gap-2 rounded-xl px-1 text-left active:bg-surface-2">
+      <span className="size-2 shrink-0 rounded-full" style={{ background: item.color }} />
+      {item.time && <span className="num shrink-0 text-[12.5px] font-semibold text-sec">{item.time}</span>}
+      <span className="min-w-0 flex-1 truncate text-[15px]">{item.text}</span>
+    </button>
+  )
+}
+
+/** Vue Liste : les 60 prochains jours qui ont quelque chose, comme la vue « Liste » de l'iPhone. */
+function AgendaList({ itemsOn, onOpen }: { itemsOn(iso: string): AgendaItem[]; onOpen(it: AgendaItem): void }) {
+  const start = today()
+  const days = Array.from({ length: 60 }, (_, i) => addDays(start, i))
+    .map((d) => ({ d, items: itemsOn(toISODate(d)) }))
+    .filter((x) => x.items.length > 0)
+  if (days.length === 0)
+    return (
+      <Card>
+        <p className="px-4 py-6 text-center text-[15px] text-muted">Rien de prévu dans les deux prochains mois.</p>
+      </Card>
+    )
+  return (
+    <div className="space-y-3">
+      {days.map(({ d, items }) => (
+        <div key={toISODate(d)}>
+          <p className="mb-1.5 px-4 text-[13px] font-semibold text-muted first-letter:uppercase">
+            {toISODate(d) === toISODate(start) ? "Aujourd'hui" : DAY_TITLE.format(d)}
+          </p>
+          <Card className="overflow-hidden">
+            <ul>
+              {items.map((it) => (
+                <AgendaRow key={it.key} item={it} onOpen={() => onOpen(it)} />
+              ))}
+            </ul>
+          </Card>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function AgendaRow({ item, onOpen }: { item: AgendaItem; onOpen(): void }) {
   const { removeWithUndo } = useStore()
   const row = (
@@ -205,7 +358,7 @@ function AgendaRow({ item, onOpen }: { item: AgendaItem; onOpen(): void }) {
         <span
           aria-hidden
           className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-surface"
-          style={{ background: AGENDA_COLORS[item.kind] }}
+          style={{ background: item.color }}
         />
       </span>
       <span className="min-w-0 flex-1">
