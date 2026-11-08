@@ -15,6 +15,7 @@ export type NewRow<T extends TableName> = {
   grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
   grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji' | 'note'>
   recipes: Pick<Tables['recipes'], 'name' | 'emoji' | 'ingredients'>
+  calendar_events: Pick<Tables['calendar_events'], 'title' | 'kind' | 'date' | 'time' | 'note' | 'remind_days' | 'remind_at'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
 export type Patch<T extends TableName> = Partial<Omit<Tables[T], 'id' | 'created_at'>>
@@ -45,6 +46,7 @@ export const TABLES: TableName[] = [
   'grocery_categories',
   'grocery_lists',
   'recipes',
+  'calendar_events',
 ]
 
 export function supabaseBackend(sb: SupabaseClient, householdId: string, me: string): Backend {
@@ -142,6 +144,34 @@ const seed = (): Data => {
     grocery_categories: [],
     grocery_lists: [],
     recipes: [],
+    calendar_events: [
+      {
+        id: uid(),
+        title: 'Pédiatre de Noah',
+        kind: 'event',
+        date: inDays(3),
+        time: '10:30',
+        note: 'Carnet de santé',
+        remind_days: 1,
+        remind_at: null,
+        reminded_at: null,
+        added_by: DEMO_OTHER,
+        created_at: ago(300),
+      },
+      {
+        id: uid(),
+        title: 'Anniversaire de maman',
+        kind: 'memo',
+        date: inDays(9),
+        time: null,
+        note: null,
+        remind_days: 7,
+        remind_at: null,
+        reminded_at: null,
+        added_by: DEMO_ME,
+        created_at: ago(900),
+      },
+    ],
     grocery_items: [
       item('Tomates cerises', 'Fruits & légumes', DEMO_OTHER),
       item('Avocats', 'Fruits & légumes', DEMO_ME, { quantity: '3' }),
@@ -397,6 +427,7 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'grocery_categories') return { created_at: now }
   if (table === 'grocery_lists') return { owner: me, created_at: now }
   if (table === 'recipes') return { added_by: me, created_at: now }
+  if (table === 'calendar_events') return { added_by: me, reminded_at: null, created_at: now }
   if (table === 'todos')
     return {
       added_by: me,

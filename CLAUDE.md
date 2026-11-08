@@ -19,9 +19,9 @@ factures et charges, listes, petits mots, notifications. Toujours répondre en f
 ## Structure
 - `src/pages/` : Accueil (`Home`), Courses (`Groceries`), À faire (`Todos`), Factures (`Bills`), Listes (`Lists`)
 - `src/data/store.tsx` (état + mises à jour optimistes), `src/data/backends.ts` (Supabase ou démo)
-- `src/lib/` : `categorize.ts` (rayons auto), `recipes.ts`, `reminders.ts`, `theme.ts`, `weather.ts`, `types.ts`
-- `src/components/` : feuilles (Settings, Recipe…), `ui.tsx` (éléments communs)
-- `supabase/schema.sql` puis `v2_…` → `v14_…` : à appliquer dans l'ordre ; `functions/foyer-push` : notifications
+- `src/lib/` : `categorize.ts` (rayons auto), `recipes.ts`, `reminders.ts`, `theme.ts`, `weather.ts`, `agenda.ts` (tout ce qui a une date, pour le calendrier), `types.ts`
+- `src/components/` : feuilles (Settings, Recipe…), `Calendar.tsx` (calendrier de l'Accueil), `ui.tsx` (éléments communs)
+- `supabase/schema.sql` puis `v2_…` → `v16_…` : à appliquer dans l'ordre ; `functions/foyer-push` : notifications
 - `public/push-sw.js` : réception des notifications ; `scripts/icons.mjs` : icônes depuis le logo
 
 ## Conventions

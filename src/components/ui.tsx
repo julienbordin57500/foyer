@@ -73,7 +73,7 @@ export function Hero({
         {(title || eyebrow || action) && (
           <div className="relative flex min-h-[64px] items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="mb-1.5 h-[18px] text-[13px] font-medium opacity-75 first-letter:uppercase">{eyebrow}</p>
+              <p className="mb-1.5 h-[18px] truncate text-[13px] font-medium opacity-75 first-letter:uppercase">{eyebrow}</p>
               <h1 className="line-clamp-2 font-serif text-[36px] font-medium leading-[1.02] tracking-[-0.01em] text-balance">{title}</h1>
             </div>
             {action}

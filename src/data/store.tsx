@@ -37,6 +37,7 @@ const EMPTY: Data = {
   grocery_categories: [],
   grocery_lists: [],
   recipes: [],
+  calendar_events: [],
 }
 const Ctx = createContext<Store | null>(null)
 
@@ -60,6 +61,7 @@ export function DataProvider({ backend, children }: { backend: Backend; children
     grocery_categories: 0,
     grocery_lists: 0,
     recipes: 0,
+    calendar_events: 0,
   })
 
   const refresh = useCallback(

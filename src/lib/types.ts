@@ -43,6 +43,22 @@ export interface Recipe {
   created_at: string
 }
 
+/** Calendrier : événement (rendez-vous…) ou pense-bête, ajouté à la main. */
+export interface CalendarEvent {
+  id: string
+  title: string
+  kind: 'event' | 'memo'
+  date: string // yyyy-mm-dd
+  time: string | null // hh:mm(:ss)
+  note: string | null
+  /** Rappel : 0 = le jour même, 1 à 7 = autant de jours avant ; null = pas de notification. */
+  remind_days: number | null
+  remind_at: string | null
+  reminded_at: string | null
+  added_by: string
+  created_at: string
+}
+
 export type GroceryStatus = 'todo' | 'ordered' | 'bought'
 /** Où l'acheter : en magasin, au drive, ou l'un ou l'autre. */
 export type Place = 'store' | 'drive' | 'both'
@@ -195,6 +211,7 @@ export interface Tables {
   grocery_categories: GroceryCategory
   grocery_lists: GroceryList
   recipes: Recipe
+  calendar_events: CalendarEvent
 }
 
 export type TableName = keyof Tables
