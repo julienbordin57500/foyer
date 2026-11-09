@@ -15,7 +15,10 @@ export type NewRow<T extends TableName> = {
   grocery_categories: Pick<Tables['grocery_categories'], 'name' | 'emoji'>
   grocery_lists: Pick<Tables['grocery_lists'], 'name' | 'emoji' | 'note'>
   recipes: Pick<Tables['recipes'], 'name' | 'emoji' | 'ingredients'>
-  calendar_events: Pick<Tables['calendar_events'], 'title' | 'kind' | 'date' | 'time' | 'note' | 'remind_days' | 'remind_at' | 'private'>
+  calendar_events: Pick<
+    Tables['calendar_events'],
+    'title' | 'kind' | 'date' | 'time' | 'note' | 'remind_days' | 'remind_at' | 'private' | 'color' | 'end_date' | 'repeat'
+  >
   calendar_feeds: Pick<Tables['calendar_feeds'], 'name' | 'url' | 'private' | 'color'>
   bills: Pick<Tables['bills'], 'title' | 'amount' | 'due_date' | 'assignee' | 'repeat' | 'auto_debit' | 'shared'>
 }[T]
@@ -153,6 +156,8 @@ const seed = (): Data => {
         title: 'Pédiatre de Noah',
         kind: 'event',
         date: inDays(3),
+        end_date: null,
+        repeat: null,
         time: '10:30',
         note: 'Carnet de santé',
         remind_days: 1,
@@ -170,6 +175,8 @@ const seed = (): Data => {
         title: 'Anniversaire de maman',
         kind: 'memo',
         date: inDays(9),
+        end_date: null,
+        repeat: 'year',
         time: null,
         note: null,
         remind_days: 7,
@@ -438,7 +445,7 @@ export function rowDefaults(table: TableName, me: string) {
   if (table === 'grocery_categories') return { created_at: now }
   if (table === 'grocery_lists') return { owner: me, created_at: now }
   if (table === 'recipes') return { added_by: me, created_at: now }
-  if (table === 'calendar_events') return { added_by: me, reminded_at: null, feed_id: null, source_uid: null, color: null, created_at: now }
+  if (table === 'calendar_events') return { added_by: me, reminded_at: null, feed_id: null, source_uid: null, created_at: now }
   if (table === 'calendar_feeds') return { owner: me, synced_at: null, created_at: now }
   if (table === 'todos')
     return {

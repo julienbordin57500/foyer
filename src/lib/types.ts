@@ -49,7 +49,11 @@ export interface CalendarEvent {
   title: string
   kind: 'event' | 'memo'
   date: string // yyyy-mm-dd
+  /** Dernier jour d'un événement sur plusieurs jours (vacances…) ; null = un seul jour. */
+  end_date: string | null
   time: string | null // hh:mm(:ss)
+  /** Revient chaque semaine, mois ou année (anniversaires…). */
+  repeat: 'week' | 'month' | 'year' | null
   note: string | null
   /** Rappel : 0 = le jour même, 1 à 7 = autant de jours avant ; null = pas de notification. */
   remind_days: number | null

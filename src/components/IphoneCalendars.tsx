@@ -175,9 +175,9 @@ export function IphoneCalendars() {
   )
 }
 
-function ColorChips({ value, onChange }: { value: string; onChange(c: string): void }) {
+export function ColorChips({ value, onChange }: { value: string; onChange(c: string): void }) {
   return (
-    <div className="flex flex-wrap justify-center gap-2" role="radiogroup" aria-label="Couleur des pastilles">
+    <div className="flex flex-wrap justify-center gap-1.5" role="radiogroup" aria-label="Couleur des pastilles">
       {FEED_COLORS.map((c) => (
         <button
           key={c}
@@ -187,7 +187,7 @@ function ColorChips({ value, onChange }: { value: string; onChange(c: string): v
           aria-label={`Couleur ${c}`}
           onClick={() => onChange(c)}
           className={cx(
-            'size-8 rounded-full transition active:scale-90',
+            'size-7 rounded-full transition active:scale-90',
             value === c && 'ring-2 ring-ink ring-offset-2 ring-offset-surface-2',
           )}
           style={{ background: c }}

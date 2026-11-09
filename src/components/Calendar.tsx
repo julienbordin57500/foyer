@@ -1,10 +1,24 @@
-import { useState, type FormEvent } from 'react'
-import { BellRing, CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, StickyNote, Trash2 } from 'lucide-react'
+import { useRef, useState, type FormEvent } from 'react'
+import {
+  BellRing,
+  CalendarDays,
+  CalendarRange,
+  Repeat,
+  Smartphone,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Plus,
+  RefreshCw,
+  StickyNote,
+  Trash2,
+} from 'lucide-react'
 import type { Tab } from '../App'
 import { useStore } from '../data/store'
-import { useIphoneImport } from './IphoneCalendars'
+import { ColorChips, useIphoneImport } from './IphoneCalendars'
 import { AGENDA_COLORS, AGENDA_LEGEND, useAgenda, type AgendaItem } from '../lib/agenda'
-import { addDays, parseISODate, toISODate, today } from '../lib/dates'
+import { addDays, addMonths, parseISODate, toISODate, today } from '../lib/dates'
+import { calendarUrl } from '../lib/reminders'
 import { capitalize } from '../lib/format'
 import type { CalendarEvent } from '../lib/types'
 import { Button, Card, DateRow, SectionTitle, Segmented, Sheet, SheetActions, SwipeRow, TitleInput, cx, tick } from './ui'
@@ -24,14 +38,28 @@ const REMINDERS: { days: number | null; label: string }[] = [
   { days: 7, label: '1 semaine avant' },
 ]
 
-/** Moment de la notification : le jour du rappel (0 à 7 jours avant), à l'heure choisie. Déjà passé : elle part tout de suite. */
-function remindAt(date: string, days: number | null, at: string) {
+/**
+ * Moment de la notification : le jour du rappel (0 à 7 jours avant), à l'heure choisie. Pour un événement
+ * qui se répète, on vise la prochaine fois (le serveur passe ensuite tout seul à la suivante).
+ */
+function remindAt(date: string, days: number | null, at: string, repeat: CalendarEvent['repeat']) {
   if (days === null) return null
-  const d = addDays(parseISODate(date), -days)
+  let start = parseISODate(date)
+  for (let i = 1; repeat && addDays(start, 1) < today() && i < 2000; i++)
+    start = repeat === 'week' ? addDays(parseISODate(date), 7 * i) : addMonths(parseISODate(date), repeat === 'year' ? 12 * i : i)
+  const d = addDays(start, -days)
   const [h, m] = (at || '09:00').split(':').map(Number)
   d.setHours(h, m)
   return d.toISOString()
 }
+
+const REPEATS: { value: CalendarEvent['repeat']; label: string }[] = [
+  { value: null, label: 'Une seule fois' },
+  { value: 'week', label: 'Chaque semaine' },
+  { value: 'month', label: 'Chaque mois' },
+  { value: 'year', label: 'Chaque année' },
+]
+
 /** « 09:00 » → « 9 h », « 18:30 » → « 18 h 30 ». */
 const spoken = (t: string) => {
   const [h, m] = t.split(':')
@@ -52,6 +80,14 @@ const readView = (): View => {
     return 'mois'
   }
 }
+const HIDDEN_KEY = 'foyer-calendrier-masques'
+const readHidden = () => {
+  try {
+    return new Set<string>(JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]'))
+  } catch {
+    return new Set<string>()
+  }
+}
 const SHORT_DAY = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric' })
 const SHORT_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' })
 const mondayOf = (d: Date) => addDays(d, -((d.getDay() + 6) % 7))
@@ -70,7 +106,23 @@ function Dots({ items, light }: { items: AgendaItem[]; light?: boolean }) {
 
 /** Le calendrier du foyer, en grand sur l'Accueil : par mois (grille), par semaine, ou en liste. */
 export function CalendarBlock({ go }: { go(t: Tab): void }) {
-  const itemsOn = useAgenda()
+  const allOn = useAgenda()
+  // Légende : un appui masque ou remontre une sorte (ou un calendrier iPhone). Gardé sur ce téléphone.
+  const [hidden, setHidden] = useState<Set<string>>(readHidden)
+  const toggle = (key: string) => {
+    const next = new Set(hidden)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    setHidden(next)
+    try {
+      localStorage.setItem(HIDDEN_KEY, JSON.stringify([...next]))
+    } catch {
+      /* pas grave */
+    }
+  }
+  const itemsOn = (iso: string) => allOn(iso).filter((it) => !hidden.has(it.group))
+  // Glisser le doigt sur la grille : à gauche le mois suivant, à droite le précédent.
+  const swipe = useRef<{ x: number; y: number } | null>(null)
   const { data } = useStore()
   const { run: importIphone, busy } = useIphoneImport()
   const hasFeeds = data.calendar_feeds.length > 0
@@ -187,41 +239,81 @@ export function CalendarBlock({ go }: { go(t: Tab): void }) {
                 </span>
               ))}
             </div>
-            <div key={month.getTime()} className="grid animate-fade grid-cols-7 gap-y-0.5">
-              {cells.map((d) => {
+            <div
+              key={month.getTime()}
+              className="grid animate-fade touch-pan-y grid-cols-7 gap-y-0.5"
+              onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
+              onPointerUp={(e) => {
+                const s0 = swipe.current
+                swipe.current = null
+                if (!s0) return
+                const dx = e.clientX - s0.x
+                if (Math.abs(dx) > 50 && Math.abs(e.clientY - s0.y) < 40) shiftMonth(dx < 0 ? 1 : -1)
+              }}
+            >
+              {cells.map((d, i) => {
                 const iso = toISODate(d)
                 const items = itemsOn(iso)
+                const bars = items.filter((it) => it.span).slice(0, 2)
+                const holiday = items.find((it) => it.kind === 'holiday')
+                const dots = items.filter((it) => !it.span && it.kind !== 'holiday')
                 const on = iso === picked
+                const isToday = iso === todayIso
+                const weekend = i % 7 >= 5
                 return (
                   <button
                     key={iso}
                     onClick={() => pick(d)}
                     aria-pressed={on}
-                    aria-label={`${DAY_TITLE.format(d)} : ${items.length} chose${items.length > 1 ? 's' : ''}`}
+                    aria-label={`${DAY_TITLE.format(d)}${holiday ? ` (${holiday.text})` : ''} : ${items.length} chose${items.length > 1 ? 's' : ''}`}
                     className={cx(
-                      'flex h-12 flex-col items-center justify-center gap-1 transition-opacity',
+                      'flex h-14 flex-col items-center justify-start gap-1 pt-1 transition-opacity',
+                      weekend && 'bg-surface-2/50',
+                      weekend && i % 7 === 5 && 'rounded-l-xl',
+                      weekend && i % 7 === 6 && 'rounded-r-xl',
                       d.getMonth() !== month.getMonth() && 'opacity-30',
                     )}
                   >
                     <span
                       className={cx(
                         'num grid size-8 place-items-center rounded-full text-[15px] font-semibold transition duration-200 ease-smooth',
-                        on ? 'bg-sec text-bg shadow-[0_4px_14px_-4px_var(--sec)]' : iso === todayIso && 'text-sec ring-2 ring-sec/60',
+                        on
+                          ? 'bg-sec text-bg shadow-[0_4px_14px_-4px_var(--sec)]'
+                          : isToday
+                            ? 'bg-sec/15 font-bold text-sec ring-2 ring-sec/70'
+                            : holiday && 'text-[#94a3b8] underline decoration-dotted underline-offset-4',
                       )}
                     >
                       {d.getDate()}
                     </span>
-                    <Dots items={items} />
+                    {/* Événements sur plusieurs jours : une barre qui se poursuit d'une case à l'autre. */}
+                    {bars.map((b) => (
+                      <span
+                        key={b.key}
+                        className={cx(
+                          '-my-0.5 h-1 self-stretch',
+                          (b.span!.first || i % 7 === 0) && 'ml-1.5 rounded-l-full',
+                          (b.span!.last || i % 7 === 6) && 'mr-1.5 rounded-r-full',
+                        )}
+                        style={{ background: b.color }}
+                      />
+                    ))}
+                    <Dots items={dots} />
                   </button>
                 )
               })}
             </div>
             <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 border-t border-line/60 pt-2.5 text-[11px] text-muted">
               {legend.map((l) => (
-                <span key={l.key} className="flex items-center gap-1">
+                <button
+                  key={l.key}
+                  onClick={() => toggle(l.key)}
+                  aria-pressed={!hidden.has(l.key)}
+                  className={cx('flex items-center gap-1 transition-opacity', hidden.has(l.key) && 'line-through opacity-40')}
+                >
                   <span className="size-1.5 rounded-full" style={{ background: l.color }} />
                   {l.label}
-                </span>
+                </button>
               ))}
             </div>
           </Card>
@@ -410,6 +502,11 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
   const [remind, setRemind] = useState<number | null>(existing ? existing.remind_days : 1)
   const [remindTime, setRemindTime] = useState(existing?.remind_at ? hhmmOf(existing.remind_at) : '09:00')
   const [secret, setSecret] = useState(existing?.private ?? false)
+  const [endDate, setEndDate] = useState(existing?.end_date ?? '')
+  const [repeat, setRepeat] = useState<CalendarEvent['repeat']>(existing?.repeat ?? null)
+  // Couleur : celle choisie, sinon celle de la sorte (violet-bleu pour un événement, rose pour un pense-bête).
+  const [color, setColor] = useState<string | null>(existing?.color ?? null)
+  const shown = color ?? AGENDA_COLORS[kind]
   const who = secret ? 'vous seul' : 'vous deux'
   const [confirm, setConfirm] = useState(false)
 
@@ -424,8 +521,11 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
       time: time || null,
       note: note.trim() || null,
       remind_days: remind,
-      remind_at: remindAt(date, remind, remindTime),
+      remind_at: remindAt(date, remind, remindTime, repeat),
       private: secret,
+      color: shown,
+      end_date: endDate && endDate > date ? endDate : null,
+      repeat,
     }
     if (existing) {
       // Jour, heure ou rappel changés : la notification repartira à la nouvelle heure.
@@ -439,7 +539,7 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
     return (
       <div className="flex flex-col items-center gap-2 py-2 text-center">
         <p className="font-serif text-[22px] font-medium">Supprimer « {existing.title} » ?</p>
-        <p className="mb-3 text-[14px] text-muted">Il disparaîtra du calendrier{existing.private ? '' : ' pour vous deux'}.</p>
+        <p className="mb-3 text-[14px] text-muted">{existing.repeat ? 'Toutes ses dates disparaîtront' : 'Il disparaîtra'} du calendrier{existing.private ? '' : ' pour vous deux'}.</p>
         <Button
           variant="danger"
           className="w-full"
@@ -510,7 +610,26 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
           ))}
         </div>
       )}
+      <ColorChips value={shown} onChange={setColor} />
       <DateRow label="Jour" icon={<CalendarDays size={18} />} value={date} onChange={setDate} />
+      <DateRow label="Jusqu'au (facultatif)" icon={<CalendarRange size={18} />} value={endDate} min={date} onChange={setEndDate} />
+      <div className="flex flex-wrap justify-center gap-1.5 py-1">
+        {REPEATS.map((r) => (
+          <button
+            key={r.label}
+            type="button"
+            onClick={() => setRepeat(r.value)}
+            aria-pressed={repeat === r.value}
+            className={cx(
+              'flex h-9 items-center gap-1 rounded-full px-3.5 text-[14px] font-semibold transition duration-200 ease-smooth active:scale-95',
+              repeat === r.value ? 'bg-sec text-bg shadow-[0_4px_14px_-6px_var(--sec)]' : 'bg-surface-2 text-ink ring-1 ring-line/60',
+            )}
+          >
+            {r.value && <Repeat size={13} strokeWidth={2.6} />}
+            {r.label}
+          </button>
+        ))}
+      </div>
       <label className="flex h-14 items-center gap-3 rounded-2xl bg-surface-2 px-4 ring-1 ring-line/50 focus-within:ring-2 focus-within:ring-sec/50">
         <Clock size={18} className="text-sec" />
         <span className="flex-1 text-[15px] text-muted">Heure (facultatif)</span>
@@ -573,6 +692,22 @@ function EventForm({ draft, onDone }: { draft: Draft; onDone(date?: string): voi
           </>
         )}
       </div>
+      {existing && (
+        <a
+          href={calendarUrl(
+            existing.title,
+            (() => {
+              const d = parseISODate(existing.date)
+              const [h, m] = (existing.time ?? '09:00').split(':').map(Number)
+              d.setHours(h, m)
+              return d.toISOString()
+            })(),
+          )}
+          className="mx-auto flex h-10 items-center gap-1.5 px-3 text-[14px] font-semibold text-sec active:opacity-60"
+        >
+          <Smartphone size={16} /> Ajouter à mon iPhone
+        </a>
+      )}
       <SheetActions
         saveLabel={existing ? 'Enregistrer' : 'Ajouter au calendrier'}
         deleteLabel="Supprimer"

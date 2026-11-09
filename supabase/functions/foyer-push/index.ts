@@ -277,7 +277,7 @@ async function sendReminders() {
     .update({ reminded_at: now })
     .lte('remind_at', now)
     .is('reminded_at', null)
-    .select('household_id, title, kind, date, time, private, added_by')
+    .select('id, household_id, title, kind, date, time, private, added_by, repeat, remind_at, remind_days')
 
   const recipientsOf = async (household: string, to: string | null) => {
     if (to) return [to]
@@ -293,10 +293,20 @@ async function sendReminders() {
   // Calendrier : pour vous deux (ou seulement l'auteur si « Juste moi »), avec le jour en clair (« Demain à 10:30 », « Dans 7 jours »).
   const { day } = parisNow()
   for (const e of events ?? []) {
-    const diff = Math.round((Date.parse(`${e.date}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`)) / 86_400_000)
-    const when = diff <= 0 ? "Aujourd'hui" : diff === 1 ? 'Demain' : `Dans ${diff} jours (le ${ddmm(e.date)})`
+    // Qui se répète : la date d'origine est loin, on compte depuis le rappel (« 3 jours avant »).
+    const diff = e.repeat
+      ? (e.remind_days ?? 0)
+      : Math.round((Date.parse(`${e.date}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`)) / 86_400_000)
+    const when = diff <= 0 ? "Aujourd'hui" : diff === 1 ? 'Demain' : `Dans ${diff} jours (le ${ddmm(addDaysISO(day, diff))})`
     const at = e.time ? ` à ${String(e.time).slice(0, 5)}` : ''
     sent += await send(await recipientsOf(e.household_id, e.private ? e.added_by : null), `${e.kind === 'memo' ? '📌' : '📅'} ${e.title}`, `${when}${at}`, 'accueil')
+    // Événement qui se répète : le prochain rappel est programmé tout de suite (semaine, mois ou année suivante).
+    if (e.repeat && e.remind_at) {
+      const next = new Date(e.remind_at)
+      if (e.repeat === 'week') next.setUTCDate(next.getUTCDate() + 7)
+      else next.setUTCMonth(next.getUTCMonth() + (e.repeat === 'year' ? 12 : 1))
+      await sb.from('calendar_events').update({ remind_at: next.toISOString(), reminded_at: null }).eq('id', e.id)
+    }
   }
   sent += await billReminders(recipientsOf)
   sent += await morningDigest()
